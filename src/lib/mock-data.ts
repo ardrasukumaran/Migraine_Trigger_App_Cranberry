@@ -1,5 +1,3 @@
-import noWaterFor2Hrs from "@/assets/triggers/icons/no-water-for-2-hrs.png";
-import skippedAMeal from "@/assets/triggers/icons/skipped-a-meal.png";
 import dayOldFridgeLeftovers from "@/assets/triggers/icons/day-old-fridge-leftovers.png";
 import overripeFruitVegetable from "@/assets/triggers/icons/overripe-fruit-vegetable.png";
 import salamiSausagesBacon from "@/assets/triggers/icons/salami-sausages-bacon.png";
@@ -30,45 +28,43 @@ export type FoodItem = { name: string; icon: string };
 
 export const FOOD_SETS: { label: string; items: FoodItem[] }[] = [
   {
-    label: "Hydration & leftovers",
+    label: "Fresh & fermented",
     items: [
-      { name: "No water for 2 hrs", icon: noWaterFor2Hrs },
-      { name: "Skipped a meal", icon: skippedAMeal },
-      { name: "Day-old fridge leftovers", icon: dayOldFridgeLeftovers },
-      { name: "Overripe fruit/ vegetable", icon: overripeFruitVegetable },
-      { name: "Salami/ Sausages/ Bacon", icon: salamiSausagesBacon },
-      { name: "Salted Fish", icon: saltedFish },
-      { name: "Aged cheese: parmesan, brie, cheddar", icon: agedCheeseParmesanBrieCheddar },
-      { name: "Alcohol (any)", icon: alcoholAny },
-      { name: "Pickle/ Achaar", icon: pickleAchaar },
-    ],
-  },
-  {
-    label: "Pantry & packaged",
-    items: [
-      { name: "Dried Fruits (Raisins/ Anjeer/ Dates)", icon: driedFruitsRaisinsAnjeerDates },
-      { name: "2-day old dosa/ idli batter", icon: twoDayOldDosaIdliBatter },
-      { name: "Peanut/ Walnut/ Cashew/ Sesame seeds", icon: peanutWalnutCashewSesameSeeds },
-      { name: "Any Chinese food/ Instant noodles", icon: anyChineseFoodInstantNoodles },
-      { name: "Chocolate", icon: chocolate },
-      { name: "Sugar free or anything with it", icon: sugarFreeOrAnythingWithIt },
-      { name: "Artificial colouring (soft drink/ syrup)", icon: artificialColouringSoftDrinkSyrup },
-      { name: "Near-expiry packaged food", icon: nearExpiryPackagedFood },
-      { name: "2-day-old meat/ fish", icon: twoDayOldMeatFish },
-    ],
-  },
-  {
-    label: "Drinks & everyday foods",
-    items: [
-      { name: "Buttermilk/ Chaas", icon: buttermilkChaas },
-      { name: "Caffeinated drink (tea/ coffee/ soft drink)", icon: caffeinatedDrinkTeaCoffeeSoftDrink },
       { name: "Raw onion", icon: rawOnion },
       { name: "Brinjal", icon: brinjal },
-      { name: "Citrus fruit (Orange/ Lemon/ Lime/ Pineapple)", icon: citrusFruitOrangeLemonLimePineapple },
-      { name: "Sweets/ Mithai/ Ice cream", icon: sweetsMithaiIceCream },
+      { name: "Rajma/ Chickpeas", icon: rajmaChickpeas },
+      { name: "Any Chinese food/ Instant noodles", icon: anyChineseFoodInstantNoodles },
+      { name: "Salted Fish", icon: saltedFish },
+      { name: "Salami/ Sausages/ Bacon", icon: salamiSausagesBacon },
+      { name: "2-day old dosa/ idli batter", icon: twoDayOldDosaIdliBatter },
+      { name: "Day-old fridge leftovers", icon: dayOldFridgeLeftovers },
+      { name: "Near-expiry packaged food", icon: nearExpiryPackagedFood },
+    ],
+  },
+  {
+    label: "Dairy & condiments",
+    items: [
+      { name: "2-day-old meat/ fish", icon: twoDayOldMeatFish },
       { name: "Curd", icon: curd },
+      { name: "Buttermilk/ Chaas", icon: buttermilkChaas },
+      { name: "Aged cheese: parmesan, brie, cheddar", icon: agedCheeseParmesanBrieCheddar },
+      { name: "Pickle/ Achaar", icon: pickleAchaar },
       { name: "Papad/ Fryums", icon: papadFryums },
-      { name: "Rajma/Chickpeas", icon: rajmaChickpeas },
+      { name: "Peanut/ Walnut/ Cashew/ Sesame seeds", icon: peanutWalnutCashewSesameSeeds },
+      { name: "Dried Fruits (Raisins/ Anjeer/ Dates)", icon: driedFruitsRaisinsAnjeerDates },
+      { name: "Sweets/ Mithai/ Ice cream", icon: sweetsMithaiIceCream },
+    ],
+  },
+  {
+    label: "Drinks & additives",
+    items: [
+      { name: "Chocolate", icon: chocolate },
+      { name: "Sugar free or anything with it", icon: sugarFreeOrAnythingWithIt },
+      { name: "Overripe fruit/ vegetable", icon: overripeFruitVegetable },
+      { name: "Citrus fruit (Orange/ Lemon/ Lime/ Pineapple)", icon: citrusFruitOrangeLemonLimePineapple },
+      { name: "Caffeinated drink (tea/ coffee/ soft drink)", icon: caffeinatedDrinkTeaCoffeeSoftDrink },
+      { name: "Alcohol (any)", icon: alcoholAny },
+      { name: "Artificial colouring (any soft drink or syrup)", icon: artificialColouringSoftDrinkSyrup },
     ],
   },
 ];

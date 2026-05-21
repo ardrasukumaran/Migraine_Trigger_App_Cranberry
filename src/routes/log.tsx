@@ -238,26 +238,29 @@ function LogPage() {
               })}
             </div>
 
-            <p className={`mt-6 text-xs uppercase tracking-[0.18em] font-semibold ${status === "Just started" ? "text-warm-grey/30" : "text-warm-grey/70"}`}>
+            <p className={`mt-6 text-xs uppercase tracking-[0.18em] font-semibold ${status === "Just started" ? "text-warm-grey/70" : "text-warm-grey/70"}`}>
               Duration so far
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {["3–6h", "6h", ">6h", "24h"].map((d) => (
-                <button
-                  key={d}
-                  disabled={status === "Just started"}
-                  onClick={() => setDuration(d)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
-                    status === "Just started"
-                      ? "bg-card border-border text-foreground/30 cursor-not-allowed"
-                      : duration === d
-                      ? "bg-foreground text-background border-foreground"
-                      : "bg-card border-border text-foreground"
-                  }`}
-                >
-                  {d}
-                </button>
-              ))}
+              {["<3h", "3–6h", "6h", ">6h", "24h"].map((d) => {
+                const disabledForStatus = status === "Just started" && d !== "<3h";
+                return (
+                  <button
+                    key={d}
+                    disabled={disabledForStatus}
+                    onClick={() => setDuration(d)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
+                      disabledForStatus
+                        ? "bg-card border-border text-foreground/30 cursor-not-allowed"
+                        : duration === d
+                        ? "bg-foreground text-background border-foreground"
+                        : "bg-card border-border text-foreground"
+                    }`}
+                  >
+                    {d}
+                  </button>
+                );
+              })}
             </div>
           </section>
         )}
@@ -294,7 +297,7 @@ function LogPage() {
                     <img
                       src={item.icon}
                       alt={item.name}
-                      className="w-8 h-8 object-contain select-none"
+                      className="w-10 h-10 object-contain select-none"
                     />
                     <span className={`text-[9px] font-semibold leading-tight text-center break-words w-full ${on ? "text-primary" : "text-foreground"}`}>
                       {item.name}
