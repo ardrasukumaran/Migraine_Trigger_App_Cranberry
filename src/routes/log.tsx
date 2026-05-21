@@ -297,7 +297,7 @@ function LogPage() {
                     <img
                       src={item.icon}
                       alt={item.name}
-                      className="object-contain select-none" style={{ width: 50, height: 50 }}
+                      className="object-contain select-none" style={{ width: 75, height: 75 }}
                     />
                     <span className={`text-[9px] font-semibold leading-tight text-center break-words w-full ${on ? "text-primary" : "text-foreground"}`}>
                       {item.name}
