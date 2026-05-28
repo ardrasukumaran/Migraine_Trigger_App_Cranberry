@@ -1,6 +1,6 @@
 import path from "node:path";
 
-const clientDir = path.resolve(import.meta.dir, "..", "client");
+const clientDir = path.resolve(process.cwd(), "dist/client");
 const port = parseInt(process.env.PORT ?? "3000", 10);
 
 Bun.serve({
