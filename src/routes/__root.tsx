@@ -4,15 +4,11 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  HeadContent,
-  Scripts,
   useLocation,
   useNavigate,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-
-import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
   return (
@@ -72,61 +68,25 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Cranberry.Fit" },
-      { name: "description", content: "Track your migraines and identify triggers" },
-      { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
-      { name: "apple-mobile-web-app-title", content: "Cranberry.Fit" },
-      { name: "theme-color", content: "#7c3aed" },
-      { property: "og:title", content: "Cranberry.Fit" },
-      { property: "og:description", content: "Track your migraines and identify triggers" },
-      { property: "og:type", content: "website" },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/icon-192.png" },
-    ],
-  }),
-  shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
-
-function RootShell({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { phone, isLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const isLoginPage = location.pathname === '/login';
+  const isLoginPage = location.pathname === "/login";
 
   useEffect(() => {
     if (isLoading) return;
     if (!phone && !isLoginPage) {
-      navigate({ to: '/login' });
+      navigate({ to: "/login" });
     }
   }, [isLoading, phone, isLoginPage, navigate]);
 
-  // While resolving auth from localStorage, show a blank screen (avoids flash)
   if (isLoading) {
     return (
       <div className="phone-frame bg-background flex items-center justify-center min-h-screen">
@@ -135,7 +95,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Unauthenticated and not yet navigated — render nothing to avoid flash
   if (!phone && !isLoginPage) return null;
 
   return <>{children}</>;
