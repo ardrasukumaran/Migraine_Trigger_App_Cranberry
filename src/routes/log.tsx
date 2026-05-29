@@ -361,14 +361,14 @@ function LogPage() {
             <p className="text-sm text-warm-grey/80 mt-2">
               Tap anything you experienced in the 24 hours leading to the migraine.
             </p>
-            <div className="mt-5 grid grid-cols-3 gap-2.5">
+            <div className="mt-5 grid grid-cols-3 gap-2.5 items-start">
               {NON_FOOD_SETS[nonFoodSetIdx].items.map((item) => {
                 const on = nonFoods.includes(item.name);
                 return (
                   <button
                     key={item.name}
                     onClick={() => toggle(nonFoods, item.name, setNonFoods)}
-                    className={`rounded-2xl border-2 flex flex-col items-center justify-start px-1.5 pt-3 pb-2 gap-1.5 transition relative ${
+                    className={`rounded-2xl border-2 flex flex-col items-center justify-start px-1.5 pt-3 pb-2 gap-1.5 transition relative h-auto ${
                       on
                         ? "bg-mid-lavender/30 border-primary scale-[0.97]"
                         : "bg-card border-border hover:border-primary/40"
@@ -380,7 +380,7 @@ function LogPage() {
                       className="object-contain select-none shrink-0"
                       style={{ width: 75, height: 75 }}
                     />
-                    <span className={`text-[9px] font-semibold leading-tight text-center break-words w-full ${on ? "text-primary" : "text-foreground"}`}>
+                    <span className={`text-[9px] font-semibold leading-tight text-center w-full [overflow-wrap:anywhere] ${on ? "text-primary" : "text-foreground"}`}>
                       {item.name}
                     </span>
                     {on && (
