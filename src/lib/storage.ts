@@ -7,9 +7,10 @@ export interface AttackLog {
   intensity: number;  // 1–10
   status: string;     // "Just started" | "Ongoing" | "Done"
   duration: string;   // "3–6h" | "6h" | ">6h" | "24h"
-  foods: string[];    // selected food names
-  others?: string;   // free-text notes
-  createdAt: number;  // timestamp for sorting
+  foods: string[];          // selected food names
+  nonFoodTriggers: string[]; // selected non-food trigger names
+  others?: string;          // free-text notes
+  createdAt: number;        // timestamp for sorting
 }
 
 const ATTACKS_KEY = 'cranberry_attacks';

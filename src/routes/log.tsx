@@ -4,7 +4,7 @@ import { saveAttack } from "@/lib/storage";
 import { AppShell } from "@/components/AppShell";
 import { Berry } from "@/components/Berry";
 import { Check, ArrowLeft, ArrowRight, Sparkles, Calendar as CalendarIcon, MessageCircle } from "lucide-react";
-import { FOOD_SETS } from "@/lib/mock-data";
+import { FOOD_SETS, NON_FOOD_SETS } from "@/lib/mock-data";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
@@ -19,8 +19,8 @@ export const Route = createFileRoute("/log")({
   component: LogPage,
 });
 
-type Step = 0 | 1 | 2;
-const STEP_LABELS = ["Attack", "Food", "Done"];
+type Step = 0 | 1 | 2 | 3;
+const STEP_LABELS = ["Attack", "Food", "Other Triggers", "Done"];
 
 const PAIN_VARS: Record<number, string> = {
   1: "var(--pain-1)",
@@ -84,6 +84,8 @@ function LogPage() {
   const [duration, setDuration] = useState("3–6h");
   const [foods, setFoods] = useState<string[]>([]);
   const [foodSetIdx, setFoodSetIdx] = useState(0);
+  const [nonFoods, setNonFoods] = useState<string[]>([]);
+  const [nonFoodSetIdx, setNonFoodSetIdx] = useState(0);
 
   const toggle = (arr: string[], v: string, set: (x: string[]) => void) =>
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
@@ -93,22 +95,31 @@ function LogPage() {
       setFoodSetIdx(foodSetIdx + 1);
       return;
     }
-    // Persist when completing the last food step → done screen
-    if (step === 1) {
+    if (step === 2 && nonFoodSetIdx < NON_FOOD_SETS.length - 1) {
+      setNonFoodSetIdx(nonFoodSetIdx + 1);
+      return;
+    }
+    // Persist when completing the last non-food step → done screen
+    if (step === 2) {
       saveAttack({
         date: format(date, 'yyyy-MM-dd'),
         intensity,
         status,
         duration,
         foods,
+        nonFoodTriggers: nonFoods,
         others,
       });
     }
-    setStep((Math.min(step + 1, 2)) as Step);
+    setStep((Math.min(step + 1, 3)) as Step);
   };
   const back = () => {
     if (step === 1 && foodSetIdx > 0) {
       setFoodSetIdx(foodSetIdx - 1);
+      return;
+    }
+    if (step === 2 && nonFoodSetIdx > 0) {
+      setNonFoodSetIdx(nonFoodSetIdx - 1);
       return;
     }
     if (step === 0) {
@@ -118,7 +129,14 @@ function LogPage() {
     setStep((Math.max(step - 1, 0)) as Step);
   };
 
-  const progress = step === 2 ? 100 : ((step + (step === 1 ? foodSetIdx / FOOD_SETS.length : 0)) / 2) * 100;
+  const progress =
+    step === 3
+      ? 100
+      : ((step +
+          (step === 1 ? foodSetIdx / FOOD_SETS.length : 0) +
+          (step === 2 ? nonFoodSetIdx / NON_FOOD_SETS.length : 0)) /
+          3) *
+        100;
 
   const painColor = useMemo(() => PAIN_VARS[intensity] ?? "var(--muted-foreground)", [intensity]);
 
@@ -151,12 +169,7 @@ function LogPage() {
             </PopoverContent>
           </Popover>
         ) : (
-          <button
-            onClick={() => navigate({ to: "/" })}
-            className="text-xs font-semibold text-warm-grey/70"
-          >
-            Save & exit
-          </button>
+          <div className="w-10" />
         )}
       </header>
       <div className="px-5">
@@ -222,7 +235,12 @@ function LogPage() {
                     disabled={disabled}
                     onClick={() => {
                       setStatus(s);
-                      if (s === "Just started") setDate(todayDate());
+                      if (s === "Just started") {
+                        setDate(todayDate());
+                        setDuration("<3h");
+                      } else if (duration === "<3h") {
+                        setDuration("3–6h");
+                      }
                     }}
                     className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
                       disabled
@@ -243,7 +261,9 @@ function LogPage() {
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {["<3h", "3–6h", "6h", ">6h", "24h"].map((d) => {
-                const disabledForStatus = status === "Just started" && d !== "<3h";
+                const disabledForStatus =
+                  (status === "Just started" && d !== "<3h") ||
+                  (status !== "Just started" && d === "<3h");
                 return (
                   <button
                     key={d}
@@ -322,7 +342,68 @@ function LogPage() {
               ))}
             </div>
 
-            {foodSetIdx === FOOD_SETS.length - 1 && (
+          </section>
+        )}
+
+        {step === 2 && (
+          <section>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
+                  {nonFoodSetIdx + 1} of {NON_FOOD_SETS.length}
+                </p>
+                <h2 className="font-serif-display text-[26px] leading-tight mt-1">
+                  Understanding other triggers
+                </h2>
+              </div>
+              <Berry mood="clipboard" size={64} />
+            </div>
+            <p className="text-sm text-warm-grey/80 mt-2">
+              Tap anything you experienced in the 24 hours leading to the migraine.
+            </p>
+            <div className="mt-5 grid grid-cols-3 gap-2.5 items-start">
+              {NON_FOOD_SETS[nonFoodSetIdx].items.map((item) => {
+                const on = nonFoods.includes(item.name);
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => toggle(nonFoods, item.name, setNonFoods)}
+                    className={`rounded-2xl border-2 flex flex-col items-center justify-start px-1.5 pt-3 pb-2 gap-1.5 transition relative h-auto ${
+                      on
+                        ? "bg-mid-lavender/30 border-primary scale-[0.97]"
+                        : "bg-card border-border hover:border-primary/40"
+                    }`}
+                  >
+                    <img
+                      src={item.icon}
+                      alt={item.name}
+                      className="object-contain select-none shrink-0"
+                      style={{ width: 100, height: 100 }}
+                    />
+                    <span className={`text-[9px] font-semibold leading-tight text-center w-full [overflow-wrap:anywhere] ${on ? "text-primary" : "text-foreground"}`}>
+                      {item.name}
+                    </span>
+                    {on && (
+                      <span className="absolute top-1.5 right-1.5 h-5 w-5 rounded-full bg-primary text-primary-foreground grid place-items-center">
+                        <Check className="h-3 w-3" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-4 flex justify-center gap-1.5">
+              {NON_FOOD_SETS.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 rounded-full transition-all ${
+                    i === nonFoodSetIdx ? "w-6 bg-primary" : "w-1.5 bg-muted"
+                  }`}
+                />
+              ))}
+            </div>
+
+            {nonFoodSetIdx === NON_FOOD_SETS.length - 1 && (
               <div className="mt-5">
                 <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
                   Others
@@ -339,7 +420,7 @@ function LogPage() {
           </section>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <section className="text-center pt-8">
             <Berry mood="trophy" size={160} className="mx-auto" />
             <h2 className="font-serif-display text-[32px] leading-tight mt-4">
@@ -370,32 +451,14 @@ function LogPage() {
           </section>
         )}
 
-        {step < 2 && (
+        {step < 3 && (
           <div className="mt-10">
             <button
               onClick={next}
               className="w-full rounded-full bg-primary text-primary-foreground py-4 font-semibold text-[15px] flex items-center justify-center gap-2 ring-soft"
             >
-              {step === 1 && foodSetIdx === FOOD_SETS.length - 1 ? "Finish" : "Continue"} <ArrowRight className="h-4 w-4" />
+              {step === 2 && nonFoodSetIdx === NON_FOOD_SETS.length - 1 ? "Finish" : "Continue"} <ArrowRight className="h-4 w-4" />
             </button>
-            {step !== 0 && (
-              <button
-                onClick={() => {
-                  saveAttack({
-                    date: format(date, 'yyyy-MM-dd'),
-                    intensity,
-                    status,
-                    duration,
-                    foods,
-                    others,
-                  });
-                  setStep(2);
-                }}
-                className="block w-full text-center mt-3 text-xs text-warm-grey/70 font-medium"
-              >
-                Skip this step
-              </button>
-            )}
           </div>
         )}
       </main>

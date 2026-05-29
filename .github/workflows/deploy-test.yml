@@ -1,0 +1,29 @@
+name: Deploy to Render (test)
+
+on:
+  push:
+    branches:
+      - test
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Verify build output
+        run: |
+          echo "Client build:"
+          ls dist/client/
+          echo "Server build:"
+          ls dist/server/

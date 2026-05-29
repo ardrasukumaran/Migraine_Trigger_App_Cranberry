@@ -1,3 +1,19 @@
+import lackOfSleep from "@/assets/triggers/icons/lack-of-sleep.png";
+import wokeUp2hLate from "@/assets/triggers/icons/woke-up-2h-late.png";
+import interruptedSleep from "@/assets/triggers/icons/interrupted-sleep.png";
+import oversleeping from "@/assets/triggers/icons/oversleeping.png";
+import stress from "@/assets/triggers/icons/stress.png";
+import depressedMood from "@/assets/triggers/icons/depressed-mood.png";
+import anxiety from "@/assets/triggers/icons/anxiety.png";
+import oddStrongSmells from "@/assets/triggers/icons/odd-strong-smells.png";
+import loudMusic from "@/assets/triggers/icons/loud-music.png";
+import brightFlickeringLights from "@/assets/triggers/icons/bright-flickering-lights.png";
+import overuseOfScreens from "@/assets/triggers/icons/overuse-of-screens.png";
+import neckPain from "@/assets/triggers/icons/neck-pain.png";
+import haveNotHad2LitresOfWater from "@/assets/triggers/icons/have-not-had-2-litres-of-water.png";
+import allergicReaction from "@/assets/triggers/icons/allergic-reaction.png";
+import sinus from "@/assets/triggers/icons/sinus.png";
+import excessivePhysicalStrain from "@/assets/triggers/icons/excessive-physical-strain.png";
 import dayOldFridgeLeftovers from "@/assets/triggers/icons/day-old-fridge-leftovers.png";
 import overripeFruitVegetable from "@/assets/triggers/icons/overripe-fruit-vegetable.png";
 import salamiSausagesBacon from "@/assets/triggers/icons/salami-sausages-bacon.png";
@@ -65,6 +81,35 @@ export const FOOD_SETS: { label: string; items: FoodItem[] }[] = [
       { name: "Caffeinated drink (tea/ coffee/ soft drink)", icon: caffeinatedDrinkTeaCoffeeSoftDrink },
       { name: "Alcohol (any)", icon: alcoholAny },
       { name: "Artificial colouring (any soft drink or syrup)", icon: artificialColouringSoftDrinkSyrup },
+    ],
+  },
+];
+
+export const NON_FOOD_SETS: { label: string; items: FoodItem[] }[] = [
+  {
+    label: "Sleep & emotions",
+    items: [
+      { name: "Have not had 2 litres of water", icon: haveNotHad2LitresOfWater },
+      { name: "Lack of sleep", icon: lackOfSleep },
+      { name: "Woke up 2h late", icon: wokeUp2hLate },
+      { name: "Interrupted sleep", icon: interruptedSleep },
+      { name: "Oversleeping", icon: oversleeping },
+      { name: "Stress", icon: stress },
+      { name: "Depressed mood", icon: depressedMood },
+      { name: "Anxiety", icon: anxiety },
+    ],
+  },
+  {
+    label: "Environment & physical",
+    items: [
+      { name: "Odd/ strong smells", icon: oddStrongSmells },
+      { name: "Loud music", icon: loudMusic },
+      { name: "Bright/ flickering lights", icon: brightFlickeringLights },
+      { name: "Overuse of screens", icon: overuseOfScreens },
+      { name: "Neck pain", icon: neckPain },
+      { name: "Allergic reaction", icon: allergicReaction },
+      { name: "Sinus", icon: sinus },
+      { name: "No warm-up/ cool-down", icon: excessivePhysicalStrain },
     ],
   },
 ];
