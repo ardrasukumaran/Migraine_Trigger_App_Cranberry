@@ -10,9 +10,10 @@ export interface WebhookPayload {
   intensity: number;
   status: string;
   duration: string;
-  foods: string;      // comma-separated, easier to read in a spreadsheet
+  foods: string;         // comma-separated food triggers
+  otherTriggers: string; // comma-separated non-food triggers
   others: string;
-  loggedAt: string;   // ISO timestamp
+  loggedAt: string;      // ISO timestamp
 }
 
 export function sendAttackToWebhook(attack: AttackLog, phone: string): void {
@@ -23,6 +24,7 @@ export function sendAttackToWebhook(attack: AttackLog, phone: string): void {
     status: attack.status,
     duration: attack.duration,
     foods: attack.foods.join(', '),
+    otherTriggers: (attack.nonFoodTriggers ?? []).join(', '),
     others: attack.others ?? '',
     loggedAt: new Date(attack.createdAt).toISOString(),
   };

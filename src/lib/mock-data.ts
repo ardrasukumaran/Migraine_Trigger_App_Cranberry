@@ -89,6 +89,7 @@ export const NON_FOOD_SETS: { label: string; items: FoodItem[] }[] = [
   {
     label: "Sleep & emotions",
     items: [
+      { name: "Have not had 2 litres of water", icon: haveNotHad2LitresOfWater },
       { name: "Lack of sleep", icon: lackOfSleep },
       { name: "Woke up 2h late", icon: wokeUp2hLate },
       { name: "Interrupted sleep", icon: interruptedSleep },
@@ -96,20 +97,19 @@ export const NON_FOOD_SETS: { label: string; items: FoodItem[] }[] = [
       { name: "Stress", icon: stress },
       { name: "Depressed mood", icon: depressedMood },
       { name: "Anxiety", icon: anxiety },
-      { name: "Odd/ strong smells", icon: oddStrongSmells },
     ],
   },
   {
     label: "Environment & physical",
     items: [
+      { name: "Odd/ strong smells", icon: oddStrongSmells },
       { name: "Loud music", icon: loudMusic },
       { name: "Bright/ flickering lights", icon: brightFlickeringLights },
       { name: "Overuse of screens", icon: overuseOfScreens },
       { name: "Neck pain", icon: neckPain },
-      { name: "Have not had 2 litres of water", icon: haveNotHad2LitresOfWater },
       { name: "Allergic reaction", icon: allergicReaction },
       { name: "Sinus", icon: sinus },
-      { name: "Excessive physical strain", icon: excessivePhysicalStrain },
+      { name: "No warm-up/ cool-down", icon: excessivePhysicalStrain },
     ],
   },
 ];

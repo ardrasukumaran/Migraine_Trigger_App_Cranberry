@@ -170,10 +170,22 @@ function LogPage() {
           </Popover>
         ) : (
           <button
-            onClick={() => navigate({ to: "/" })}
-            className="text-xs font-semibold text-warm-grey/70"
+            onClick={() => {
+              saveAttack({
+                date: format(date, 'yyyy-MM-dd'),
+                intensity,
+                status,
+                duration,
+                foods,
+                nonFoodTriggers: nonFoods,
+                others,
+                incomplete: true,
+              });
+              navigate({ to: "/" });
+            }}
+            className="text-xs font-semibold text-amber-500"
           >
-            Save & exit
+            Save as draft
           </button>
         )}
       </header>
@@ -297,7 +309,7 @@ function LogPage() {
               <Berry mood="clipboard" size={64} />
             </div>
             <p className="text-sm text-warm-grey/80 mt-2">
-              Tap anything you consumed in the 24 hours leading to the migraine.
+              Tap anything you experienced in the 24 hours leading to the migraine.
             </p>
             <div className="mt-5 grid grid-cols-3 gap-2.5">
               {FOOD_SETS[foodSetIdx].items.map((item) => {
@@ -371,7 +383,7 @@ function LogPage() {
               <Berry mood="clipboard" size={64} />
             </div>
             <p className="text-sm text-warm-grey/80 mt-2">
-              Tap anything which is applicable.
+              Tap anything you experienced in the 24 hours leading to the migraine.
             </p>
             <div className="mt-5 grid grid-cols-3 gap-2.5">
               {NON_FOOD_SETS[nonFoodSetIdx].items.map((item) => {
@@ -456,25 +468,6 @@ function LogPage() {
             >
               {step === 2 && nonFoodSetIdx === NON_FOOD_SETS.length - 1 ? "Finish" : "Continue"} <ArrowRight className="h-4 w-4" />
             </button>
-            {step !== 0 && (
-              <button
-                onClick={() => {
-                  saveAttack({
-                    date: format(date, 'yyyy-MM-dd'),
-                    intensity,
-                    status,
-                    duration,
-                    foods,
-                    nonFoodTriggers: nonFoods,
-                    others,
-                  });
-                  setStep(3);
-                }}
-                className="block w-full text-center mt-3 text-xs text-warm-grey/70 font-medium"
-              >
-                Skip this step
-              </button>
-            )}
           </div>
         )}
       </main>

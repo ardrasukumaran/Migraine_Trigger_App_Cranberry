@@ -72,9 +72,16 @@ function TodayPage() {
         ) : (
           <div className="space-y-2">
             {attacks.slice(0, 3).map((a) => (
-              <div key={a.id} className="rounded-2xl bg-card border border-border p-4 flex items-center justify-between gap-3">
+              <div key={a.id} className={`rounded-2xl bg-card p-4 flex items-center justify-between gap-3 border ${a.incomplete ? "border-amber-400/60" : "border-border"}`}>
                 <div className="min-w-0">
-                  <p className="text-[13px] font-semibold">{formatAttackDate(a.date)}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[13px] font-semibold">{formatAttackDate(a.date)}</p>
+                    {a.incomplete && (
+                      <span className="text-[9px] font-semibold uppercase tracking-wide text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full">
+                        Draft
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] text-warm-grey/80 truncate">
                     {a.duration}
                     {a.foods.length > 0 && ` · ${a.foods.slice(0, 2).join(', ')}${a.foods.length > 2 ? '…' : ''}`}

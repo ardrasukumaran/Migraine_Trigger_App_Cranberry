@@ -10,7 +10,8 @@ export interface AttackLog {
   foods: string[];          // selected food names
   nonFoodTriggers: string[]; // selected non-food trigger names
   others?: string;          // free-text notes
-  createdAt: number;  // timestamp for sorting
+  incomplete?: boolean;     // true when saved via "Save as draft"
+  createdAt: number;        // timestamp for sorting
 }
 
 const ATTACKS_KEY = 'cranberry_attacks';
