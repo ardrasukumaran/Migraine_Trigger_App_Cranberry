@@ -299,7 +299,7 @@ function LogPage() {
               <Berry mood="clipboard" size={64} />
             </div>
             <p className="text-sm text-warm-grey/80 mt-2">
-              Tap anything you experienced in the 24 hours leading to the migraine.
+              Tap anything you consumed in the 24 hours leading to the migraine.
             </p>
             <div className="mt-5 grid grid-cols-3 gap-2.5">
               {FOOD_SETS[foodSetIdx].items.map((item) => {
