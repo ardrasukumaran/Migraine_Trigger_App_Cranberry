@@ -169,24 +169,7 @@ function LogPage() {
             </PopoverContent>
           </Popover>
         ) : (
-          <button
-            onClick={() => {
-              saveAttack({
-                date: format(date, 'yyyy-MM-dd'),
-                intensity,
-                status,
-                duration,
-                foods,
-                nonFoodTriggers: nonFoods,
-                others,
-                incomplete: true,
-              });
-              navigate({ to: "/" });
-            }}
-            className="text-xs font-semibold text-amber-500"
-          >
-            Save as draft
-          </button>
+          <div className="w-10" />
         )}
       </header>
       <div className="px-5">
@@ -252,7 +235,12 @@ function LogPage() {
                     disabled={disabled}
                     onClick={() => {
                       setStatus(s);
-                      if (s === "Just started") setDate(todayDate());
+                      if (s === "Just started") {
+                        setDate(todayDate());
+                        setDuration("<3h");
+                      } else if (duration === "<3h") {
+                        setDuration("3–6h");
+                      }
                     }}
                     className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
                       disabled
@@ -273,7 +261,9 @@ function LogPage() {
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {["<3h", "3–6h", "6h", ">6h", "24h"].map((d) => {
-                const disabledForStatus = status === "Just started" && d !== "<3h";
+                const disabledForStatus =
+                  (status === "Just started" && d !== "<3h") ||
+                  (status !== "Just started" && d === "<3h");
                 return (
                   <button
                     key={d}
@@ -352,20 +342,6 @@ function LogPage() {
               ))}
             </div>
 
-            {foodSetIdx === FOOD_SETS.length - 1 && (
-              <div className="mt-5">
-                <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
-                  Others
-                </p>
-                <textarea
-                  value={others}
-                  onChange={(e) => setOthers(e.target.value)}
-                  placeholder="Any other triggers, symptoms, or notes..."
-                  rows={3}
-                  className="w-full rounded-2xl bg-card border border-border text-foreground text-sm px-4 py-3 placeholder:text-warm-grey/40 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition resize-none"
-                />
-              </div>
-            )}
           </section>
         )}
 
@@ -426,6 +402,21 @@ function LogPage() {
                 />
               ))}
             </div>
+
+            {nonFoodSetIdx === NON_FOOD_SETS.length - 1 && (
+              <div className="mt-5">
+                <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
+                  Others
+                </p>
+                <textarea
+                  value={others}
+                  onChange={(e) => setOthers(e.target.value)}
+                  placeholder="Any other triggers, symptoms, or notes..."
+                  rows={3}
+                  className="w-full rounded-2xl bg-card border border-border text-foreground text-sm px-4 py-3 placeholder:text-warm-grey/40 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition resize-none"
+                />
+              </div>
+            )}
           </section>
         )}
 

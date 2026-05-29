@@ -10,7 +10,6 @@ export interface AttackLog {
   foods: string[];          // selected food names
   nonFoodTriggers: string[]; // selected non-food trigger names
   others?: string;          // free-text notes
-  incomplete?: boolean;     // true when saved via "Save as draft"
   createdAt: number;        // timestamp for sorting
 }
 
