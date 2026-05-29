@@ -66,15 +66,10 @@ const COUNTRY_CODES = [
   { code: '+212', label: '+212' },
 ];
 
-// Hardcoded valid Order IDs — key: full phone (countryCode+digits), value: order id
-const VALID_ORDER_IDS: Record<string, string> = {
-  '+911234567890': '1516', // example placeholder
-  // Natasha: any phone she enters maps to 1516 for now
-};
-const DEFAULT_ORDER_ID = '1516';
+const VALID_ORDER_IDS = new Set(['1516', '1519']);
 
-function getValidOrderId(fullPhone: string): string {
-  return VALID_ORDER_IDS[fullPhone] ?? DEFAULT_ORDER_ID;
+function getValidOrderId(_fullPhone: string): Set<string> {
+  return VALID_ORDER_IDS;
 }
 
 function LoginPage() {
@@ -106,8 +101,8 @@ function LoginPage() {
 
   function handleOtpSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const expected = getValidOrderId(pendingPhone);
-    if (orderId.trim() !== expected) {
+    const validIds = getValidOrderId(pendingPhone);
+    if (!validIds.has(orderId.trim())) {
       setError('Invalid Order ID. Please try again.');
       return;
     }

@@ -30,7 +30,7 @@ function TodayPage() {
   return (
     <AppShell
       subtitle={todayLabel()}
-      title={<>Hi Natasha.<br /><span className="text-primary">How's your head today?</span></>}
+      title={<>Hello.<br /><span className="text-primary">How's your head today?</span></>}
       right={<Berry mood="wave" size={68} className="-mt-2 -mr-1" />}
     >
       {/* BIG plus — log attack */}
