@@ -378,7 +378,7 @@ function LogPage() {
                       src={item.icon}
                       alt={item.name}
                       className="object-contain select-none shrink-0"
-                      style={{ width: 85, height: 85 }}
+                      style={{ width: 100, height: 100 }}
                     />
                     <span className={`text-[9px] font-semibold leading-tight text-center w-full [overflow-wrap:anywhere] ${on ? "text-primary" : "text-foreground"}`}>
                       {item.name}
