@@ -68,10 +68,6 @@ const COUNTRY_CODES = [
 
 const VALID_ORDER_IDS = new Set(['1516', '1519']);
 
-function getValidOrderId(_fullPhone: string): Set<string> {
-  return VALID_ORDER_IDS;
-}
-
 function LoginPage() {
   const { login, phone, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -82,10 +78,34 @@ function LoginPage() {
   const [pendingPhone, setPendingPhone] = useState('');
   const [orderId, setOrderId] = useState('');
   const [error, setError] = useState('');
+  const [secondsLeft, setSecondsLeft] = useState(300);
+  const [resendNotice, setResendNotice] = useState('');
 
   useEffect(() => {
     if (!isLoading && phone) navigate({ to: '/' });
   }, [isLoading, phone, navigate]);
+
+  // Countdown timer for OTP step
+  useEffect(() => {
+    if (step !== 'otp') return;
+    if (secondsLeft <= 0) return;
+    const id = setInterval(() => setSecondsLeft((s) => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(id);
+  }, [step, secondsLeft]);
+
+  function formatTime(s: number) {
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m}:${r.toString().padStart(2, '0')}`;
+  }
+
+  function handleResend() {
+    setOrderId('');
+    setError('');
+    setSecondsLeft(300);
+    setResendNotice('A new OTP has been sent.');
+    setTimeout(() => setResendNotice(''), 3000);
+  }
 
   function handlePhoneSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -101,9 +121,17 @@ function LoginPage() {
 
   function handleOtpSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const validIds = getValidOrderId(pendingPhone);
-    if (!validIds.has(orderId.trim())) {
-      setError('Invalid Order ID. Please try again.');
+    if (secondsLeft <= 0) {
+      setError('OTP expired. Please resend.');
+      return;
+    }
+    const code = orderId.trim();
+    if (code.length !== 4 || !/^\d{4}$/.test(code)) {
+      setError('Please enter the 4-digit OTP.');
+      return;
+    }
+    if (!VALID_ORDER_IDS.has(code)) {
+      setError('Invalid OTP. Please try again.');
       return;
     }
     login(pendingPhone);
@@ -137,12 +165,12 @@ function LoginPage() {
               Migraine tracker
             </p>
             <h1 className="font-serif-display text-[28px] leading-tight text-foreground">
-              {step === 'phone' ? 'Welcome.' : 'Verify your identity.'}
+              {step === 'phone' ? 'Welcome.' : 'OTP Verification.'}
             </h1>
             <p className="mt-1 text-sm text-warm-grey/70">
               {step === 'phone'
                 ? 'Sign in with your phone number to continue.'
-                : `Enter the Order ID sent to ${pendingPhone}`}
+                : `Enter the 4-digit OTP sent to ${pendingPhone}`}
             </p>
           </div>
         </div>
@@ -196,20 +224,33 @@ function LoginPage() {
           </form>
         )}
 
-        {/* ── Step 2: Order ID ── */}
+        {/* ── Step 2: OTP ── */}
         {step === 'otp' && (
           <form onSubmit={handleOtpSubmit} className="w-full space-y-4" noValidate>
             <div>
-              <label className="block text-xs uppercase tracking-[0.16em] text-warm-grey/60 font-semibold mb-2">
-                Order ID
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs uppercase tracking-[0.16em] text-warm-grey/60 font-semibold">
+                  One-time password
+                </label>
+                <span
+                  className={`text-xs font-semibold tabular-nums ${
+                    secondsLeft <= 30 ? 'text-destructive' : 'text-warm-grey/70'
+                  }`}
+                >
+                  {formatTime(secondsLeft)}
+                </span>
+              </div>
               <input
                 type="text"
                 inputMode="numeric"
-                placeholder="Order ID"
+                maxLength={4}
+                placeholder="----"
                 value={orderId}
-                onChange={(e) => { setError(''); setOrderId(e.target.value); }}
-                className="w-full h-12 px-4 rounded-xl bg-card border border-border text-foreground text-sm placeholder:text-warm-grey/40 focus:outline-none focus:ring-2 focus:ring-[#7B6BA8] focus:border-[#7B6BA8] transition tracking-widest text-center text-lg font-semibold"
+                onChange={(e) => {
+                  setError('');
+                  setOrderId(e.target.value.replace(/\D/g, '').slice(0, 4));
+                }}
+                className="w-full h-12 px-4 rounded-xl bg-card border border-border text-foreground placeholder:text-warm-grey/30 focus:outline-none focus:ring-2 focus:ring-[#7B6BA8] focus:border-[#7B6BA8] transition tracking-[0.5em] text-center text-xl font-semibold"
                 autoComplete="one-time-code"
                 autoFocus
                 required
@@ -217,21 +258,41 @@ function LoginPage() {
               {error && (
                 <p className="mt-2 text-xs text-destructive text-center" role="alert">{error}</p>
               )}
+              {resendNotice && !error && (
+                <p className="mt-2 text-xs text-warm-grey/70 text-center" role="status">{resendNotice}</p>
+              )}
             </div>
 
             <button
               type="submit"
-              className="w-full h-12 rounded-xl font-semibold text-sm text-white transition active:scale-[0.98]"
+              disabled={secondsLeft <= 0}
+              className="w-full h-12 rounded-xl font-semibold text-sm text-white transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: '#7B6BA8' }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = '#6a5b97')}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = '#7B6BA8')}
             >
               Verify & Sign in
             </button>
 
+            <div className="flex items-center justify-center text-xs text-warm-grey/70">
+              <span>Didn't get the code?&nbsp;</span>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={secondsLeft > 0}
+                className="font-semibold text-[#7B6BA8] disabled:text-warm-grey/40 disabled:cursor-not-allowed hover:underline"
+              >
+                Resend OTP
+              </button>
+            </div>
+
             <button
               type="button"
-              onClick={() => { setStep('phone'); setOrderId(''); setError(''); }}
+              onClick={() => {
+                setStep('phone');
+                setOrderId('');
+                setError('');
+                setResendNotice('');
+                setSecondsLeft(300);
+              }}
               className="w-full flex items-center justify-center gap-1.5 text-xs text-warm-grey/60 font-medium py-2"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Back to phone number
@@ -239,9 +300,6 @@ function LoginPage() {
           </form>
         )}
 
-        <p className="mt-8 text-center text-[11px] text-warm-grey/40 max-w-xs leading-relaxed">
-          Your data is stored locally on this device and is never shared.
-        </p>
       </div>
     </div>
   );
