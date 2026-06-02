@@ -71,7 +71,13 @@ function generateOtp(): string {
 }
 
 async function sendOtp(phone: string, otp: string): Promise<void> {
-  fetch(`/api/send-otp?phone=${encodeURIComponent(phone)}&otp=${encodeURIComponent(otp)}`).catch(() => {});
+  try {
+    const res = await fetch(`/api/send-otp?phone=${encodeURIComponent(phone)}&otp=${encodeURIComponent(otp)}`);
+    const data = await res.json();
+    console.log("[sendOtp response]", data);
+  } catch (err) {
+    console.error("[sendOtp error]", err);
+  }
 }
 
 function LoginPage() {

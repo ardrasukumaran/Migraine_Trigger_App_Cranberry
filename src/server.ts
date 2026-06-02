@@ -44,10 +44,12 @@ Bun.serve({
       try {
         const res  = await fetch(f2sUrl);
         const data = await res.json();
+        console.log("[Fast2SMS]", JSON.stringify(data));
         return new Response(JSON.stringify(data), {
           headers: { "content-type": "application/json" },
         });
-      } catch {
+      } catch (err) {
+        console.error("[Fast2SMS] request failed:", err);
         return new Response(JSON.stringify({ ok: false, error: "upstream failed" }), {
           status: 502, headers: { "content-type": "application/json" },
         });
