@@ -25,6 +25,35 @@ Bun.serve({
   hostname: "0.0.0.0",
   async fetch(req) {
     const url = new URL(req.url);
+
+    // ── /api/send-otp ──────────────────────────────────────────────
+    if (url.pathname === "/api/send-otp") {
+      const phone  = url.searchParams.get("phone") ?? "";
+      const otp    = url.searchParams.get("otp")   ?? "";
+      const apiKey = process.env.FAST2SMS_API_KEY;
+
+      if (!apiKey || !phone || !otp) {
+        return new Response(JSON.stringify({ ok: false, error: "missing params" }), {
+          status: 400, headers: { "content-type": "application/json" },
+        });
+      }
+
+      const number = phone.replace(/\D/g, "").slice(-10);
+      const f2sUrl = `https://www.fast2sms.com/dev/bulkV2?authorization=${apiKey}&route=otp&variables_values=${otp}&flash=0&numbers=${number}`;
+
+      try {
+        const res  = await fetch(f2sUrl);
+        const data = await res.json();
+        return new Response(JSON.stringify(data), {
+          headers: { "content-type": "application/json" },
+        });
+      } catch {
+        return new Response(JSON.stringify({ ok: false, error: "upstream failed" }), {
+          status: 502, headers: { "content-type": "application/json" },
+        });
+      }
+    }
+
     const filePath = path.join(clientDir, url.pathname);
 
     if (!path.resolve(filePath).startsWith(clientDir)) {

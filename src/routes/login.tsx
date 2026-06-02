@@ -70,10 +70,8 @@ function generateOtp(): string {
   return '1234';
 }
 
-// TODO: replace with real Fast2SMS API call when credentials are available
-async function sendOtp(_phone: string, otp: string): Promise<void> {
-  console.log(`[DEV] OTP for testing: ${otp}`);
-  // Fast2SMS integration goes here
+async function sendOtp(phone: string, otp: string): Promise<void> {
+  fetch(`/api/send-otp?phone=${encodeURIComponent(phone)}&otp=${encodeURIComponent(otp)}`).catch(() => {});
 }
 
 function LoginPage() {
