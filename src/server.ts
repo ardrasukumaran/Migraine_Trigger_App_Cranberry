@@ -38,8 +38,9 @@ Bun.serve({
         });
       }
 
-      const number = phone.replace(/\D/g, "").slice(-10);
-      const f2sUrl = `https://www.fast2sms.com/dev/bulkV2?authorization=${apiKey}&route=otp&variables_values=${otp}&flash=0&numbers=${number}`;
+      const number  = phone.replace(/\D/g, "").slice(-10);
+      const message = `Your Cranberry OTP is ${otp}. Valid for 10 minutes.`;
+      const f2sUrl  = `https://www.fast2sms.com/dev/bulkV2?authorization=${apiKey}&route=q&message=${encodeURIComponent(message)}&flash=0&numbers=${number}`;
 
       try {
         const res  = await fetch(f2sUrl);
