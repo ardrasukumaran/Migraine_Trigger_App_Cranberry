@@ -67,7 +67,7 @@ const COUNTRY_CODES = [
 ];
 
 function generateOtp(): string {
-  return Math.floor(1000 + Math.random() * 9000).toString();
+  return '1234';
 }
 
 // TODO: replace with real Fast2SMS API call when credentials are available
