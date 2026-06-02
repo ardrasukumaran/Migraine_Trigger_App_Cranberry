@@ -71,7 +71,8 @@ function generateOtp(): string {
 }
 
 // TODO: replace with real Fast2SMS API call when credentials are available
-async function sendOtp(_phone: string, _otp: string): Promise<void> {
+async function sendOtp(_phone: string, otp: string): Promise<void> {
+  console.log(`[DEV] OTP for testing: ${otp}`);
   // Fast2SMS integration goes here
 }
 
