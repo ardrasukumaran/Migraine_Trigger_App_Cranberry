@@ -66,55 +66,21 @@ const COUNTRY_CODES = [
   { code: '+212', label: '+212' },
 ];
 
-function generateOtp(): string {
-  return Math.floor(1000 + Math.random() * 9000).toString();
-}
-
-async function sendOtp(phone: string, otp: string): Promise<void> {
-  try {
-    const res = await fetch(`/api/send-otp?phone=${encodeURIComponent(phone)}&otp=${encodeURIComponent(otp)}`);
-    const data = await res.json();
-    console.log("[sendOtp response]", data);
-  } catch (err) {
-    console.error("[sendOtp error]", err);
-  }
-}
-
 function LoginPage() {
   const { login, phone, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [step, setStep]               = useState<'phone' | 'order'>('phone');
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [pendingPhone, setPendingPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState('');
-  const [error, setError] = useState('');
-  const [resendSeconds, setResendSeconds] = useState(0);
-  const [resendNotice, setResendNotice] = useState('');
+  const [orderId, setOrderId]         = useState('');
+  const [error, setError]             = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     if (!isLoading && phone) navigate({ to: '/' });
   }, [isLoading, phone, navigate]);
-
-  // 20-second resend cooldown timer
-  useEffect(() => {
-    if (resendSeconds <= 0) return;
-    const id = setInterval(() => setResendSeconds((s) => (s > 0 ? s - 1 : 0)), 1000);
-    return () => clearInterval(id);
-  }, [resendSeconds]);
-
-  function handleResend() {
-    const newOtp = generateOtp();
-    setGeneratedOtp(newOtp);
-    sendOtp(pendingPhone, newOtp);
-    setOtp('');
-    setError('');
-    setResendSeconds(20);
-    setResendNotice('A new OTP has been sent.');
-    setTimeout(() => setResendNotice(''), 3000);
-  }
 
   function handlePhoneSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -123,29 +89,37 @@ function LoginPage() {
       setError('Please enter a valid phone number.');
       return;
     }
-    const full = `${countryCode}${digits}`;
-    const newOtp = generateOtp();
-    setGeneratedOtp(newOtp);
-    sendOtp(full, newOtp);
-    setPendingPhone(full);
+    setPendingPhone(`${countryCode}${digits}`);
     setError('');
-    setResendSeconds(20);
-    setStep('otp');
+    setStep('order');
   }
 
-  function handleOtpSubmit(e: React.FormEvent) {
+  async function handleOrderIdSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const code = otp.trim();
-    if (code.length !== 4 || !/^\d{4}$/.test(code)) {
-      setError('Please enter the 4-digit OTP.');
+    if (!orderId.trim()) {
+      setError('Please enter your Order ID.');
       return;
     }
-    if (code !== generatedOtp) {
-      setError('Invalid OTP. Please try again.');
-      return;
+    setIsVerifying(true);
+    setError('');
+    try {
+      const res  = await fetch('/api/verify-user', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ phone: pendingPhone, order_id: orderId.trim() }),
+      });
+      const data = await res.json() as { verified: boolean; message: string; token?: string; phone?: string };
+      if (data.verified && data.token && data.phone) {
+        login(data.phone, data.token);
+        navigate({ to: '/' });
+      } else {
+        setError(data.message ?? 'Invalid phone or order ID.');
+      }
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setIsVerifying(false);
     }
-    login(pendingPhone);
-    navigate({ to: '/' });
   }
 
   function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -155,19 +129,15 @@ function LoginPage() {
 
   return (
     <div className="phone-frame bg-background flex flex-col">
-      {/* Purple glow at top */}
       <div
         className="absolute inset-x-0 top-0 h-56 pointer-events-none z-0"
         style={{
-          background:
-            'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(123,107,168,0.28) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(123,107,168,0.28) 0%, transparent 70%)',
         }}
         aria-hidden
       />
 
       <div className="relative z-10 flex flex-col items-center justify-center flex-1 px-5 py-10">
-
-        {/* Berry + wordmark */}
         <div className="flex flex-col items-center gap-3 mb-8">
           <Berry mood="wave" size={80} />
           <div className="text-center">
@@ -175,17 +145,16 @@ function LoginPage() {
               Migraine tracker
             </p>
             <h1 className="font-serif-display text-[28px] leading-tight text-foreground">
-              {step === 'phone' ? 'Welcome.' : 'OTP Verification.'}
+              {step === 'phone' ? 'Welcome.' : 'Verify your identity.'}
             </h1>
             <p className="mt-1 text-sm text-warm-grey/70">
               {step === 'phone'
                 ? 'Sign in with your phone number to continue.'
-                : `Enter the 4-digit OTP sent to ${pendingPhone}`}
+                : 'Enter the Order ID from your purchase confirmation.'}
             </p>
           </div>
         </div>
 
-        {/* ── Step 1: Phone number ── */}
         {step === 'phone' && (
           <form onSubmit={handlePhoneSubmit} className="w-full space-y-4" noValidate>
             <div>
@@ -200,9 +169,7 @@ function LoginPage() {
                     className="appearance-none h-12 px-2 rounded-xl bg-card border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-[#7B6BA8] focus:border-[#7B6BA8] transition cursor-pointer w-[72px]"
                   >
                     {COUNTRY_CODES.map((c, i) => (
-                      <option key={`${c.code}-${i}`} value={c.code}>
-                        {c.label}
-                      </option>
+                      <option key={`${c.code}-${i}`} value={c.code}>{c.label}</option>
                     ))}
                   </select>
                 </div>
@@ -217,11 +184,8 @@ function LoginPage() {
                   required
                 />
               </div>
-              {error && (
-                <p className="mt-2 text-xs text-destructive" role="alert">{error}</p>
-              )}
+              {error && <p className="mt-2 text-xs text-destructive" role="alert">{error}</p>}
             </div>
-
             <button
               type="submit"
               className="w-full h-12 rounded-xl font-semibold text-sm text-white transition active:scale-[0.98]"
@@ -234,77 +198,40 @@ function LoginPage() {
           </form>
         )}
 
-        {/* ── Step 2: OTP ── */}
-        {step === 'otp' && (
-          <form onSubmit={handleOtpSubmit} className="w-full space-y-4" noValidate>
+        {step === 'order' && (
+          <form onSubmit={handleOrderIdSubmit} className="w-full space-y-4" noValidate>
             <div>
               <label className="block text-xs uppercase tracking-[0.16em] text-warm-grey/60 font-semibold mb-2">
-                One-time password
+                Order ID
               </label>
               <input
                 type="text"
-                inputMode="numeric"
-                maxLength={4}
-                placeholder="----"
-                value={otp}
-                onChange={(e) => {
-                  setError('');
-                  setOtp(e.target.value.replace(/\D/g, '').slice(0, 4));
-                }}
-                className="w-full h-12 px-4 rounded-xl bg-card border border-border text-foreground placeholder:text-warm-grey/30 focus:outline-none focus:ring-2 focus:ring-[#7B6BA8] focus:border-[#7B6BA8] transition tracking-[0.5em] text-center text-xl font-semibold"
-                autoComplete="one-time-code"
+                placeholder="Enter your Order ID"
+                value={orderId}
+                onChange={(e) => { setError(''); setOrderId(e.target.value); }}
+                className="w-full h-12 px-4 rounded-xl bg-card border border-border text-foreground text-sm placeholder:text-warm-grey/40 focus:outline-none focus:ring-2 focus:ring-[#7B6BA8] focus:border-[#7B6BA8] transition tracking-widest text-center text-lg font-semibold"
                 autoFocus
                 required
               />
-              {error && (
-                <p className="mt-2 text-xs text-destructive text-center" role="alert">{error}</p>
-              )}
-              {resendNotice && !error && (
-                <p className="mt-2 text-xs text-warm-grey/70 text-center" role="status">{resendNotice}</p>
-              )}
+              {error && <p className="mt-2 text-xs text-destructive text-center" role="alert">{error}</p>}
             </div>
-
             <button
               type="submit"
-              className="w-full h-12 rounded-xl font-semibold text-sm text-white transition active:scale-[0.98]"
+              disabled={isVerifying}
+              className="w-full h-12 rounded-xl font-semibold text-sm text-white transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: '#7B6BA8' }}
             >
-              Verify & Sign in
+              {isVerifying ? 'Verifying…' : 'Verify & Sign in'}
             </button>
-
-            <div className="flex items-center justify-center text-xs text-warm-grey/70">
-              <span>Didn't get the code?&nbsp;</span>
-              {resendSeconds > 0 ? (
-                <span className="font-semibold text-warm-grey/40 tabular-nums">
-                  Resend in {resendSeconds}s
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  className="font-semibold text-[#7B6BA8] hover:underline"
-                >
-                  Resend OTP
-                </button>
-              )}
-            </div>
-
             <button
               type="button"
-              onClick={() => {
-                setStep('phone');
-                setOtp('');
-                setError('');
-                setResendNotice('');
-                setResendSeconds(0);
-              }}
+              onClick={() => { setStep('phone'); setOrderId(''); setError(''); }}
               className="w-full flex items-center justify-center gap-1.5 text-xs text-warm-grey/60 font-medium py-2"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Back to phone number
             </button>
           </form>
         )}
-
       </div>
     </div>
   );
