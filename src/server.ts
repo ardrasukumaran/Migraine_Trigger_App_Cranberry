@@ -92,7 +92,7 @@ async function readAllSheetRows(creds: any, spreadsheetId: string): Promise<stri
       { headers: { Authorization: `Bearer ${token}` } },
     );
     const v = await r.json() as { values?: string[][] };
-    if (v.values) allRows.push(...v.values);
+    if (v.values) allRows.push(...v.values.slice(1)); // skip header row
   }
   return allRows;
 }
@@ -161,10 +161,11 @@ Bun.serve({
         const creds = JSON.parse(saJson);
         const rows  = await readAllSheetRows(creds, sheetId);
 
-        const matched = rows.some(row =>
-          row.some(cell => String(cell).replace(/\D/g, "").slice(-10) === normalizedPhone) &&
-          row.some(cell => String(cell).trim() === orderId),
-        );
+        const matched = rows.some(row => {
+          const rowPhone   = String(row[3] ?? "").replace(/\D/g, "").slice(-10); // Column D
+          const rowOrderId = String(row[1] ?? "").trim();                         // Column B (stored as #1001)
+          return rowPhone === normalizedPhone && rowOrderId === `#${orderId}`;
+        });
 
         if (matched) {
           const token = createSessionToken(normalizedPhone);
