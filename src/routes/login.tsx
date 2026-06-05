@@ -66,22 +66,17 @@ const COUNTRY_CODES = [
   { code: '+212', label: '+212' },
 ];
 
-const VALID_ORDER_IDS = new Set(['1516', '1519']);
-
-function getValidOrderId(_fullPhone: string): Set<string> {
-  return VALID_ORDER_IDS;
-}
-
 function LoginPage() {
   const { login, phone, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [step, setStep]               = useState<'phone' | 'order'>('phone');
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [pendingPhone, setPendingPhone] = useState('');
-  const [orderId, setOrderId] = useState('');
-  const [error, setError] = useState('');
+  const [orderId, setOrderId]         = useState('');
+  const [error, setError]             = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     if (!isLoading && phone) navigate({ to: '/' });
@@ -96,18 +91,35 @@ function LoginPage() {
     }
     setPendingPhone(`${countryCode}${digits}`);
     setError('');
-    setStep('otp');
+    setStep('order');
   }
 
-  function handleOtpSubmit(e: React.FormEvent) {
+  async function handleOrderIdSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const validIds = getValidOrderId(pendingPhone);
-    if (!validIds.has(orderId.trim())) {
-      setError('Invalid Order ID. Please try again.');
+    if (!orderId.trim()) {
+      setError('Please enter your Order ID.');
       return;
     }
-    login(pendingPhone);
-    navigate({ to: '/' });
+    setIsVerifying(true);
+    setError('');
+    try {
+      const res  = await fetch('/api/verify-user', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ phone: pendingPhone, order_id: orderId.trim() }),
+      });
+      const data = await res.json() as { verified: boolean; message: string; token?: string; phone?: string };
+      if (data.verified && data.token && data.phone) {
+        login(data.phone, data.token);
+        navigate({ to: '/' });
+      } else {
+        setError(data.message ?? 'Invalid phone or order ID.');
+      }
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setIsVerifying(false);
+    }
   }
 
   function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -117,19 +129,15 @@ function LoginPage() {
 
   return (
     <div className="phone-frame bg-background flex flex-col">
-      {/* Purple glow at top */}
       <div
         className="absolute inset-x-0 top-0 h-56 pointer-events-none z-0"
         style={{
-          background:
-            'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(123,107,168,0.28) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(123,107,168,0.28) 0%, transparent 70%)',
         }}
         aria-hidden
       />
 
       <div className="relative z-10 flex flex-col items-center justify-center flex-1 px-5 py-10">
-
-        {/* Berry + wordmark */}
         <div className="flex flex-col items-center gap-3 mb-8">
           <Berry mood="wave" size={80} />
           <div className="text-center">
@@ -142,12 +150,11 @@ function LoginPage() {
             <p className="mt-1 text-sm text-warm-grey/70">
               {step === 'phone'
                 ? 'Sign in with your phone number to continue.'
-                : `Enter the Order ID sent to ${pendingPhone}`}
+                : 'Enter the Order ID from your purchase confirmation.'}
             </p>
           </div>
         </div>
 
-        {/* ── Step 1: Phone number ── */}
         {step === 'phone' && (
           <form onSubmit={handlePhoneSubmit} className="w-full space-y-4" noValidate>
             <div>
@@ -162,9 +169,7 @@ function LoginPage() {
                     className="appearance-none h-12 px-2 rounded-xl bg-card border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-[#7B6BA8] focus:border-[#7B6BA8] transition cursor-pointer w-[72px]"
                   >
                     {COUNTRY_CODES.map((c, i) => (
-                      <option key={`${c.code}-${i}`} value={c.code}>
-                        {c.label}
-                      </option>
+                      <option key={`${c.code}-${i}`} value={c.code}>{c.label}</option>
                     ))}
                   </select>
                 </div>
@@ -179,11 +184,8 @@ function LoginPage() {
                   required
                 />
               </div>
-              {error && (
-                <p className="mt-2 text-xs text-destructive" role="alert">{error}</p>
-              )}
+              {error && <p className="mt-2 text-xs text-destructive" role="alert">{error}</p>}
             </div>
-
             <button
               type="submit"
               className="w-full h-12 rounded-xl font-semibold text-sm text-white transition active:scale-[0.98]"
@@ -196,39 +198,31 @@ function LoginPage() {
           </form>
         )}
 
-        {/* ── Step 2: Order ID ── */}
-        {step === 'otp' && (
-          <form onSubmit={handleOtpSubmit} className="w-full space-y-4" noValidate>
+        {step === 'order' && (
+          <form onSubmit={handleOrderIdSubmit} className="w-full space-y-4" noValidate>
             <div>
               <label className="block text-xs uppercase tracking-[0.16em] text-warm-grey/60 font-semibold mb-2">
                 Order ID
               </label>
               <input
                 type="text"
-                inputMode="numeric"
-                placeholder="Order ID"
+                placeholder="Enter your Order ID"
                 value={orderId}
                 onChange={(e) => { setError(''); setOrderId(e.target.value); }}
                 className="w-full h-12 px-4 rounded-xl bg-card border border-border text-foreground text-sm placeholder:text-warm-grey/40 focus:outline-none focus:ring-2 focus:ring-[#7B6BA8] focus:border-[#7B6BA8] transition tracking-widest text-center text-lg font-semibold"
-                autoComplete="one-time-code"
                 autoFocus
                 required
               />
-              {error && (
-                <p className="mt-2 text-xs text-destructive text-center" role="alert">{error}</p>
-              )}
+              {error && <p className="mt-2 text-xs text-destructive text-center" role="alert">{error}</p>}
             </div>
-
             <button
               type="submit"
-              className="w-full h-12 rounded-xl font-semibold text-sm text-white transition active:scale-[0.98]"
+              disabled={isVerifying}
+              className="w-full h-12 rounded-xl font-semibold text-sm text-white transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: '#7B6BA8' }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = '#6a5b97')}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = '#7B6BA8')}
             >
-              Verify & Sign in
+              {isVerifying ? 'Verifying…' : 'Verify & Sign in'}
             </button>
-
             <button
               type="button"
               onClick={() => { setStep('phone'); setOrderId(''); setError(''); }}
@@ -238,10 +232,6 @@ function LoginPage() {
             </button>
           </form>
         )}
-
-        <p className="mt-8 text-center text-[11px] text-warm-grey/40 max-w-xs leading-relaxed">
-          Your data is stored locally on this device and is never shared.
-        </p>
       </div>
     </div>
   );

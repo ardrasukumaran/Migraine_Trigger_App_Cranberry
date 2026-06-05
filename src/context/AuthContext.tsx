@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { getStoredPhone, storePhone, clearPhone } from '@/lib/auth';
+import { getStoredPhone, storePhone, clearPhone, storeSession, getSession, clearSession } from '@/lib/auth';
 
 interface AuthContextValue {
   phone: string | null;
   isLoading: boolean;
-  login: (phone: string) => void;
+  login: (phone: string, token?: string) => void;
   logout: () => void;
 }
 
@@ -15,16 +15,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setPhone(getStoredPhone());
+    const session = getSession();
+    if (session) {
+      setPhone(session.phone);
+    } else {
+      setPhone(getStoredPhone());
+    }
     setIsLoading(false);
   }, []);
 
-  function login(p: string) {
+  function login(p: string, token?: string) {
+    if (token) storeSession(token);
     storePhone(p);
     setPhone(p);
   }
 
   function logout() {
+    clearSession();
     clearPhone();
     setPhone(null);
   }
