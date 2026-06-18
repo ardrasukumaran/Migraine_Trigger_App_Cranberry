@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Bell, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const BACKEND_URL = "https://test-app-cranberry.onrender.com"; // update when backend deployed
+const BACKEND_URL = "https://cranberry-notifications.onrender.com"; // update when backend deployed
 const STORAGE_KEY = "cranberry.notification_asked.v1";
 const FCM_KEY     = "cranberry.fcm_token.v1";
 const STREAK_KEY  = "cranberry.streaks.v1";
