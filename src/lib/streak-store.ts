@@ -6,6 +6,8 @@ const KEY = "cranberry.streaks.v1";
 export type DayEntry = {
   morning: string[];
   evening: string[];
+  morningSkipped?: boolean;
+  eveningSkipped?: boolean;
 };
 
 export type StreakState = {
