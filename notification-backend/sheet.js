@@ -3,13 +3,11 @@
 const WEBHOOK = process.env.SHEET_WEBHOOK_URL;
 
 // ─── Convert any time format to "HH:MM" ──────────────────────────────────────
-// Handles: "10 AM", "10 PM", "8:30 AM", "20:00", "08:00:00", Date objects
 export function formatTime(val) {
   if (!val) return null;
-
   const str = String(val).trim();
 
-  // Already in HH:MM or HH:MM:SS format
+  // Already HH:MM or HH:MM:SS
   if (/^\d{1,2}:\d{2}/.test(str)) {
     const parts = str.split(":");
     return parts[0].padStart(2, "0") + ":" + parts[1];
@@ -21,14 +19,12 @@ export function formatTime(val) {
     let h = parseInt(ampm[1], 10);
     const m = ampm[2] ? parseInt(ampm[2], 10) : 0;
     const period = ampm[3].toUpperCase();
-
     if (period === "AM" && h === 12) h = 0;
     if (period === "PM" && h !== 12) h += 12;
-
     return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
   }
 
-  // Date object from Google Sheets
+  // Date object
   if (val instanceof Date) {
     return String(val.getHours()).padStart(2, "0") + ":" +
            String(val.getMinutes()).padStart(2, "0");
@@ -37,7 +33,8 @@ export function formatTime(val) {
   return null;
 }
 
-// ─── Get all active tokens from sheet ────────────────────────────────────────
+// ─── Get all active tokens ────────────────────────────────────────────────────
+// Returns: [{ mobile, token, dayTime, nightTime, dayCombo, nightCombo }]
 export async function getActiveTokens() {
   if (!WEBHOOK) throw new Error("SHEET_WEBHOOK_URL is not set");
 
@@ -51,7 +48,6 @@ export async function getActiveTokens() {
     const data = await res.json();
     const tokens = data.tokens ?? [];
 
-    // Normalize times on the way in
     return tokens.map((row) => ({
       ...row,
       dayTime:   formatTime(row.dayTime),
@@ -64,8 +60,8 @@ export async function getActiveTokens() {
   }
 }
 
-// ─── Upsert a token ───────────────────────────────────────────────────────────
-export async function upsertToken({ token, mobile, dayTime, nightTime }) {
+// ─── Upsert token with combo ──────────────────────────────────────────────────
+export async function upsertToken({ token, mobile, dayCombo, nightCombo }) {
   if (!WEBHOOK) throw new Error("SHEET_WEBHOOK_URL is not set");
 
   const res = await fetch(WEBHOOK, {
@@ -73,17 +69,16 @@ export async function upsertToken({ token, mobile, dayTime, nightTime }) {
     headers: { "Content-Type": "application/json" },
     body:    JSON.stringify({
       action: "upsert",
-      record: { token, mobile, dayTime, nightTime },
+      record: { token, mobile, dayCombo, nightCombo },
     }),
   });
 
   return res.ok ? await res.json() : { ok: false, error: await res.text() };
 }
 
-// ─── Deactivate a stale token ─────────────────────────────────────────────────
+// ─── Deactivate stale token ───────────────────────────────────────────────────
 export async function deactivateToken(token) {
   if (!WEBHOOK) return;
-
   fetch(WEBHOOK, {
     method:  "POST",
     headers: { "Content-Type": "application/json" },

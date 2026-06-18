@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Berry } from '@/components/Berry';
 import { ArrowLeft } from 'lucide-react';
+import { NotificationPrompt } from '@/components/NotificationPrompt';
 
 export const Route = createFileRoute('/login')({
   head: () => ({
@@ -77,6 +78,7 @@ function LoginPage() {
   const [orderId, setOrderId]         = useState('');
   const [error, setError]             = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const [loggedInPhone, setLoggedInPhone] = useState(''); // ← NEW
 
   useEffect(() => {
     if (!isLoading && phone) navigate({ to: '/' });
@@ -111,7 +113,9 @@ function LoginPage() {
       const data = await res.json() as { verified: boolean; message: string; token?: string; phone?: string };
       if (data.verified && data.token && data.phone) {
         login(data.phone, data.token);
-        navigate({ to: '/' });
+        setLoggedInPhone(data.phone); // ← NEW: show notification prompt
+        // navigate happens after notification prompt is shown
+        setTimeout(() => navigate({ to: '/' }), 3000); // ← give time for prompt
       } else {
         setError(data.message ?? 'Invalid phone or order ID.');
       }
@@ -129,6 +133,10 @@ function LoginPage() {
 
   return (
     <div className="phone-frame bg-background flex flex-col">
+
+      {/* ── Notification prompt — shows after login success ── */}
+      {loggedInPhone && <NotificationPrompt mobile={loggedInPhone} />}
+
       <div
         className="absolute inset-x-0 top-0 h-56 pointer-events-none z-0"
         style={{
