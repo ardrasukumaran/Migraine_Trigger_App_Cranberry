@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Berry } from '@/components/Berry';
 import { ArrowLeft } from 'lucide-react';
@@ -78,10 +78,14 @@ function LoginPage() {
   const [orderId, setOrderId]         = useState('');
   const [error, setError]             = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [loggedInPhone, setLoggedInPhone] = useState(''); // ← NEW
+  const [loggedInPhone, setLoggedInPhone] = useState('');
+  const justLoggedIn = useRef(false); // ← prevents auto-navigate after login
 
+  // Only auto-navigate if user was ALREADY logged in (not just now)
   useEffect(() => {
-    if (!isLoading && phone) navigate({ to: '/' });
+    if (!isLoading && phone && !justLoggedIn.current) {
+      navigate({ to: '/' });
+    }
   }, [isLoading, phone, navigate]);
 
   function handlePhoneSubmit(e: React.FormEvent) {
@@ -112,10 +116,9 @@ function LoginPage() {
       });
       const data = await res.json() as { verified: boolean; message: string; token?: string; phone?: string };
       if (data.verified && data.token && data.phone) {
+        justLoggedIn.current = true; // ← block auto-navigate
         login(data.phone, data.token);
-        setLoggedInPhone(data.phone); // ← NEW: show notification prompt
-        // navigate happens after notification prompt is shown
-        setTimeout(() => navigate({ to: '/' }), 3000); // ← give time for prompt
+        setLoggedInPhone(data.phone); // ← show notification popup
       } else {
         setError(data.message ?? 'Invalid phone or order ID.');
       }
@@ -131,11 +134,21 @@ function LoginPage() {
     setPhoneNumber(e.target.value.replace(/[^\d\s\-()]/g, ''));
   }
 
+  // Called by NotificationPrompt when user taps Allow or Maybe later
+  function handleNotificationDone() {
+    navigate({ to: '/' });
+  }
+
   return (
     <div className="phone-frame bg-background flex flex-col">
 
-      {/* ── Notification prompt — shows after login success ── */}
-      {loggedInPhone && <NotificationPrompt mobile={loggedInPhone} />}
+      {/* Notification popup — shows after login */}
+      {loggedInPhone && (
+        <NotificationPrompt
+          mobile={loggedInPhone}
+          onDone={handleNotificationDone}
+        />
+      )}
 
       <div
         className="absolute inset-x-0 top-0 h-56 pointer-events-none z-0"

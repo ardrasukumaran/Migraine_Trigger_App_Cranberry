@@ -1,19 +1,13 @@
 // src/components/NotificationPrompt.tsx
-// Shows after login — asks user to allow notifications
-// Reads day/night combo from localStorage and sends to backend
-
 import { useState, useEffect } from "react";
 import { Bell, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ─── Config ───────────────────────────────────────────────────────────────────
-const BACKEND_URL = "http://localhost:3000"; // change to Render URL when deployed
-
+const BACKEND_URL = "https://test-app-cranberry.onrender.com"; // update when backend deployed
 const STORAGE_KEY = "cranberry.notification_asked.v1";
 const FCM_KEY     = "cranberry.fcm_token.v1";
 const STREAK_KEY  = "cranberry.streaks.v1";
 
-// ─── Combo maps ───────────────────────────────────────────────────────────────
 const DAY_COMBO_MAP: Record<string, string> = {
   "day-a": "Ribo + Mg + Premence",
   "day-b": "Ribo + Mg + CoQ",
@@ -26,14 +20,13 @@ const NIGHT_COMBO_MAP: Record<string, string> = {
   "night-b": "Mg + Premence",
 };
 
-// ─── Read combo from localStorage ────────────────────────────────────────────
-function getComboFromStorage(): { dayCombo: string; nightCombo: string } {
+function getComboFromStorage() {
   try {
     const raw = localStorage.getItem(STREAK_KEY);
     if (!raw) return { dayCombo: "your supplements", nightCombo: "your supplements" };
     const data = JSON.parse(raw);
     return {
-      dayCombo:   DAY_COMBO_MAP[data.dayComboId]   ?? "your supplements",
+      dayCombo:   DAY_COMBO_MAP[data.dayComboId]    ?? "your supplements",
       nightCombo: NIGHT_COMBO_MAP[data.nightComboId] ?? "your supplements",
     };
   } catch {
@@ -41,35 +34,35 @@ function getComboFromStorage(): { dayCombo: string; nightCombo: string } {
   }
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-export function NotificationPrompt({ mobile }: { mobile: string }) {
+interface Props {
+  mobile:  string;
+  onDone?: () => void; // called when user allows or skips
+}
+
+export function NotificationPrompt({ mobile, onDone }: Props) {
   const [show,    setShow]    = useState(false);
   const [loading, setLoading] = useState(false);
   const [done,    setDone]    = useState(false);
 
   useEffect(() => {
-    if (typeof Notification === "undefined") return;
-    if (Notification.permission === "granted") return;
-    if (Notification.permission === "denied")  return;
-    if (localStorage.getItem(STORAGE_KEY))     return;
+    if (typeof Notification === "undefined") { onDone?.(); return; }
+    if (Notification.permission === "denied")  { onDone?.(); return; }
+    if (localStorage.getItem(STORAGE_KEY))     { onDone?.(); return; }
 
-    // Show popup after 1.5 seconds
-    const timer = setTimeout(() => setShow(true), 1500);
+    // Show popup after 1 second
+    const timer = setTimeout(() => setShow(true), 1000);
     return () => clearTimeout(timer);
   }, []);
 
   async function handleAllow() {
     setLoading(true);
     try {
-      // 1. Register service worker
       const reg = await navigator.serviceWorker.register(
-        "/firebase-messaging-sw.js",
-        { scope: "/" }
+        "/firebase-messaging-sw.js", { scope: "/" }
       );
 
-      // 2. Import Firebase dynamically
-      const { initializeApp, getApps }  = await import("firebase/app");
-      const { getMessaging, getToken }  = await import("firebase/messaging");
+      const { initializeApp, getApps } = await import("firebase/app");
+      const { getMessaging, getToken } = await import("firebase/messaging");
 
       const firebaseConfig = {
         apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
@@ -83,7 +76,6 @@ export function NotificationPrompt({ mobile }: { mobile: string }) {
       const app       = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
       const messaging = getMessaging(app);
 
-      // 3. Get FCM token
       const token = await getToken(messaging, {
         vapidKey:                  import.meta.env.VITE_FIREBASE_VAPID_KEY,
         serviceWorkerRegistration: reg,
@@ -91,13 +83,10 @@ export function NotificationPrompt({ mobile }: { mobile: string }) {
 
       if (!token) throw new Error("No token received");
 
-      // 4. Save token locally
       localStorage.setItem(FCM_KEY, token);
 
-      // 5. Read combo from localStorage
       const { dayCombo, nightCombo } = getComboFromStorage();
 
-      // 6. Send to backend → saves to Google Sheet
       await fetch(`${BACKEND_URL}/register-token`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -109,16 +98,17 @@ export function NotificationPrompt({ mobile }: { mobile: string }) {
         }),
       });
 
-      console.log("[FCM] Token registered with combo:", dayCombo, nightCombo);
-
       localStorage.setItem(STORAGE_KEY, "1");
       setDone(true);
-      setTimeout(() => setShow(false), 2000);
+
+      // Navigate after 2 seconds
+      setTimeout(() => { setShow(false); onDone?.(); }, 2000);
 
     } catch (err) {
       console.error("[FCM] Error:", err);
       localStorage.setItem(STORAGE_KEY, "1");
       setShow(false);
+      onDone?.();
     } finally {
       setLoading(false);
     }
@@ -127,6 +117,7 @@ export function NotificationPrompt({ mobile }: { mobile: string }) {
   function handleSkip() {
     localStorage.setItem(STORAGE_KEY, "1");
     setShow(false);
+    onDone?.();
   }
 
   if (!show) return null;
@@ -135,7 +126,6 @@ export function NotificationPrompt({ mobile }: { mobile: string }) {
     <>
       <div className="fixed inset-0 bg-black/60 z-40" onClick={handleSkip} />
       <div className="fixed inset-x-4 bottom-6 z-50 rounded-3xl bg-card border border-border p-6 shadow-2xl">
-
         <button
           onClick={handleSkip}
           className="absolute top-4 right-4 h-8 w-8 rounded-full bg-muted grid place-items-center text-warm-grey/70"
@@ -155,12 +145,8 @@ export function NotificationPrompt({ mobile }: { mobile: string }) {
         </p>
 
         <div className="mt-4 flex gap-2">
-          <span className="px-3 py-1.5 rounded-full bg-muted text-[12px] font-medium">
-            🌿 Morning dose
-          </span>
-          <span className="px-3 py-1.5 rounded-full bg-muted text-[12px] font-medium">
-            🌙 Evening dose
-          </span>
+          <span className="px-3 py-1.5 rounded-full bg-muted text-[12px] font-medium">🌿 Morning dose</span>
+          <span className="px-3 py-1.5 rounded-full bg-muted text-[12px] font-medium">🌙 Evening dose</span>
         </div>
 
         <div className="mt-5 flex flex-col gap-2">
@@ -178,20 +164,14 @@ export function NotificationPrompt({ mobile }: { mobile: string }) {
               )}
             >
               {loading ? (
-                <>
-                  <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Setting up…
-                </>
+                <><span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Setting up…</>
               ) : (
                 <><Bell className="h-4 w-4" /> Turn on reminders</>
               )}
             </button>
           )}
           {!done && (
-            <button
-              onClick={handleSkip}
-              className="w-full rounded-2xl bg-muted py-3 text-[13px] font-medium text-warm-grey/70"
-            >
+            <button onClick={handleSkip} className="w-full rounded-2xl bg-muted py-3 text-[13px] font-medium text-warm-grey/70">
               Maybe later
             </button>
           )}
