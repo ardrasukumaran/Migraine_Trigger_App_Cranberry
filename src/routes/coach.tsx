@@ -174,12 +174,13 @@ function StreaksPage() {
 /* ---------------- HOME ---------------- */
 
 const PILL: Record<string, { label: string; bg: string; fg: string }> = {
-  ribo:     { label: "B2", bg: "oklch(0.55 0.14 90 / 0.35)",  fg: "oklch(0.92 0.16 95)"  },
-  mg:       { label: "Mg", bg: "oklch(0.45 0.14 250 / 0.35)", fg: "oklch(0.86 0.12 245)" },
-  premence: { label: "Pm", bg: "oklch(0.5 0.16 15 / 0.35)",   fg: "oklch(0.88 0.14 20)"  },
-  coq:      { label: "CoQ",bg: "oklch(0.5 0.16 55 / 0.35)",   fg: "oklch(0.88 0.16 65)"  },
-  feverfew: { label: "FF", bg: "oklch(0.45 0.14 155 / 0.35)", fg: "oklch(0.86 0.14 155)" },
-  vitd:     { label: "D3", bg: "oklch(0.55 0.14 80 / 0.35)",  fg: "oklch(0.92 0.18 95)"  },
+  ribo:        { label: "Ribo",   bg: "oklch(0.55 0.14 90 / 0.35)",  fg: "oklch(0.92 0.16 95)"  },
+  "mg-gly":    { label: "MgGly",  bg: "oklch(0.45 0.14 250 / 0.35)", fg: "oklch(0.86 0.12 245)" },
+  "coq-mgox":  { label: "CoQ+Mg", bg: "oklch(0.5 0.16 55 / 0.35)",   fg: "oklch(0.88 0.16 65)"  },
+  coq:         { label: "CoQ",    bg: "oklch(0.5 0.16 55 / 0.35)",   fg: "oklch(0.88 0.16 65)"  },
+  "vit-b6":    { label: "B6",     bg: "oklch(0.55 0.14 80 / 0.35)",  fg: "oklch(0.92 0.18 95)"  },
+  myo:         { label: "Myo",    bg: "oklch(0.45 0.14 155 / 0.35)", fg: "oklch(0.86 0.14 155)" },
+  isoflavones: { label: "Iso",    bg: "oklch(0.5 0.12 350 / 0.35)",  fg: "oklch(0.88 0.10 355)" },
 };
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];

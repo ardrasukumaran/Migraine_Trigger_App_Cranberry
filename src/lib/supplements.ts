@@ -7,24 +7,25 @@ export type Supplement = {
 };
 
 export const ALL_SUPPLEMENTS: Supplement[] = [
-  { id: "ribo", name: "Riboflavin (B2)", short: "Ribo", emoji: "🟡", dose: "400mg" },
-  { id: "mg", name: "Magnesium glycinate", short: "Mg", emoji: "🔵", dose: "400mg" },
-  { id: "coq", name: "CoQ10", short: "CoQ", emoji: "🟠", dose: "150mg" },
-  { id: "premence", name: "Premence", short: "Premence", emoji: "🟣", dose: "1 tab" },
-  { id: "feverfew", name: "Feverfew", short: "FF", emoji: "🌿", dose: "100mg" },
-  { id: "vitd", name: "Vitamin D3", short: "D3", emoji: "☀️", dose: "2000 IU" },
+  { id: "ribo",        name: "Riboflavin",                         short: "Ribo",   emoji: "🟡", dose: "200mg"        },
+  { id: "mg-gly",      name: "Magnesium Glycinate",                short: "Mg Gly", emoji: "🔵", dose: "220mg"        },
+  { id: "coq-mgox",    name: "Magnesium Oxide + CoQ10",            short: "CoQ+Mg", emoji: "🟠", dose: "340mg + 150mg" },
+  { id: "coq",         name: "CoQ10",                              short: "CoQ",    emoji: "🟠", dose: "100mg"        },
+  { id: "vit-b6",      name: "Vitamin B6 + Essential Nutrients",   short: "Vit B6", emoji: "💛", dose: "40mg"         },
+  { id: "myo",         name: "Myo-inositol + Essential Nutrients", short: "Myo",    emoji: "🌿", dose: "550mg"        },
+  { id: "isoflavones", name: "Isoflavones + Essential Nutrients",  short: "Iso",    emoji: "🌸", dose: "100mg"        },
 ];
 
 export const DAY_COMBOS: { id: string; label: string; ids: string[] }[] = [
-  { id: "day-a", label: "Ribo + Mg + Premence", ids: ["ribo", "mg", "premence"] },
-  { id: "day-b", label: "Ribo + Mg + CoQ", ids: ["ribo", "mg", "coq"] },
-  { id: "day-c", label: "Ribo + Mg + Feverfew", ids: ["ribo", "mg", "feverfew"] },
-  { id: "day-d", label: "Ribo + Mg + D3", ids: ["ribo", "mg", "vitd"] },
+  { id: "day-a", label: "Ribo + CoQ & Mg Oxide",           ids: ["ribo", "coq-mgox"]     },
+  { id: "day-b", label: "Ribo + Vit B6 & Nutrients",       ids: ["ribo", "vit-b6"]       },
+  { id: "day-c", label: "Ribo + Myo-inositol & Nutrients", ids: ["ribo", "myo"]          },
+  { id: "day-d", label: "Ribo + Isoflavones & Nutrients",  ids: ["ribo", "isoflavones"]  },
 ];
 
 export const NIGHT_COMBOS: { id: string; label: string; ids: string[] }[] = [
-  { id: "night-a", label: "Mg + CoQ", ids: ["mg", "coq"] },
-  { id: "night-b", label: "Mg + Premence", ids: ["mg", "premence"] },
+  { id: "night-a", label: "Ribo + Mg Gly",       ids: ["ribo", "mg-gly"]        },
+  { id: "night-b", label: "Ribo + Mg Gly + CoQ", ids: ["ribo", "mg-gly", "coq"] },
 ];
 
 export const MILESTONES = [

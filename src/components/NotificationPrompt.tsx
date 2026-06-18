@@ -9,15 +9,15 @@ const FCM_KEY     = "cranberry.fcm_token.v1";
 const STREAK_KEY  = "cranberry.streaks.v1";
 
 const DAY_COMBO_MAP: Record<string, string> = {
-  "day-a": "Ribo + Mg + Premence",
-  "day-b": "Ribo + Mg + CoQ",
-  "day-c": "Ribo + Mg + Feverfew",
-  "day-d": "Ribo + Mg + D3",
+  "day-a": "Ribo + CoQ & Mg Oxide",
+  "day-b": "Ribo + Vit B6 & Nutrients",
+  "day-c": "Ribo + Myo-inositol & Nutrients",
+  "day-d": "Ribo + Isoflavones & Nutrients",
 };
 
 const NIGHT_COMBO_MAP: Record<string, string> = {
-  "night-a": "Mg + CoQ",
-  "night-b": "Mg + Premence",
+  "night-a": "Ribo + Mg Gly",
+  "night-b": "Ribo + Mg Gly + CoQ",
 };
 
 function getComboFromStorage() {

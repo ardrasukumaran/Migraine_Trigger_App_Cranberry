@@ -31,8 +31,8 @@ function seedHistory(): Record<string, DayEntry> {
     const key = isoDate(d);
     if (i === 4) continue;
     out[key] = {
-      morning: ["ribo", "mg", "premence"],
-      evening: i % 3 === 0 ? ["mg"] : ["mg", "coq"],
+      morning: ["ribo", "coq-mgox"],
+      evening: i % 3 === 0 ? ["ribo"] : ["ribo", "mg-gly"],
     };
   }
   return out;
