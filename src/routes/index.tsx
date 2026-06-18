@@ -250,11 +250,8 @@ function PlanList({
                 </span>
                 <span className="flex-1 min-w-0">
                   <span className={`block text-sm font-semibold leading-tight ${on ? "text-[var(--streak)]" : ""}`}>
-                    {sup?.short ?? id}
+                    {sup?.name ?? id}
                   </span>
-                </span>
-                <span className="text-[11px] font-medium text-warm-grey/70 tabular-nums shrink-0">
-                  {sup?.dose}
                 </span>
               </button>
             </li>
