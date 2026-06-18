@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ReportRouteImport } from './routes/report'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as LogRouteImport } from './routes/log'
 import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as CoachRouteImport } from './routes/coach'
@@ -19,6 +20,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const ReportRoute = ReportRouteImport.update({
   id: '/report',
   path: '/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogRoute = LogRouteImport.update({
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/coach': typeof CoachRoute
   '/insights': typeof InsightsRoute
   '/log': typeof LogRoute
+  '/login': typeof LoginRoute
   '/report': typeof ReportRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/coach': typeof CoachRoute
   '/insights': typeof InsightsRoute
   '/log': typeof LogRoute
+  '/login': typeof LoginRoute
   '/report': typeof ReportRoute
 }
 export interface FileRoutesById {
@@ -70,13 +78,21 @@ export interface FileRoutesById {
   '/coach': typeof CoachRoute
   '/insights': typeof InsightsRoute
   '/log': typeof LogRoute
+  '/login': typeof LoginRoute
   '/report': typeof ReportRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/calendar' | '/coach' | '/insights' | '/log' | '/report'
+  fullPaths:
+    | '/'
+    | '/calendar'
+    | '/coach'
+    | '/insights'
+    | '/log'
+    | '/login'
+    | '/report'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/calendar' | '/coach' | '/insights' | '/log' | '/report'
+  to: '/' | '/calendar' | '/coach' | '/insights' | '/log' | '/login' | '/report'
   id:
     | '__root__'
     | '/'
@@ -84,6 +100,7 @@ export interface FileRouteTypes {
     | '/coach'
     | '/insights'
     | '/log'
+    | '/login'
     | '/report'
   fileRoutesById: FileRoutesById
 }
@@ -93,6 +110,7 @@ export interface RootRouteChildren {
   CoachRoute: typeof CoachRoute
   InsightsRoute: typeof InsightsRoute
   LogRoute: typeof LogRoute
+  LoginRoute: typeof LoginRoute
   ReportRoute: typeof ReportRoute
 }
 
@@ -103,6 +121,13 @@ declare module '@tanstack/react-router' {
       path: '/report'
       fullPath: '/report'
       preLoaderRoute: typeof ReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/log': {
@@ -149,6 +174,7 @@ const rootRouteChildren: RootRouteChildren = {
   CoachRoute: CoachRoute,
   InsightsRoute: InsightsRoute,
   LogRoute: LogRoute,
+  LoginRoute: LoginRoute,
   ReportRoute: ReportRoute,
 }
 export const routeTree = rootRouteImport

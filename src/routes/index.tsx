@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Berry } from "@/components/Berry";
-import { Plus, Pencil } from "lucide-react";
-import { getAttacks, formatAttackDate, type AttackLog } from "@/lib/storage";
+import { StreakPlant } from "@/components/StreakPlant";
+import { Pencil, Sun, Moon, ChevronRight, Check } from "lucide-react";
+import { RECENT_ATTACKS } from "@/lib/mock-data";
+import { isoDate, todayIso, useStreakState, type DayEntry } from "@/lib/streak-store";
+import { ALL_SUPPLEMENTS, DAY_COMBOS, NIGHT_COMBOS } from "@/lib/supplements";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -15,90 +17,250 @@ export const Route = createFileRoute("/")({
   component: TodayPage,
 });
 
-function todayLabel() {
-  return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+function slotStreak(
+  entries: Record<string, DayEntry>,
+  slot: "morning" | "evening",
+) {
+  let n = 0;
+  const d = new Date();
+  for (let i = 0; i < 365; i++) {
+    const key = isoDate(d);
+    const took = (entries[key]?.[slot]?.length ?? 0) > 0;
+    if (!took) {
+      if (i === 0) {
+        d.setDate(d.getDate() - 1);
+        continue;
+      }
+      break;
+    }
+    n++;
+    d.setDate(d.getDate() - 1);
+  }
+  return n;
 }
 
 function TodayPage() {
-  const [attacks, setAttacks] = useState<AttackLog[]>([]);
+  const [state, update] = useStreakState();
+  const dayStreak = slotStreak(state.entries, "morning");
+  const nightStreak = slotStreak(state.entries, "evening");
+  const today = state.entries[todayIso()];
+  const dayCombo = DAY_COMBOS.find((c) => c.id === state.dayComboId)!;
+  const nightCombo = NIGHT_COMBOS.find((c) => c.id === state.nightComboId)!;
+  const morningTaken = today?.morning ?? [];
+  const eveningTaken = today?.evening ?? [];
+  const morningDone = morningTaken.length >= dayCombo.ids.length;
+  const eveningDone = eveningTaken.length >= nightCombo.ids.length;
 
-  // Load stored attacks on mount (and after navigating back here)
-  useEffect(() => {
-    setAttacks(getAttacks());
-  }, []);
+  const toggle = (slot: "morning" | "evening", id: string) => {
+    update((s) => {
+      const key = todayIso();
+      const entry = s.entries[key] ?? { morning: [], evening: [] };
+      const current = entry[slot] ?? [];
+      const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+      return { ...s, entries: { ...s.entries, [key]: { ...entry, [slot]: next } } };
+    });
+  };
 
   return (
     <AppShell
-      subtitle={todayLabel()}
+      subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
       title={<>Hello,<br /><span className="text-primary">How's your head today?</span></>}
       right={<Berry mood="wave" size={68} className="-mt-2 -mr-1" />}
     >
-      {/* BIG plus — log attack */}
-      <section className="mt-6">
-        <Link
-          to="/log"
-          className="block rounded-[32px] bg-primary text-primary-foreground p-6 ring-soft active:scale-[0.99] transition relative overflow-hidden"
-        >
-          <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10" aria-hidden />
-          <div className="absolute -bottom-16 -left-10 h-44 w-44 rounded-full bg-white/5" aria-hidden />
+      {/* Streak cards — Day & Night side-by-side */}
+      <section className="mt-8 grid grid-cols-2 gap-3">
+        <StreakCard label="Day" icon={<Sun className="h-3.5 w-3.5" />} days={dayStreak} />
+        <StreakCard label="Night" icon={<Moon className="h-3.5 w-3.5" />} days={nightStreak} />
+      </section>
 
-          <div className="relative flex items-center gap-4">
-            <div className="h-20 w-20 rounded-full bg-card text-primary grid place-items-center shadow-[0_10px_24px_-8px_rgba(0,0,0,0.4)] shrink-0">
-              <Plus className="h-11 w-11" strokeWidth={2.6} />
-            </div>
-            <div>
-              <p className="font-serif-display text-[28px] leading-tight">Log an attack</p>
-              <p className="text-[12px] opacity-80 mt-1">Takes under a minute.</p>
-            </div>
-          </div>
-        </Link>
+      {/* Plan lists */}
+      <section className="mt-8">
+        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-3">
+          Today's plan
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <PlanList
+            icon={<Sun className="h-4 w-4" />}
+            label="With Lunch"
+            slot="morning"
+            comboIds={dayCombo.ids}
+            taken={morningTaken}
+            done={morningDone}
+            onToggle={(id) => toggle("morning", id)}
+          />
+          <PlanList
+            icon={<Moon className="h-4 w-4" />}
+            label="With Dinner"
+            slot="evening"
+            comboIds={nightCombo.ids}
+            taken={eveningTaken}
+            done={eveningDone}
+            onToggle={(id) => toggle("evening", id)}
+          />
+        </div>
       </section>
 
       {/* Recent attacks */}
-      <section className="mt-6">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">Recent attacks</p>
-          <Link to="/calendar" className="text-xs font-semibold text-primary">See all</Link>
+      <section className="mt-8">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
+            Recent attacks
+          </p>
+          <Link to="/insights" className="text-xs font-semibold text-primary">See all</Link>
         </div>
-
-        {attacks.length === 0 ? (
-          <div className="rounded-2xl bg-card border border-border p-6 text-center">
-            <Berry mood="tired" size={56} className="mx-auto mb-3" />
-            <p className="text-sm font-semibold text-foreground">No attacks logged yet</p>
-            <p className="text-xs text-warm-grey/70 mt-1">
-              Tap the button above to log your first one.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {attacks.slice(0, 3).map((a) => (
-              <div key={a.id} className="rounded-2xl bg-card border border-border p-4 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[13px] font-semibold">{formatAttackDate(a.date)}</p>
-                  <p className="text-[11px] text-warm-grey/80 truncate">
-                    {a.duration}
-                    {a.foods.length > 0 && ` · ${a.foods.slice(0, 2).join(', ')}${a.foods.length > 2 ? '…' : ''}`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className={`h-9 w-9 rounded-full grid place-items-center text-sm font-bold ${
-                    a.intensity >= 7 ? "bg-primary text-primary-foreground" : "bg-mid-lavender/50 text-primary-foreground"
-                  }`}>
-                    {a.intensity}
-                  </div>
-                  <Link
-                    to="/log"
-                    aria-label={`Log new attack`}
-                    className="h-9 w-9 rounded-full grid place-items-center bg-muted text-foreground hover:bg-accent transition"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Link>
-                </div>
+        <div className="space-y-3">
+          {RECENT_ATTACKS.slice(0, 3).map((a) => (
+            <div
+              key={a.date}
+              className="rounded-2xl bg-card border border-border p-5 flex items-center justify-between gap-4"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">{a.date}</p>
+                <p className="text-xs text-warm-grey/80 truncate mt-1">
+                  {a.duration} · {a.triggers.join(", ")}
+                </p>
               </div>
-            ))}
-          </div>
-        )}
+              <div className="flex items-center gap-3 shrink-0">
+                <div
+                  className="h-10 w-10 rounded-full grid place-items-center text-sm font-bold text-[var(--brand-ink)]"
+                  style={{ backgroundColor: `var(--pain-${Math.min(10, Math.max(1, a.intensity))})` }}
+                >
+                  {a.intensity}
+                </div>
+                <Link
+                  to="/log"
+                  aria-label={`Log new attack`}
+                  className="h-10 w-10 rounded-full grid place-items-center bg-muted text-foreground hover:bg-accent transition"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
     </AppShell>
+  );
+}
+
+function StreakCard({
+  label,
+  icon,
+  days,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  days: number;
+}) {
+  return (
+    <Link
+      to="/coach"
+      className="block rounded-3xl bg-card border border-border p-4 active:scale-[0.99] transition"
+    >
+      <div className="flex items-center justify-between">
+        <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.16em] font-semibold text-warm-grey/80">
+          {icon}
+          {label}
+        </span>
+        <ChevronRight className="h-4 w-4 text-warm-grey/50" />
+      </div>
+      <div className="mt-1 grid place-items-center">
+        <StreakPlant days={days} size={84} />
+      </div>
+      <p className="mt-1 text-center text-xl font-bold leading-none">
+        {days} <span className="text-sm font-medium text-warm-grey/80">
+          {days === 1 ? "day" : "days"}
+        </span> <span aria-hidden>🔥</span>
+      </p>
+    </Link>
+  );
+}
+
+function PlanList({
+  icon,
+  label,
+  slot,
+  comboIds,
+  taken,
+  done,
+  onToggle,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  slot: "morning" | "evening";
+  comboIds: string[];
+  taken: string[];
+  done: boolean;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <Link
+      to="/coach"
+      search={{ view: slot }}
+      className={`block rounded-2xl border p-4 transition active:scale-[0.99] ${
+        done
+          ? "bg-[var(--streak-soft)] border-[var(--streak)]/40"
+          : "bg-card border-border"
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <span className="inline-flex items-center gap-2 text-sm font-semibold">
+          {icon}
+          {label}
+        </span>
+        <span
+          className={`text-[11px] tabular-nums flex items-center gap-1 ${
+            done ? "text-[var(--streak)]" : "text-warm-grey/70"
+          }`}
+        >
+          {taken.length}/{comboIds.length}
+          <ChevronRight className="h-3 w-3" />
+        </span>
+      </div>
+
+      <ul className="mt-3 space-y-1.5">
+        {comboIds.map((id) => {
+          const sup = ALL_SUPPLEMENTS.find((s) => s.id === id);
+          const on = taken.includes(id);
+          return (
+            <li key={id}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onToggle(id);
+                }}
+                aria-pressed={on}
+                className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 border transition active:scale-[0.99] text-left ${
+                  on
+                    ? "bg-[var(--streak-soft)] border-[var(--streak)]/40"
+                    : "bg-background border-border hover:bg-muted/60"
+                }`}
+              >
+                <span
+                  className={`h-6 w-6 shrink-0 rounded-full grid place-items-center border-2 transition ${
+                    on
+                      ? "bg-[var(--streak)] border-[var(--streak)] text-[var(--streak-foreground)]"
+                      : "bg-background border-warm-grey/40"
+                  }`}
+                  aria-hidden
+                >
+                  {on && <Check className="h-3.5 w-3.5" strokeWidth={4} />}
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className={`block text-sm font-semibold leading-tight ${on ? "text-[var(--streak)]" : ""}`}>
+                    {sup?.short ?? id}
+                  </span>
+                </span>
+                <span className="text-[11px] font-medium text-warm-grey/70 tabular-nums shrink-0">
+                  {sup?.dose}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </Link>
   );
 }
