@@ -33,6 +33,17 @@ export const MILESTONES = [
   { days: 90, reward: "Referral coupon", desc: "Share the love with a friend" },
 ];
 
-export function scoreForCount(taken: number) {
-  return taken <= 0 ? 0 : Math.pow(2, taken) - 1;
+// Weight series for scoring — index maps to supplement count
+const WEIGHTS = [2, 4, 8, 16];
+
+// Score for N supplements taken: sum of first N weights (e.g. 2 → 3+7=10)
+export function scoreForCount(taken: number): number {
+  return WEIGHTS.slice(0, taken).reduce((a, b) => a + b, 0);
 }
+
+// Maximum possible score for a combo of given length
+export function totalPossibleScore(comboLength: number): number {
+  return WEIGHTS.slice(0, comboLength).reduce((a, b) => a + b, 0);
+}
+
+export const SKIP_SCORE = 1;

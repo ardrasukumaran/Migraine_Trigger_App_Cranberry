@@ -8,6 +8,8 @@ import {
   NIGHT_COMBOS,
   MILESTONES,
   scoreForCount,
+  totalPossibleScore,
+  SKIP_SCORE,
 } from "@/lib/supplements";
 import {
   currentStreak,
@@ -57,7 +59,7 @@ function StreaksPage() {
   const dayCombo = DAY_COMBOS.find((c) => c.id === state.dayComboId)!;
   const nightCombo = NIGHT_COMBOS.find((c) => c.id === state.nightComboId)!;
 
-  const setEntry = (date: string, slot: "morning" | "evening", ids: string[]) => {
+  const setEntry = (date: string, slot: "morning" | "evening", ids: string[], skipped: boolean) => {
     update((s) => ({
       ...s,
       entries: {
@@ -65,7 +67,10 @@ function StreaksPage() {
         [date]: {
           morning: s.entries[date]?.morning ?? [],
           evening: s.entries[date]?.evening ?? [],
+          morningSkipped: s.entries[date]?.morningSkipped,
+          eveningSkipped: s.entries[date]?.eveningSkipped,
           [slot]: ids,
+          [slot === "morning" ? "morningSkipped" : "eveningSkipped"]: skipped,
         },
       },
     }));
@@ -118,8 +123,8 @@ function StreaksPage() {
           date={activeDate}
           comboIds={dayCombo.ids}
           entry={state.entries[activeDate]}
-          onSave={(ids) => {
-            setEntry(activeDate, "morning", ids);
+          onSave={(ids, skipped) => {
+            setEntry(activeDate, "morning", ids, skipped);
             setView("home");
           }}
         />
@@ -131,8 +136,8 @@ function StreaksPage() {
           date={activeDate}
           comboIds={nightCombo.ids}
           entry={state.entries[activeDate]}
-          onSave={(ids) => {
-            setEntry(activeDate, "evening", ids);
+          onSave={(ids, skipped) => {
+            setEntry(activeDate, "evening", ids, skipped);
             setView("home");
           }}
         />
@@ -346,7 +351,9 @@ function HomeView({
   const dateLabel = `${MONTHS[now.getMonth()]} ${now.getDate()}`;
   const todayDow = now.getDay();
   const todayKey = todayIso();
-  const totalPerDay = dayCombo.ids.length + nightCombo.ids.length;
+  const totalMorningPossible = totalPossibleScore(dayCombo.ids.length);
+  const totalEveningPossible = totalPossibleScore(nightCombo.ids.length);
+  const totalDayPossible = totalMorningPossible + totalEveningPossible;
 
   return (
     <div className="mt-4 space-y-5">
@@ -360,8 +367,12 @@ function HomeView({
               d.setDate(d.getDate() + offset);
               const key = isoDate(d);
               const e = state.entries[key];
-              const count = (e?.morning?.length ?? 0) + (e?.evening?.length ?? 0);
-              const ratio = totalPerDay > 0 ? count / totalPerDay : 0;
+              const morningScore = e?.morningSkipped ? SKIP_SCORE : scoreForCount(e?.morning?.length ?? 0);
+              const eveningScore = e?.eveningSkipped ? SKIP_SCORE : scoreForCount(e?.evening?.length ?? 0);
+              const dailyScorePct = totalDayPossible > 0
+                ? (morningScore + eveningScore) / totalDayPossible
+                : 0;
+              const ratio = dailyScorePct;
               return (
                 <DayRing
                   key={i}
@@ -456,7 +467,7 @@ function DoseRow({
   const total = comboIds.length;
   const count = taken.length;
   const complete = count >= total && total > 0;
-  const points = scoreForCount(count) * 10;
+  const points = scoreForCount(count);
   const Icon = slot === "morning" ? Utensils : UtensilsCrossed;
   const label = slot === "morning" ? "With lunch" : "With dinner";
 
@@ -571,17 +582,32 @@ function ChecklistView({
   date: string;
   comboIds: string[];
   entry?: DayEntry;
-  onSave: (ids: string[]) => void;
+  onSave: (ids: string[], skipped: boolean) => void;
 }) {
+  const savedSkipped = slot === "morning" ? entry?.morningSkipped : entry?.eveningSkipped;
   const initial = entry?.[slot] ?? [];
   const [picked, setPicked] = useState<string[]>(initial);
+  const [skipped, setSkipped] = useState<boolean>(savedSkipped ?? false);
+
   const supplements = comboIds
     .map((id) => ALL_SUPPLEMENTS.find((s) => s.id === id)!)
     .filter(Boolean);
-  const score = scoreForCount(picked.length);
 
-  const toggle = (id: string) =>
+  const score = skipped ? SKIP_SCORE : scoreForCount(picked.length);
+
+  const toggle = (id: string) => {
+    setSkipped(false); // tapping a supplement deactivates skip
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  };
+
+  const toggleSkip = () => {
+    if (!skipped) {
+      setSkipped(true);
+      setPicked([]); // clear supplement selections when skipping
+    } else {
+      setSkipped(false);
+    }
+  };
 
   return (
     <div className="mt-4 space-y-4">
@@ -606,9 +632,12 @@ function ChecklistView({
             <button
               key={s.id}
               onClick={() => toggle(s.id)}
+              disabled={skipped}
               className={cn(
                 "w-full rounded-2xl border p-3 flex items-center gap-3 transition active:scale-[0.99]",
-                on
+                skipped
+                  ? "bg-card/40 border-border/40 opacity-40 cursor-not-allowed"
+                  : on
                   ? "bg-[var(--streak-soft)] border-[var(--streak)]/50"
                   : "bg-card border-border",
               )}
@@ -621,7 +650,7 @@ function ChecklistView({
               <span
                 className={cn(
                   "h-7 w-7 rounded-full grid place-items-center border-2",
-                  on
+                  on && !skipped
                     ? "bg-[var(--streak)] border-[var(--streak)] text-[var(--streak-foreground)]"
                     : "border-border text-transparent",
                 )}
@@ -631,10 +660,39 @@ function ChecklistView({
             </button>
           );
         })}
+
+        {/* Skip for today row */}
+        <button
+          onClick={toggleSkip}
+          className={cn(
+            "w-full rounded-2xl border p-3 flex items-center gap-3 transition active:scale-[0.99]",
+            skipped
+              ? "bg-muted/60 border-warm-grey/30"
+              : "bg-card border-border",
+          )}
+        >
+          <span className="text-2xl">🚫</span>
+          <div className="flex-1 text-left min-w-0">
+            <p className={cn("text-[14px] font-semibold", skipped ? "text-warm-grey/60" : "text-warm-grey/80")}>
+              Skip for today
+            </p>
+            <p className="text-[11px] text-warm-grey/50">+{SKIP_SCORE} pt</p>
+          </div>
+          <span
+            className={cn(
+              "h-7 w-7 rounded-full grid place-items-center border-2",
+              skipped
+                ? "bg-warm-grey/30 border-warm-grey/40 text-foreground"
+                : "border-border text-transparent",
+            )}
+          >
+            <Check className="h-4 w-4" strokeWidth={3} />
+          </span>
+        </button>
       </div>
 
       <button
-        onClick={() => onSave(picked)}
+        onClick={() => onSave(picked, skipped)}
         className="w-full rounded-2xl bg-primary text-primary-foreground py-3.5 font-semibold active:scale-[0.99] transition"
       >
         Save
