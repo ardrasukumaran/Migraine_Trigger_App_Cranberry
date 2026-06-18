@@ -1,12 +1,25 @@
 // src/components/NotificationPrompt.tsx
+// Uses Firebase CDN — avoids Bun bundling issues with firebase npm package
+
 import { useState, useEffect } from "react";
 import { Bell, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const BACKEND_URL = "https://cranberry-notifications.onrender.com"; // update when backend deployed
+const BACKEND_URL = "https://cranberry-notifications.onrender.com";
 const STORAGE_KEY = "cranberry.notification_asked.v1";
 const FCM_KEY     = "cranberry.fcm_token.v1";
 const STREAK_KEY  = "cranberry.streaks.v1";
+
+const FIREBASE_CONFIG = {
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain:        "meal-reminder-app.firebaseapp.com",
+  projectId:         "meal-reminder-app",
+  storageBucket:     "meal-reminder-app.appspot.com",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
+};
+
+const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
 const DAY_COMBO_MAP: Record<string, string> = {
   "day-a": "Ribo + CoQ & Mg Oxide",
@@ -34,9 +47,27 @@ function getComboFromStorage() {
   }
 }
 
+// Load Firebase scripts from CDN dynamically
+function loadScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload  = () => resolve();
+    s.onerror = () => reject(new Error(`Failed to load ${src}`));
+    document.head.appendChild(s);
+  });
+}
+
+async function loadFirebase() {
+  await loadScript("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js");
+  await loadScript("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js");
+  return (window as any).firebase;
+}
+
 interface Props {
   mobile:  string;
-  onDone?: () => void; // called when user allows or skips
+  onDone?: () => void;
 }
 
 export function NotificationPrompt({ mobile, onDone }: Props) {
@@ -48,8 +79,6 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
     if (typeof Notification === "undefined") { onDone?.(); return; }
     if (Notification.permission === "denied")  { onDone?.(); return; }
     if (localStorage.getItem(STORAGE_KEY))     { onDone?.(); return; }
-
-    // Show popup after 1 second
     const timer = setTimeout(() => setShow(true), 1000);
     return () => clearTimeout(timer);
   }, []);
@@ -57,34 +86,39 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
   async function handleAllow() {
     setLoading(true);
     try {
+      // Step 1: Request permission
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") throw new Error("Permission denied");
+
+      // Step 2: Register service worker
       const reg = await navigator.serviceWorker.register(
         "/firebase-messaging-sw.js", { scope: "/" }
       );
+      await navigator.serviceWorker.ready;
 
-      const { initializeApp, getApps } = await import("firebase/app");
-      const { getMessaging, getToken } = await import("firebase/messaging");
+      // Step 3: Load Firebase from CDN
+      const firebase = await loadFirebase();
 
-      const firebaseConfig = {
-        apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
-        authDomain:        "meal-reminder-app.firebaseapp.com",
-        projectId:         "meal-reminder-app",
-        storageBucket:     "meal-reminder-app.appspot.com",
-        messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-        appId:             import.meta.env.VITE_FIREBASE_APP_ID,
-      };
+      // Initialize if not already done
+      if (!firebase.apps.length) {
+        firebase.initializeApp(FIREBASE_CONFIG);
+      }
 
-      const app       = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
-      const messaging = getMessaging(app);
+      const messaging = firebase.messaging();
 
-      const token = await getToken(messaging, {
-        vapidKey:                  import.meta.env.VITE_FIREBASE_VAPID_KEY,
+      // Step 4: Get FCM token
+      const token = await messaging.getToken({
+        vapidKey:                  VAPID_KEY,
         serviceWorkerRegistration: reg,
       });
 
       if (!token) throw new Error("No token received");
 
+      // Step 5: Save locally
       localStorage.setItem(FCM_KEY, token);
+      console.log("[FCM] Token obtained:", token.slice(0, 30) + "…");
 
+      // Step 6: Send to backend
       const { dayCombo, nightCombo } = getComboFromStorage();
 
       await fetch(`${BACKEND_URL}/register-token`, {
@@ -98,10 +132,10 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
         }),
       });
 
+      console.log("[FCM] Token registered successfully!");
+
       localStorage.setItem(STORAGE_KEY, "1");
       setDone(true);
-
-      // Navigate after 2 seconds
       setTimeout(() => { setShow(false); onDone?.(); }, 2000);
 
     } catch (err) {
