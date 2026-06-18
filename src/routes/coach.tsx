@@ -584,28 +584,23 @@ function ChecklistView({
   entry?: DayEntry;
   onSave: (ids: string[], skipped: boolean) => void;
 }) {
-  const savedSkipped = slot === "morning" ? entry?.morningSkipped : entry?.eveningSkipped;
   const initial = entry?.[slot] ?? [];
   const [picked, setPicked] = useState<string[]>(initial);
-  const [skipped, setSkipped] = useState<boolean>(savedSkipped ?? false);
 
   const supplements = comboIds
     .map((id) => ALL_SUPPLEMENTS.find((s) => s.id === id)!)
     .filter(Boolean);
 
-  const score = skipped ? SKIP_SCORE : scoreForCount(picked.length);
+  const score = scoreForCount(picked.length);
 
   const toggle = (id: string) => {
-    setSkipped(false); // tapping a supplement deactivates skip
-    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
-  };
-
-  const toggleSkip = () => {
-    if (!skipped) {
-      setSkipped(true);
-      setPicked([]); // clear supplement selections when skipping
-    } else {
-      setSkipped(false);
+    const newPicked = picked.includes(id)
+      ? picked.filter((x) => x !== id)
+      : [...picked, id];
+    setPicked(newPicked);
+    // All supplements selected → auto-save and return to streak page
+    if (newPicked.length >= comboIds.length) {
+      onSave(newPicked, false);
     }
   };
 
@@ -632,12 +627,9 @@ function ChecklistView({
             <button
               key={s.id}
               onClick={() => toggle(s.id)}
-              disabled={skipped}
               className={cn(
                 "w-full rounded-2xl border p-3 flex items-center gap-3 transition active:scale-[0.99]",
-                skipped
-                  ? "bg-card/40 border-border/40 opacity-40 cursor-not-allowed"
-                  : on
+                on
                   ? "bg-[var(--streak-soft)] border-[var(--streak)]/50"
                   : "bg-card border-border",
               )}
@@ -650,7 +642,7 @@ function ChecklistView({
               <span
                 className={cn(
                   "h-7 w-7 rounded-full grid place-items-center border-2",
-                  on && !skipped
+                  on
                     ? "bg-[var(--streak)] border-[var(--streak)] text-[var(--streak-foreground)]"
                     : "border-border text-transparent",
                 )}
@@ -661,42 +653,20 @@ function ChecklistView({
           );
         })}
 
-        {/* Skip for today row */}
+        {/* Skip row */}
         <button
-          onClick={toggleSkip}
-          className={cn(
-            "w-full rounded-2xl border p-3 flex items-center gap-3 transition active:scale-[0.99]",
-            skipped
-              ? "bg-muted/60 border-warm-grey/30"
-              : "bg-card border-border",
-          )}
+          onClick={() => onSave([], true)}
+          className="w-full rounded-2xl border border-border bg-card p-3 flex items-center gap-3 transition active:scale-[0.99]"
         >
           <span className="text-2xl">🚫</span>
           <div className="flex-1 text-left min-w-0">
-            <p className={cn("text-[14px] font-semibold", skipped ? "text-warm-grey/60" : "text-warm-grey/80")}>
-              Skip for today
-            </p>
-            <p className="text-[11px] text-warm-grey/50">+{SKIP_SCORE} pt</p>
+            <p className="text-[14px] font-semibold truncate">Skip</p>
           </div>
-          <span
-            className={cn(
-              "h-7 w-7 rounded-full grid place-items-center border-2",
-              skipped
-                ? "bg-warm-grey/30 border-warm-grey/40 text-foreground"
-                : "border-border text-transparent",
-            )}
-          >
+          <span className="h-7 w-7 rounded-full grid place-items-center border-2 border-border text-transparent">
             <Check className="h-4 w-4" strokeWidth={3} />
           </span>
         </button>
       </div>
-
-      <button
-        onClick={() => onSave(picked, skipped)}
-        className="w-full rounded-2xl bg-primary text-primary-foreground py-3.5 font-semibold active:scale-[0.99] transition"
-      >
-        Save
-      </button>
     </div>
   );
 }
