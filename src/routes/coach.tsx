@@ -125,7 +125,11 @@ function StreaksPage() {
           entry={state.entries[activeDate]}
           onSave={(ids, skipped) => {
             setEntry(activeDate, "morning", ids, skipped);
-            setView("home");
+            setView("evening");
+          }}
+          onContinue={(ids) => {
+            setEntry(activeDate, "morning", ids, false);
+            setView("evening");
           }}
         />
       )}
@@ -146,9 +150,9 @@ function StreaksPage() {
       {view === "back-fill" && (
         <BackFillView
           entries={state.entries}
-          onPick={(d) => {
+          onPick={(d, slot) => {
             setActiveDate(d);
-            setView("morning");
+            setView(slot);
           }}
         />
       )}
@@ -345,6 +349,9 @@ function HomeView({
   const dayCombo = DAY_COMBOS.find((c) => c.id === state.dayComboId)!;
   const nightCombo = NIGHT_COMBOS.find((c) => c.id === state.nightComboId)!;
 
+  const morningLogged = (today?.morning?.length ?? 0) > 0 || !!today?.morningSkipped;
+  const eveningLogged = (today?.evening?.length ?? 0) > 0 || !!today?.eveningSkipped;
+
   const dayStreak = useMemo(() => slotStreak(state.entries, "morning"), [state.entries]);
   const nightStreak = useMemo(() => slotStreak(state.entries, "evening"), [state.entries]);
 
@@ -407,20 +414,24 @@ function HomeView({
             time="12:30 PM"
             comboIds={dayCombo.ids}
             taken={today?.morning ?? []}
+            skipped={!!today?.morningSkipped}
             onLog={() => {
               setActiveDate(todayIso());
               go("morning");
             }}
+            locked={morningLogged}
           />
           <DoseRow
             slot="evening"
             time="7:30 PM"
             comboIds={nightCombo.ids}
             taken={today?.evening ?? []}
+            skipped={!!today?.eveningSkipped}
             onLog={() => {
               setActiveDate(todayIso());
               go("evening");
             }}
+            locked={eveningLogged}
           />
         </div>
       </div>
@@ -457,13 +468,17 @@ function DoseRow({
   time,
   comboIds,
   taken,
+  skipped,
   onLog,
+  locked,
 }: {
   slot: "morning" | "evening";
   time: string;
   comboIds: string[];
   taken: string[];
+  skipped?: boolean;
   onLog: () => void;
+  locked?: boolean;
 }) {
   const total = comboIds.length;
   const count = taken.length;
@@ -472,16 +487,8 @@ function DoseRow({
   const Icon = slot === "morning" ? Utensils : UtensilsCrossed;
   const label = slot === "morning" ? "With lunch" : "With dinner";
 
-  return (
-    <button
-      onClick={onLog}
-      className={cn(
-        "w-full rounded-2xl border p-3 flex items-center gap-3 text-left transition active:scale-[0.99]",
-        complete
-          ? "bg-[var(--streak-soft)]/40 border-[var(--streak)]/40"
-          : "bg-card border-border",
-      )}
-    >
+  const inner = (
+    <>
       <div
         className={cn(
           "h-11 w-11 rounded-2xl grid place-items-center shrink-0",
@@ -498,30 +505,36 @@ function DoseRow({
           <span className="text-[11px] text-warm-grey/70">{time}</span>
         </div>
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {comboIds.map((id) => {
-            const on = taken.includes(id);
-            const p = PILL[id] ?? { label: id.slice(0, 2).toUpperCase(), bg: "var(--muted)", fg: "var(--foreground)" };
-            return (
-              <span
-                key={id}
-                className={cn(
-                  "inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full text-[10px] font-bold",
-                  !on && "opacity-50",
-                )}
-                style={{ background: p.bg, color: p.fg }}
-              >
+          {skipped ? (
+            <span className="inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-warm-grey/70">
+              🚫 Skipped
+            </span>
+          ) : (
+            comboIds.map((id) => {
+              const on = taken.includes(id);
+              const p = PILL[id] ?? { label: id.slice(0, 2).toUpperCase(), bg: "var(--muted)", fg: "var(--foreground)" };
+              return (
                 <span
+                  key={id}
                   className={cn(
-                    "h-3.5 w-3.5 rounded-full grid place-items-center",
-                    on ? "bg-[var(--streak)] text-[var(--streak-foreground)]" : "bg-background/40 text-transparent",
+                    "inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full text-[10px] font-bold",
+                    !on && "opacity-50",
                   )}
+                  style={{ background: p.bg, color: p.fg }}
                 >
-                  <Check className="h-2.5 w-2.5" strokeWidth={4} />
+                  <span
+                    className={cn(
+                      "h-3.5 w-3.5 rounded-full grid place-items-center",
+                      on ? "bg-[var(--streak)] text-[var(--streak-foreground)]" : "bg-background/40 text-transparent",
+                    )}
+                  >
+                    <Check className="h-2.5 w-2.5" strokeWidth={4} />
+                  </span>
+                  {p.label}
                 </span>
-                {p.label}
-              </span>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
       <div className="text-right shrink-0">
@@ -534,6 +547,10 @@ function DoseRow({
               {count} of {total} taken
             </p>
           </>
+        ) : locked ? (
+          <p className="text-[11px] text-warm-grey/50">
+            {skipped ? "Skipped" : `${count}/${total}`}
+          </p>
         ) : (
           <>
             <p className="text-primary font-semibold text-[13px] inline-flex items-center gap-0.5">
@@ -545,6 +562,35 @@ function DoseRow({
           </>
         )}
       </div>
+    </>
+  );
+
+  if (locked) {
+    return (
+      <div
+        className={cn(
+          "w-full rounded-2xl border p-3 flex items-center gap-3",
+          complete
+            ? "bg-[var(--streak-soft)]/40 border-[var(--streak)]/40"
+            : "bg-card border-border",
+        )}
+      >
+        {inner}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={onLog}
+      className={cn(
+        "w-full rounded-2xl border p-3 flex items-center gap-3 text-left transition active:scale-[0.99]",
+        complete
+          ? "bg-[var(--streak-soft)]/40 border-[var(--streak)]/40"
+          : "bg-card border-border",
+      )}
+    >
+      {inner}
     </button>
   );
 }
@@ -578,12 +624,14 @@ function ChecklistView({
   comboIds,
   entry,
   onSave,
+  onContinue,
 }: {
   slot: "morning" | "evening";
   date: string;
   comboIds: string[];
   entry?: DayEntry;
   onSave: (ids: string[], skipped: boolean) => void;
+  onContinue?: (ids: string[]) => void;
 }) {
   const initial = entry?.[slot] ?? [];
   const [picked, setPicked] = useState<string[]>(initial);
@@ -593,13 +641,13 @@ function ChecklistView({
     .filter(Boolean);
 
   const score = scoreForCount(picked.length);
+  const partial = picked.length > 0 && picked.length < comboIds.length;
 
   const toggle = (id: string) => {
     const newPicked = picked.includes(id)
       ? picked.filter((x) => x !== id)
       : [...picked, id];
     setPicked(newPicked);
-    // All supplements selected → auto-save and return to streak page
     if (newPicked.length >= comboIds.length) {
       onSave(newPicked, false);
     }
@@ -654,7 +702,7 @@ function ChecklistView({
           );
         })}
 
-        {/* Skip row */}
+        {/* Skipped row */}
         <button
           onClick={() => onSave([], true)}
           className="w-full rounded-2xl border border-border bg-card p-3 flex items-center gap-3 transition active:scale-[0.99]"
@@ -667,6 +715,16 @@ function ChecklistView({
             <Check className="h-4 w-4" strokeWidth={3} />
           </span>
         </button>
+
+        {/* Evening doses shortcut — shown when morning is partially filled */}
+        {onContinue && partial && (
+          <button
+            onClick={() => onContinue(picked)}
+            className="w-full rounded-2xl border border-primary/40 bg-card p-3 flex items-center justify-center gap-2 text-[14px] font-semibold text-primary transition active:scale-[0.99]"
+          >
+            Evening doses <ChevronRight className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -679,7 +737,7 @@ function BackFillView({
   onPick,
 }: {
   entries: Record<string, DayEntry>;
-  onPick: (date: string) => void;
+  onPick: (date: string, slot: "morning" | "evening") => void;
 }) {
   const days = Array.from({ length: 30 }).map((_, i) => {
     const d = new Date();
@@ -689,29 +747,39 @@ function BackFillView({
   return (
     <div className="mt-4 space-y-3">
       <p className="text-[12px] text-warm-grey/80">
-        You can log past days, not future ones.
+        Tap an empty day to log. Fully logged days are locked.
       </p>
       <div className="grid grid-cols-7 gap-1.5">
         {days.reverse().map((d) => {
           const key = isoDate(d);
           const e = entries[key];
-          const count = (e?.morning?.length ?? 0) + (e?.evening?.length ?? 0);
+          const morningLogged = (e?.morning?.length ?? 0) > 0 || !!e?.morningSkipped;
+          const eveningLogged = (e?.evening?.length ?? 0) > 0 || !!e?.eveningSkipped;
+          const fullyLogged = morningLogged && eveningLogged;
+          const anyLogged = morningLogged || eveningLogged;
+          const nextSlot: "morning" | "evening" = morningLogged ? "evening" : "morning";
           const isToday = key === todayIso();
+          const count = (e?.morning?.length ?? 0) + (e?.evening?.length ?? 0);
           return (
             <button
               key={key}
-              onClick={() => onPick(key)}
+              onClick={() => !fullyLogged && onPick(key, nextSlot)}
+              disabled={fullyLogged}
               className={cn(
                 "aspect-square rounded-lg border text-[10px] font-medium flex flex-col items-center justify-center transition",
-                count > 0
+                fullyLogged
+                  ? "border-[var(--streak)]/50 bg-[var(--streak-soft)] text-foreground opacity-40 cursor-not-allowed"
+                  : anyLogged
                   ? "border-[var(--streak)]/50 bg-[var(--streak-soft)] text-foreground"
                   : "border-border bg-card text-warm-grey/80",
                 isToday && "ring-2 ring-primary",
               )}
             >
               <span className="tabular-nums">{d.getDate()}</span>
-              {count > 0 && (
-                <span className="text-[9px] text-[var(--streak)]">{count}</span>
+              {(anyLogged || count > 0) && (
+                <span className="text-[9px] text-[var(--streak)]">
+                  {count > 0 ? count : "✓"}
+                </span>
               )}
             </button>
           );

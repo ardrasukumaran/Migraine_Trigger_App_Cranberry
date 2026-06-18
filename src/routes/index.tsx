@@ -50,6 +50,8 @@ function TodayPage() {
   const eveningTaken = today?.evening ?? [];
   const morningDone = morningTaken.length >= dayCombo.ids.length;
   const eveningDone = eveningTaken.length >= nightCombo.ids.length;
+  const morningSkipped = !!today?.morningSkipped;
+  const eveningSkipped = !!today?.eveningSkipped;
 
   const toggle = (slot: "morning" | "evening", id: string) => {
     update((s) => {
@@ -86,6 +88,7 @@ function TodayPage() {
             comboIds={dayCombo.ids}
             taken={morningTaken}
             done={morningDone}
+            skipped={morningSkipped}
             onToggle={(id) => toggle("morning", id)}
           />
           <PlanList
@@ -95,6 +98,7 @@ function TodayPage() {
             comboIds={nightCombo.ids}
             taken={eveningTaken}
             done={eveningDone}
+            skipped={eveningSkipped}
             onToggle={(id) => toggle("evening", id)}
           />
         </div>
@@ -183,6 +187,7 @@ function PlanList({
   comboIds,
   taken,
   done,
+  skipped,
   onToggle,
 }: {
   icon: React.ReactNode;
@@ -191,20 +196,20 @@ function PlanList({
   comboIds: string[];
   taken: string[];
   done: boolean;
+  skipped: boolean;
   onToggle: (id: string) => void;
 }) {
-  return (
-    <Link
-      to="/coach"
-      search={{ view: slot }}
-      className={`block rounded-2xl border p-4 transition active:scale-[0.99] ${
-        done
-          ? "bg-[var(--streak-soft)] border-[var(--streak)]/40"
-          : "bg-card border-border"
-      }`}
-    >
+  const locked = done || skipped;
+  const cls = `block rounded-2xl border p-3 transition ${
+    done
+      ? "bg-[var(--streak-soft)] border-[var(--streak)]/40"
+      : "bg-card border-border"
+  } ${!locked ? "active:scale-[0.99]" : ""}`;
+
+  const inner = (
+    <>
       <div className="flex items-center justify-between">
-        <span className="inline-flex items-center gap-2 text-sm font-semibold">
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold">
           {icon}
           {label}
         </span>
@@ -218,7 +223,7 @@ function PlanList({
         </span>
       </div>
 
-      <ul className="mt-3 space-y-1.5">
+      <ul className="mt-2 space-y-1">
         {comboIds.map((id) => {
           const sup = ALL_SUPPLEMENTS.find((s) => s.id === id);
           const on = taken.includes(id);
@@ -227,29 +232,31 @@ function PlanList({
               <button
                 type="button"
                 onClick={(e) => {
+                  if (locked) return;
                   e.preventDefault();
                   e.stopPropagation();
                   onToggle(id);
                 }}
+                disabled={locked}
                 aria-pressed={on}
-                className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 border transition active:scale-[0.99] text-left ${
+                className={`w-full flex items-center gap-2.5 rounded-xl px-2 py-2 border transition text-left ${
                   on
                     ? "bg-[var(--streak-soft)] border-[var(--streak)]/40"
-                    : "bg-background border-border hover:bg-muted/60"
-                }`}
+                    : "bg-background border-border"
+                } ${!locked ? "active:scale-[0.99] hover:bg-muted/60" : "cursor-default"}`}
               >
                 <span
-                  className={`h-6 w-6 shrink-0 rounded-full grid place-items-center border-2 transition ${
+                  className={`h-5 w-5 shrink-0 rounded-full grid place-items-center border-2 transition ${
                     on
                       ? "bg-[var(--streak)] border-[var(--streak)] text-[var(--streak-foreground)]"
                       : "bg-background border-warm-grey/40"
                   }`}
                   aria-hidden
                 >
-                  {on && <Check className="h-3.5 w-3.5" strokeWidth={4} />}
+                  {on && <Check className="h-3 w-3" strokeWidth={4} />}
                 </span>
                 <span className="flex-1 min-w-0">
-                  <span className={`block text-sm font-semibold leading-tight ${on ? "text-[var(--streak)]" : ""}`}>
+                  <span className={`block text-xs font-semibold leading-tight ${on ? "text-[var(--streak)]" : ""}`}>
                     {sup?.name ?? id}
                   </span>
                 </span>
@@ -258,6 +265,16 @@ function PlanList({
           );
         })}
       </ul>
+    </>
+  );
+
+  if (locked) {
+    return <div className={cls}>{inner}</div>;
+  }
+
+  return (
+    <Link to="/coach" search={{ view: slot }} className={cls}>
+      {inner}
     </Link>
   );
 }
