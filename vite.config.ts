@@ -13,5 +13,8 @@ export default defineConfig({
   ],
   build: {
     outDir: "dist/client",
+    rollupOptions: {
+      external: ["firebase/app", "firebase/messaging"],
+    },
   },
 });
