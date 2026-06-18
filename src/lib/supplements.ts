@@ -34,7 +34,7 @@ export const MILESTONES = [
 ];
 
 // Weight series for scoring — index maps to supplement count
-const WEIGHTS = [3, 7, 14, 30];
+const WEIGHTS = [2, 4, 8, 16];
 
 // Score for N supplements taken: sum of first N weights (e.g. 2 → 3+7=10)
 export function scoreForCount(taken: number): number {
