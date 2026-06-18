@@ -1,6 +1,4 @@
 // src/components/NotificationPrompt.tsx
-// Uses Firebase CDN — avoids Bun bundling issues with firebase npm package
-
 import { useState, useEffect } from "react";
 import { Bell, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -10,27 +8,28 @@ const STORAGE_KEY = "cranberry.notification_asked.v1";
 const FCM_KEY     = "cranberry.fcm_token.v1";
 const STREAK_KEY  = "cranberry.streaks.v1";
 
+// Hardcoded Firebase config — these are public values, safe to include in frontend code
 const FIREBASE_CONFIG = {
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+  apiKey:            "AIzaSyCcCVGSMA1nX5f2_jjG1pqkNSDRGduR_p0",
   authDomain:        "meal-reminder-app.firebaseapp.com",
   projectId:         "meal-reminder-app",
   storageBucket:     "meal-reminder-app.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
+  messagingSenderId: "1034543527787",
+  appId:             "1:1034543527787:web:5e04ce5cf292072badbe2e",
 };
 
-const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+const VAPID_KEY = "BJv94GZl_CnEMK4TMWxZSWEiF0VE87j0xy6swee4fs3ck6Iw6aloDqz86l9VHKtBFRNMjhbHEb48fD0szET2zSc";
 
 const DAY_COMBO_MAP: Record<string, string> = {
-  "day-a": "Ribo + CoQ & Mg Oxide",
-  "day-b": "Ribo + Vit B6 & Nutrients",
-  "day-c": "Ribo + Myo-inositol & Nutrients",
-  "day-d": "Ribo + Isoflavones & Nutrients",
+  "day-a": "Ribo + Mg + Premence",
+  "day-b": "Ribo + Mg + CoQ",
+  "day-c": "Ribo + Mg + Feverfew",
+  "day-d": "Ribo + Mg + D3",
 };
 
 const NIGHT_COMBO_MAP: Record<string, string> = {
-  "night-a": "Ribo + Mg Gly",
-  "night-b": "Ribo + Mg Gly + CoQ",
+  "night-a": "Mg + CoQ",
+  "night-b": "Mg + Premence",
 };
 
 function getComboFromStorage() {
@@ -47,7 +46,6 @@ function getComboFromStorage() {
   }
 }
 
-// Load Firebase scripts from CDN dynamically
 function loadScript(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
     if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
@@ -99,7 +97,7 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
       // Step 3: Load Firebase from CDN
       const firebase = await loadFirebase();
 
-      // Initialize if not already done
+      // Initialize only if not already done
       if (!firebase.apps.length) {
         firebase.initializeApp(FIREBASE_CONFIG);
       }
