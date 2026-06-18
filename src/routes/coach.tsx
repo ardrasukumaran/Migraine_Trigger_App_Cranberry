@@ -653,16 +653,18 @@ function ChecklistView({
           );
         })}
 
-        {/* Skip row — saves as skipped (score=1) and immediately returns to streak page */}
+        {/* Skip row */}
         <button
           onClick={() => onSave([], true)}
           className="w-full rounded-2xl border border-border bg-card p-3 flex items-center gap-3 transition active:scale-[0.99]"
         >
           <span className="text-2xl">🚫</span>
           <div className="flex-1 text-left min-w-0">
-            <p className="text-[14px] font-semibold text-warm-grey/80">Skip</p>
-            <p className="text-[11px] text-warm-grey/50">+{SKIP_SCORE} pt · won't count toward streak</p>
+            <p className="text-[14px] font-semibold truncate">Skip</p>
           </div>
+          <span className="h-7 w-7 rounded-full grid place-items-center border-2 border-border text-transparent">
+            <Check className="h-4 w-4" strokeWidth={3} />
+          </span>
         </button>
       </div>
     </div>
