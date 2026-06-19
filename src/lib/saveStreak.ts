@@ -48,7 +48,7 @@ export function saveStreakToSheet({
   timers[key] = setTimeout(async () => {
     try {
       const supplements = idsToLabel(ids);
-      const score       = scoreForCount(ids.length) * 10;
+      const score       = ids.length;
       const type        = slot === "morning" ? "day" : "night";
 
       await fetch(`${BACKEND_URL}/save-streak`, {
