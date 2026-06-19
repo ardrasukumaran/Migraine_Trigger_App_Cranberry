@@ -4,11 +4,10 @@ import { Bell, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const BACKEND_URL = "https://cranberry-notifications.onrender.com";
-const STORAGE_KEY = "cranberry.notification_asked.v1";
 const FCM_KEY     = "cranberry.fcm_token.v1";
 const STREAK_KEY  = "cranberry.streaks.v1";
 
-// Hardcoded Firebase config — these are public values, safe to include in frontend code
+// Firebase config — hardcoded (public values, safe in frontend)
 const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyCcCVGSMA1nX5f2_jjG1pqkNSDRGduR_p0",
   authDomain:        "meal-reminder-app.firebaseapp.com",
@@ -75,8 +74,18 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
 
   useEffect(() => {
     if (typeof Notification === "undefined") { onDone?.(); return; }
-    if (Notification.permission === "denied")  { onDone?.(); return; }
-    if (localStorage.getItem(STORAGE_KEY))     { onDone?.(); return; }
+    if (Notification.permission === "denied") { onDone?.(); return; }
+
+    // Only skip if already granted AND token already saved
+    if (
+      Notification.permission === "granted" &&
+      localStorage.getItem(FCM_KEY)
+    ) {
+      onDone?.();
+      return;
+    }
+
+    // Show popup after 1 second
     const timer = setTimeout(() => setShow(true), 1000);
     return () => clearTimeout(timer);
   }, []);
@@ -96,12 +105,9 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
 
       // Step 3: Load Firebase from CDN
       const firebase = await loadFirebase();
-
-      // Initialize only if not already done
       if (!firebase.apps.length) {
         firebase.initializeApp(FIREBASE_CONFIG);
       }
-
       const messaging = firebase.messaging();
 
       // Step 4: Get FCM token
@@ -112,13 +118,12 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
 
       if (!token) throw new Error("No token received");
 
-      // Step 5: Save locally
+      // Step 5: Save token locally
       localStorage.setItem(FCM_KEY, token);
       console.log("[FCM] Token obtained:", token.slice(0, 30) + "…");
 
       // Step 6: Send to backend
       const { dayCombo, nightCombo } = getComboFromStorage();
-
       await fetch(`${BACKEND_URL}/register-token`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -132,13 +137,13 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
 
       console.log("[FCM] Token registered successfully!");
 
-      localStorage.setItem(STORAGE_KEY, "1");
+      // Only save to localStorage on successful Allow
       setDone(true);
       setTimeout(() => { setShow(false); onDone?.(); }, 2000);
 
     } catch (err) {
       console.error("[FCM] Error:", err);
-      localStorage.setItem(STORAGE_KEY, "1");
+      // On error — don't save to localStorage, ask again next login
       setShow(false);
       onDone?.();
     } finally {
@@ -146,8 +151,9 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
     }
   }
 
+  // Maybe later OR click outside — don't save to localStorage
+  // Popup will show again on next login
   function handleSkip() {
-    localStorage.setItem(STORAGE_KEY, "1");
     setShow(false);
     onDone?.();
   }
@@ -156,7 +162,9 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
 
   return (
     <>
+      {/* Backdrop — click outside = same as Maybe later */}
       <div className="fixed inset-0 bg-black/60 z-40" onClick={handleSkip} />
+
       <div className="fixed inset-x-4 bottom-6 z-50 rounded-3xl bg-card border border-border p-6 shadow-2xl">
         <button
           onClick={handleSkip}
@@ -203,7 +211,10 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
             </button>
           )}
           {!done && (
-            <button onClick={handleSkip} className="w-full rounded-2xl bg-muted py-3 text-[13px] font-medium text-warm-grey/70">
+            <button
+              onClick={handleSkip}
+              className="w-full rounded-2xl bg-muted py-3 text-[13px] font-medium text-warm-grey/70"
+            >
               Maybe later
             </button>
           )}
