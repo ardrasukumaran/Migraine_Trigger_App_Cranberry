@@ -6,14 +6,10 @@ import {
   useRouter,
   useLocation,
   useNavigate,
-  HeadContent,
-  Scripts,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Toaster, toast } from "sonner";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-
-import appCss from "../styles.css?url";
 
 // ─── Foreground FCM notification handler ─────────────────────────────────────
 function useForegroundNotifications() {
@@ -136,44 +132,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Migraine App Demo" },
-      { name: "description", content: "Migraine Minder helps users track migraine triggers, log attacks, and build healthy habits." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Migraine App Demo" },
-      { property: "og:description", content: "Migraine Minder helps users track migraine triggers, log attacks, and build healthy habits." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Migraine App Demo" },
-      { name: "twitter:description", content: "Migraine Minder helps users track migraine triggers, log attacks, and build healthy habits." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4f1253b3-23f5-4f66-a4ad-840dd4db68a0/id-preview-2a3f66c7--06a1a847-01a7-4830-a0f6-55a601d4ae65.lovable.app-1781363945395.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4f1253b3-23f5-4f66-a4ad-840dd4db68a0/id-preview-2a3f66c7--06a1a847-01a7-4830-a0f6-55a601d4ae65.lovable.app-1781363945395.png" },
-    ],
-    links: [{ rel: "stylesheet", href: appCss }],
-  }),
-  shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
-
-function RootShell({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { phone, isLoading } = useAuth();
