@@ -1,12 +1,31 @@
 // src/lib/saveStreak.ts
 // Saves streak data to Google Sheet via backend
-// Uses debounce — waits 3 seconds after last change before saving
+// Uses 3 second debounce — waits after last change before saving
 
-import { scoreForCount, ALL_SUPPLEMENTS } from "@/lib/supplements";
+import { scoreForCount } from "@/lib/supplements";
 
 const BACKEND_URL = "https://cranberry-notifications.onrender.com";
 
-// ─── Debounce timer ───────────────────────────────────────────────────────────
+// ─── Supplement ID → readable name ───────────────────────────────────────────
+// Maps all known supplement IDs to display names
+const SUPP_NAMES: Record<string, string> = {
+  "ribo":     "Ribo",
+  "mg":       "Mg",
+  "mg-gly":   "Mg",
+  "coq":      "CoQ",
+  "coq-mgox": "CoQ",
+  "premence": "Premence",
+  "feverfew": "Feverfew",
+  "vitd":     "D3",
+};
+
+function idsToLabel(ids: string[]): string {
+  return ids
+    .map((id) => SUPP_NAMES[id] ?? id) // fallback to raw id if not found
+    .join(" + ");
+}
+
+// ─── Debounce timers ──────────────────────────────────────────────────────────
 const timers: Record<string, ReturnType<typeof setTimeout>> = {};
 
 // ─── Save single slot ─────────────────────────────────────────────────────────
@@ -23,21 +42,14 @@ export function saveStreakToSheet({
 }): void {
   if (!phone) return;
 
-  // Debounce key: unique per phone + date + slot
   const key = `${phone}-${date}-${slot}`;
-
-  // Clear existing timer
   if (timers[key]) clearTimeout(timers[key]);
 
-  // Set new timer — save after 3 seconds of no changes
   timers[key] = setTimeout(async () => {
     try {
-      const supplements = ids
-        .map((id) => ALL_SUPPLEMENTS.find((s) => s.id === id)?.short ?? id)
-        .join(" + ");
-
-      const score = scoreForCount(ids.length) * 10;
-      const type  = slot === "morning" ? "day" : "night";
+      const supplements = idsToLabel(ids);
+      const score       = scoreForCount(ids.length) * 10;
+      const type        = slot === "morning" ? "day" : "night";
 
       await fetch(`${BACKEND_URL}/save-streak`, {
         method:  "POST",
@@ -45,16 +57,15 @@ export function saveStreakToSheet({
         body:    JSON.stringify({ phone, date, type, supplements, score }),
       });
 
-      console.log(`[Streak] Saved ${type} for ${phone} on ${date}: ${supplements} (${score} pts)`);
+      console.log(`[Streak] ✓ Saved ${type} for ${phone} on ${date}: ${supplements} (${score} pts)`);
     } catch (err) {
       console.error("[Streak] Save failed:", err);
     }
-
     delete timers[key];
-  }, 3000); // 3 second debounce
+  }, 3000);
 }
 
-// ─── Save all entries (used when app loads or state changes) ──────────────────
+// ─── Save all entries ─────────────────────────────────────────────────────────
 export function saveAllStreaksToSheet(
   entries: Record<string, { morning?: string[]; evening?: string[] }>,
   phone: string
