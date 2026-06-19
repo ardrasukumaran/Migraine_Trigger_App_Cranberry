@@ -8,8 +8,6 @@ import {
   NIGHT_COMBOS,
   MILESTONES,
   scoreForCount,
-  totalPossibleScore,
-  SKIP_SCORE,
 } from "@/lib/supplements";
 import {
   currentStreak,
@@ -30,6 +28,8 @@ import {
   Heart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { saveStreakToSheet } from "@/lib/saveStreak";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/coach")({
   head: () => ({
@@ -50,6 +50,7 @@ type View = "home" | "morning" | "evening" | "back-fill" | "milestones" | "setup
 
 function StreaksPage() {
   const { view: searchView } = Route.useSearch();
+  const { phone } = useAuth();
   const [state, update] = useStreakState();
   const [view, setView] = useState<View>(searchView ?? "home");
   const [activeDate, setActiveDate] = useState<string>(todayIso());
@@ -59,7 +60,7 @@ function StreaksPage() {
   const dayCombo = DAY_COMBOS.find((c) => c.id === state.dayComboId)!;
   const nightCombo = NIGHT_COMBOS.find((c) => c.id === state.nightComboId)!;
 
-  const setEntry = (date: string, slot: "morning" | "evening", ids: string[], skipped: boolean) => {
+  const setEntry = (date: string, slot: "morning" | "evening", ids: string[]) => {
     update((s) => ({
       ...s,
       entries: {
@@ -67,10 +68,7 @@ function StreaksPage() {
         [date]: {
           morning: s.entries[date]?.morning ?? [],
           evening: s.entries[date]?.evening ?? [],
-          morningSkipped: s.entries[date]?.morningSkipped,
-          eveningSkipped: s.entries[date]?.eveningSkipped,
           [slot]: ids,
-          [slot === "morning" ? "morningSkipped" : "eveningSkipped"]: skipped,
         },
       },
     }));
@@ -123,13 +121,10 @@ function StreaksPage() {
           date={activeDate}
           comboIds={dayCombo.ids}
           entry={state.entries[activeDate]}
-          onSave={(ids, skipped) => {
-            setEntry(activeDate, "morning", ids, skipped);
-            setView("evening");
-          }}
-          onContinue={(ids) => {
-            setEntry(activeDate, "morning", ids, false);
-            setView("evening");
+          onSave={(ids) => {
+            setEntry(activeDate, "morning", ids);
+            saveStreakToSheet({ slot: "morning", date: activeDate, ids, phone: phone ?? "" });
+            setView("home");
           }}
         />
       )}
@@ -140,8 +135,9 @@ function StreaksPage() {
           date={activeDate}
           comboIds={nightCombo.ids}
           entry={state.entries[activeDate]}
-          onSave={(ids, skipped) => {
-            setEntry(activeDate, "evening", ids, skipped);
+          onSave={(ids) => {
+            setEntry(activeDate, "evening", ids);
+            saveStreakToSheet({ slot: "evening", date: activeDate, ids, phone: phone ?? "" });
             setView("home");
           }}
         />
@@ -150,9 +146,9 @@ function StreaksPage() {
       {view === "back-fill" && (
         <BackFillView
           entries={state.entries}
-          onPick={(d, slot) => {
+          onPick={(d) => {
             setActiveDate(d);
-            setView(slot);
+            setView("morning");
           }}
         />
       )}
@@ -177,14 +173,14 @@ function StreaksPage() {
 
 /* ---------------- HOME ---------------- */
 
+// Per-supplement pill style (matches reference: B2 yellow, Mg blue, Pm pink, …)
 const PILL: Record<string, { label: string; bg: string; fg: string }> = {
-  ribo:        { label: "Ribo",   bg: "oklch(0.55 0.14 90 / 0.35)",  fg: "oklch(0.92 0.16 95)"  },
-  "mg-gly":    { label: "MgGly",  bg: "oklch(0.45 0.14 250 / 0.35)", fg: "oklch(0.86 0.12 245)" },
-  "coq-mgox":  { label: "CoQ+Mg", bg: "oklch(0.5 0.16 55 / 0.35)",   fg: "oklch(0.88 0.16 65)"  },
-  coq:         { label: "CoQ",    bg: "oklch(0.5 0.16 55 / 0.35)",   fg: "oklch(0.88 0.16 65)"  },
-  "vit-b6":    { label: "B6",     bg: "oklch(0.55 0.14 80 / 0.35)",  fg: "oklch(0.92 0.18 95)"  },
-  myo:         { label: "Myo",    bg: "oklch(0.45 0.14 155 / 0.35)", fg: "oklch(0.86 0.14 155)" },
-  isoflavones: { label: "Iso",    bg: "oklch(0.5 0.12 350 / 0.35)",  fg: "oklch(0.88 0.10 355)" },
+  ribo:     { label: "B2", bg: "oklch(0.55 0.14 90 / 0.35)",  fg: "oklch(0.92 0.16 95)"  },
+  mg:       { label: "Mg", bg: "oklch(0.45 0.14 250 / 0.35)", fg: "oklch(0.86 0.12 245)" },
+  premence: { label: "Pm", bg: "oklch(0.5 0.16 15 / 0.35)",   fg: "oklch(0.88 0.14 20)"  },
+  coq:      { label: "CoQ",bg: "oklch(0.5 0.16 55 / 0.35)",   fg: "oklch(0.88 0.16 65)"  },
+  feverfew: { label: "FF", bg: "oklch(0.45 0.14 155 / 0.35)", fg: "oklch(0.86 0.14 155)" },
+  vitd:     { label: "D3", bg: "oklch(0.55 0.14 80 / 0.35)",  fg: "oklch(0.92 0.18 95)"  },
 };
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -198,141 +194,8 @@ function statusLabel(streak: number) {
   return "Plant me";
 }
 
-function slotStreak(
-  entries: Record<string, DayEntry>,
-  slot: "morning" | "evening",
-) {
-  let n = 0;
-  const d = new Date();
-  for (let i = 0; i < 365; i++) {
-    const key = isoDate(d);
-    const e = entries[key];
-    const took = (e?.[slot]?.length ?? 0) > 0;
-    if (!took) {
-      if (i === 0) {
-        d.setDate(d.getDate() - 1);
-        continue;
-      }
-      break;
-    }
-    n++;
-    d.setDate(d.getDate() - 1);
-  }
-  return n;
-}
-
-function DayRing({
-  date,
-  ratio,
-  isToday,
-  isFuture,
-  letter,
-}: {
-  date: number;
-  ratio: number;
-  isToday: boolean;
-  isFuture: boolean;
-  letter: string;
-}) {
-  const size = 36;
-  const stroke = 3;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const pct = Math.max(0, Math.min(1, ratio));
-  return (
-    <div className="flex flex-col items-center gap-1.5">
-      <span className="text-[10px] text-warm-grey/70">{letter}</span>
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} className="-rotate-90">
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
-            fill="none"
-            stroke="var(--muted)"
-            strokeWidth={stroke}
-          />
-          {pct > 0 && (
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={r}
-              fill="none"
-              stroke="var(--streak)"
-              strokeWidth={stroke}
-              strokeLinecap="round"
-              strokeDasharray={c}
-              strokeDashoffset={c * (1 - pct)}
-            />
-          )}
-        </svg>
-        <span
-          className={cn(
-            "absolute inset-0 grid place-items-center text-[11px] tabular-nums",
-            isFuture ? "text-warm-grey/40" : "text-foreground",
-            isToday && "font-bold",
-          )}
-        >
-          {date}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function StreakCard({
-  label,
-  streak,
-  size = 96,
-}: {
-  label: string;
-  streak: number;
-  size?: number;
-}) {
-  return (
-    <div className="rounded-3xl bg-card border border-border p-4 relative overflow-hidden">
-      <div
-        className="absolute inset-x-0 top-0 h-24 opacity-30 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(70% 80% at 50% 0%, var(--streak-soft), transparent)",
-        }}
-      />
-      <div className="relative flex flex-col items-center text-center">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-warm-grey/70 font-medium">
-          {label}
-        </p>
-        <div className="flex items-baseline gap-1 mt-1">
-          <span className="font-serif-display text-[44px] leading-none tabular-nums">
-            {streak}
-          </span>
-          <span className="text-warm-grey/80 text-[12px] font-medium">days</span>
-        </div>
-        <span className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--streak-soft)] text-[var(--streak)] text-[10px] font-semibold">
-          <Heart className="h-3 w-3" />
-          {statusLabel(streak)}
-        </span>
-        <div className="mt-1">
-          <StreakPlant days={streak} size={size} />
-        </div>
-        <p className="font-serif-display text-[13px] leading-snug">
-          I showed up for my migraine.
-        </p>
-        <p className="text-[11px] text-warm-grey/80 mt-1">
-          {streak >= 14
-            ? "Two strong weeks of self-care."
-            : streak >= 7
-            ? "One full week of showing up."
-            : streak > 0
-            ? `${streak} day${streak > 1 ? "s" : ""} of caring for yourself.`
-            : "Tap a dose to begin."}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function HomeView({
+  streak,
   state,
   go,
   setActiveDate,
@@ -345,61 +208,103 @@ function HomeView({
   setActiveDate: (d: string) => void;
 }) {
   const today = state.entries[todayIso()];
+  const morningTaken = today?.morning?.length ?? 0;
+  const eveningTaken = today?.evening?.length ?? 0;
 
   const dayCombo = DAY_COMBOS.find((c) => c.id === state.dayComboId)!;
   const nightCombo = NIGHT_COMBOS.find((c) => c.id === state.nightComboId)!;
 
-  const morningLogged = (today?.morning?.length ?? 0) > 0 || !!today?.morningSkipped;
-  const eveningLogged = (today?.evening?.length ?? 0) > 0 || !!today?.eveningSkipped;
+  // Total points across all logged days
+  const totalPoints = Object.values(state.entries).reduce((sum, e) => {
+    return sum + (scoreForCount(e.morning?.length ?? 0) + scoreForCount(e.evening?.length ?? 0)) * 10;
+  }, 0);
 
-  const dayStreak = useMemo(() => slotStreak(state.entries, "morning"), [state.entries]);
-  const nightStreak = useMemo(() => slotStreak(state.entries, "evening"), [state.entries]);
+  const next = MILESTONES.find((m) => streak < m.days);
+  const progress = next ? Math.min(100, (streak / next.days) * 100) : 100;
 
   const now = new Date();
   const dateLabel = `${MONTHS[now.getMonth()]} ${now.getDate()}`;
-  const todayDow = now.getDay();
-  const todayKey = todayIso();
-  const totalMorningPossible = totalPossibleScore(dayCombo.ids.length);
-  const totalEveningPossible = totalPossibleScore(nightCombo.ids.length);
-  const totalDayPossible = totalMorningPossible + totalEveningPossible;
+  const todayDow = now.getDay(); // 0..6 (Sun..Sat)
 
   return (
     <div className="mt-4 space-y-5">
-      {/* THIS WEEK — sticky */}
-      <div className="sticky top-0 z-20 -mx-5 px-5 bg-background pb-2 pt-1">
-        <div className="rounded-3xl bg-card border border-border p-3">
-          <div className="grid grid-cols-7 gap-2">
-            {Array.from({ length: 7 }).map((_, i) => {
-              const offset = i - todayDow;
-              const d = new Date();
-              d.setDate(d.getDate() + offset);
-              const key = isoDate(d);
-              const e = state.entries[key];
-              const morningScore = e?.morningSkipped ? SKIP_SCORE : scoreForCount(e?.morning?.length ?? 0);
-              const eveningScore = e?.eveningSkipped ? SKIP_SCORE : scoreForCount(e?.evening?.length ?? 0);
-              const dailyScorePct = totalDayPossible > 0
-                ? (morningScore + eveningScore) / totalDayPossible
-                : 0;
-              const ratio = dailyScorePct;
+      {/* HERO — streak + plant + milestone bar */}
+      <div className="rounded-3xl bg-card border border-border p-5 relative overflow-hidden">
+        <div
+          className="absolute inset-x-0 top-0 h-32 opacity-30 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(70% 80% at 50% 0%, var(--streak-soft), transparent)",
+          }}
+        />
+        <div className="relative flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-serif-display text-[64px] leading-none tabular-nums">
+                {streak}
+              </span>
+              <span className="text-warm-grey/80 text-[14px] font-medium">days</span>
+            </div>
+            <span className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--streak-soft)] text-[var(--streak)] text-[12px] font-semibold">
+              <Heart className="h-3.5 w-3.5" />
+              {statusLabel(streak)}
+            </span>
+            <p className="font-serif-display text-[18px] leading-snug mt-3">
+              I showed up for my migraine.
+            </p>
+            <p className="text-[12px] text-warm-grey/80 mt-1">
+              {streak >= 14
+                ? "Two strong weeks of self-care."
+                : streak >= 7
+                ? "One full week of showing up."
+                : streak > 0
+                ? `${streak} day${streak > 1 ? "s" : ""} of caring for yourself.`
+                : "Tap a dose to begin."}
+            </p>
+
+          </div>
+          <div className="shrink-0">
+            <StreakPlant days={streak} size={120} />
+          </div>
+        </div>
+
+        {/* Milestone progress with 3 stops */}
+        <div className="relative mt-5">
+          <div className="flex items-center justify-between text-[11px] mb-2">
+            <span className="text-[var(--streak)] font-semibold">
+              {next ? `${next.days - streak} days to ${next.reward}` : "All milestones cleared"}
+            </span>
+            <span className="text-warm-grey/80 tabular-nums">{totalPoints.toLocaleString()} pts</span>
+          </div>
+          <div className="relative h-2 rounded-full bg-muted overflow-visible">
+            <div
+              className="absolute inset-y-0 left-0 rounded-full"
+              style={{ width: `${progress}%`, background: "var(--streak)" }}
+            />
+            {MILESTONES.map((m) => {
+              const left = Math.min(100, (m.days / 90) * 100);
+              const reached = streak >= m.days;
               return (
-                <DayRing
-                  key={i}
-                  letter={DAY_LETTERS[i]}
-                  date={d.getDate()}
-                  ratio={ratio}
-                  isToday={key === todayKey}
-                  isFuture={offset > 0}
+                <span
+                  key={m.days}
+                  className="absolute -top-1 h-4 w-4 rounded-full border-2"
+                  style={{
+                    left: `calc(${left}% - 8px)`,
+                    background: reached ? "var(--streak)" : "var(--card)",
+                    borderColor: reached ? "var(--streak)" : "var(--border)",
+                  }}
                 />
               );
             })}
           </div>
+          <div className="flex justify-between mt-2 text-[10px] text-warm-grey/70 tabular-nums">
+            {MILESTONES.map((m) => (
+              <span key={m.days}>
+                {m.days} · {m.reward.replace(/^\D*/, "").replace(" off", "%") || m.reward}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* STREAK CARDS */}
-      <div className="grid grid-cols-2 gap-3">
-        <StreakCard label="Day" streak={dayStreak} />
-        <StreakCard label="Night" streak={nightStreak} />
       </div>
 
       {/* TODAY */}
@@ -414,26 +319,66 @@ function HomeView({
             time="12:30 PM"
             comboIds={dayCombo.ids}
             taken={today?.morning ?? []}
-            skipped={!!today?.morningSkipped}
             onLog={() => {
               setActiveDate(todayIso());
               go("morning");
             }}
-            locked={morningLogged}
           />
           <DoseRow
             slot="evening"
             time="7:30 PM"
             comboIds={nightCombo.ids}
             taken={today?.evening ?? []}
-            skipped={!!today?.eveningSkipped}
             onLog={() => {
               setActiveDate(todayIso());
               go("evening");
             }}
-            locked={eveningLogged}
           />
+
         </div>
+      </div>
+
+      {/* THIS WEEK */}
+      <div>
+        <p className="font-serif-display text-[22px] mb-2">This week</p>
+        <div className="rounded-3xl bg-card border border-border p-4">
+          <div className="grid grid-cols-7 gap-2">
+            {Array.from({ length: 7 }).map((_, i) => {
+              const offset = i - todayDow;
+              const d = new Date();
+              d.setDate(d.getDate() + offset);
+              const key = isoDate(d);
+              const e = state.entries[key];
+              const count = (e?.morning?.length ?? 0) + (e?.evening?.length ?? 0);
+              const done = count > 0;
+              const isFuture = offset > 0;
+              return (
+                <div key={i} className="flex flex-col items-center gap-1.5">
+                  <span className="text-[10px] text-warm-grey/70">{DAY_LETTERS[i]}</span>
+                  <span
+                    className={cn(
+                      "h-9 w-9 rounded-full grid place-items-center",
+                      done
+                        ? "bg-[var(--streak)] text-[var(--streak-foreground)]"
+                        : isFuture
+                        ? "bg-muted/50 text-warm-grey/40"
+                        : "bg-muted text-warm-grey/60",
+                    )}
+                  >
+                    {done ? (
+                      <Check className="h-4 w-4" strokeWidth={3} />
+                    ) : (
+                      <span className="text-[10px] tabular-nums">{d.getDate()}</span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <p className="text-[11px] text-warm-grey/70 mt-2 px-1">
+          You can log today or back-fill a missed day — never a day that hasn't happened yet.
+        </p>
       </div>
 
       {/* Quick actions */}
@@ -468,27 +413,32 @@ function DoseRow({
   time,
   comboIds,
   taken,
-  skipped,
   onLog,
-  locked,
 }: {
   slot: "morning" | "evening";
   time: string;
   comboIds: string[];
   taken: string[];
-  skipped?: boolean;
   onLog: () => void;
-  locked?: boolean;
 }) {
   const total = comboIds.length;
   const count = taken.length;
   const complete = count >= total && total > 0;
-  const points = scoreForCount(count);
+  const points = scoreForCount(count) * 10;
   const Icon = slot === "morning" ? Utensils : UtensilsCrossed;
   const label = slot === "morning" ? "With lunch" : "With dinner";
 
-  const inner = (
-    <>
+
+  return (
+    <button
+      onClick={onLog}
+      className={cn(
+        "w-full rounded-2xl border p-3 flex items-center gap-3 text-left transition active:scale-[0.99]",
+        complete
+          ? "bg-[var(--streak-soft)]/40 border-[var(--streak)]/40"
+          : "bg-card border-border",
+      )}
+    >
       <div
         className={cn(
           "h-11 w-11 rounded-2xl grid place-items-center shrink-0",
@@ -505,36 +455,30 @@ function DoseRow({
           <span className="text-[11px] text-warm-grey/70">{time}</span>
         </div>
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {skipped ? (
-            <span className="inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-warm-grey/70">
-              🚫 Skipped
-            </span>
-          ) : (
-            comboIds.map((id) => {
-              const on = taken.includes(id);
-              const p = PILL[id] ?? { label: id.slice(0, 2).toUpperCase(), bg: "var(--muted)", fg: "var(--foreground)" };
-              return (
+          {comboIds.map((id) => {
+            const on = taken.includes(id);
+            const p = PILL[id] ?? { label: id.slice(0, 2).toUpperCase(), bg: "var(--muted)", fg: "var(--foreground)" };
+            return (
+              <span
+                key={id}
+                className={cn(
+                  "inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full text-[10px] font-bold",
+                  !on && "opacity-50",
+                )}
+                style={{ background: p.bg, color: p.fg }}
+              >
                 <span
-                  key={id}
                   className={cn(
-                    "inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full text-[10px] font-bold",
-                    !on && "opacity-50",
+                    "h-3.5 w-3.5 rounded-full grid place-items-center",
+                    on ? "bg-[var(--streak)] text-[var(--streak-foreground)]" : "bg-background/40 text-transparent",
                   )}
-                  style={{ background: p.bg, color: p.fg }}
                 >
-                  <span
-                    className={cn(
-                      "h-3.5 w-3.5 rounded-full grid place-items-center",
-                      on ? "bg-[var(--streak)] text-[var(--streak-foreground)]" : "bg-background/40 text-transparent",
-                    )}
-                  >
-                    <Check className="h-2.5 w-2.5" strokeWidth={4} />
-                  </span>
-                  {p.label}
+                  <Check className="h-2.5 w-2.5" strokeWidth={4} />
                 </span>
-              );
-            })
-          )}
+                {p.label}
+              </span>
+            );
+          })}
         </div>
       </div>
       <div className="text-right shrink-0">
@@ -547,10 +491,6 @@ function DoseRow({
               {count} of {total} taken
             </p>
           </>
-        ) : locked ? (
-          <p className="text-[11px] text-warm-grey/50">
-            {skipped ? "Skipped" : `${count}/${total}`}
-          </p>
         ) : (
           <>
             <p className="text-primary font-semibold text-[13px] inline-flex items-center gap-0.5">
@@ -562,35 +502,6 @@ function DoseRow({
           </>
         )}
       </div>
-    </>
-  );
-
-  if (locked) {
-    return (
-      <div
-        className={cn(
-          "w-full rounded-2xl border p-3 flex items-center gap-3",
-          complete
-            ? "bg-[var(--streak-soft)]/40 border-[var(--streak)]/40"
-            : "bg-card border-border",
-        )}
-      >
-        {inner}
-      </div>
-    );
-  }
-
-  return (
-    <button
-      onClick={onLog}
-      className={cn(
-        "w-full rounded-2xl border p-3 flex items-center gap-3 text-left transition active:scale-[0.99]",
-        complete
-          ? "bg-[var(--streak-soft)]/40 border-[var(--streak)]/40"
-          : "bg-card border-border",
-      )}
-    >
-      {inner}
     </button>
   );
 }
@@ -624,34 +535,22 @@ function ChecklistView({
   comboIds,
   entry,
   onSave,
-  onContinue,
 }: {
   slot: "morning" | "evening";
   date: string;
   comboIds: string[];
   entry?: DayEntry;
-  onSave: (ids: string[], skipped: boolean) => void;
-  onContinue?: (ids: string[]) => void;
+  onSave: (ids: string[]) => void;
 }) {
   const initial = entry?.[slot] ?? [];
   const [picked, setPicked] = useState<string[]>(initial);
-
   const supplements = comboIds
     .map((id) => ALL_SUPPLEMENTS.find((s) => s.id === id)!)
     .filter(Boolean);
-
   const score = scoreForCount(picked.length);
-  const partial = picked.length > 0 && picked.length < comboIds.length;
 
-  const toggle = (id: string) => {
-    const newPicked = picked.includes(id)
-      ? picked.filter((x) => x !== id)
-      : [...picked, id];
-    setPicked(newPicked);
-    if (newPicked.length >= comboIds.length) {
-      onSave(newPicked, false);
-    }
-  };
+  const toggle = (id: string) =>
+    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
   return (
     <div className="mt-4 space-y-4">
@@ -701,31 +600,14 @@ function ChecklistView({
             </button>
           );
         })}
-
-        {/* Skipped row */}
-        <button
-          onClick={() => onSave([], true)}
-          className="w-full rounded-2xl border border-border bg-card p-3 flex items-center gap-3 transition active:scale-[0.99]"
-        >
-          <span className="text-2xl">🚫</span>
-          <div className="flex-1 text-left min-w-0">
-            <p className="text-[14px] font-semibold truncate">Skipped</p>
-          </div>
-          <span className="h-7 w-7 rounded-full grid place-items-center border-2 border-border text-transparent">
-            <Check className="h-4 w-4" strokeWidth={3} />
-          </span>
-        </button>
-
-        {/* Evening doses shortcut — shown when morning is partially filled */}
-        {onContinue && partial && (
-          <button
-            onClick={() => onContinue(picked)}
-            className="w-full rounded-2xl border border-primary/40 bg-card p-3 flex items-center justify-center gap-2 text-[14px] font-semibold text-primary transition active:scale-[0.99]"
-          >
-            Evening doses <ChevronRight className="h-4 w-4" />
-          </button>
-        )}
       </div>
+
+      <button
+        onClick={() => onSave(picked)}
+        className="w-full rounded-2xl bg-primary text-primary-foreground py-3.5 font-semibold active:scale-[0.99] transition"
+      >
+        Save
+      </button>
     </div>
   );
 }
@@ -737,8 +619,9 @@ function BackFillView({
   onPick,
 }: {
   entries: Record<string, DayEntry>;
-  onPick: (date: string, slot: "morning" | "evening") => void;
+  onPick: (date: string) => void;
 }) {
+  // Show last 30 days; future disabled
   const days = Array.from({ length: 30 }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - i);
@@ -747,39 +630,29 @@ function BackFillView({
   return (
     <div className="mt-4 space-y-3">
       <p className="text-[12px] text-warm-grey/80">
-        Tap an empty day to log. Fully logged days are locked.
+        You can log past days, not future ones.
       </p>
       <div className="grid grid-cols-7 gap-1.5">
         {days.reverse().map((d) => {
           const key = isoDate(d);
           const e = entries[key];
-          const morningLogged = (e?.morning?.length ?? 0) > 0 || !!e?.morningSkipped;
-          const eveningLogged = (e?.evening?.length ?? 0) > 0 || !!e?.eveningSkipped;
-          const fullyLogged = morningLogged && eveningLogged;
-          const anyLogged = morningLogged || eveningLogged;
-          const nextSlot: "morning" | "evening" = morningLogged ? "evening" : "morning";
-          const isToday = key === todayIso();
           const count = (e?.morning?.length ?? 0) + (e?.evening?.length ?? 0);
+          const isToday = key === todayIso();
           return (
             <button
               key={key}
-              onClick={() => !fullyLogged && onPick(key, nextSlot)}
-              disabled={fullyLogged}
+              onClick={() => onPick(key)}
               className={cn(
                 "aspect-square rounded-lg border text-[10px] font-medium flex flex-col items-center justify-center transition",
-                fullyLogged
-                  ? "border-[var(--streak)]/50 bg-[var(--streak-soft)] text-foreground opacity-40 cursor-not-allowed"
-                  : anyLogged
+                count > 0
                   ? "border-[var(--streak)]/50 bg-[var(--streak-soft)] text-foreground"
                   : "border-border bg-card text-warm-grey/80",
                 isToday && "ring-2 ring-primary",
               )}
             >
               <span className="tabular-nums">{d.getDate()}</span>
-              {(anyLogged || count > 0) && (
-                <span className="text-[9px] text-[var(--streak)]">
-                  {count > 0 ? count : "✓"}
-                </span>
+              {count > 0 && (
+                <span className="text-[9px] text-[var(--streak)]">{count}</span>
               )}
             </button>
           );
@@ -970,6 +843,7 @@ function LockScreenView({ dayLabel }: { dayLabel: string }) {
             <p className="text-[12px] font-semibold">Cranberry · With dinner</p>
             <p className="text-[11px] text-warm-grey/80 mt-0.5">
               Scheduled for 7:30 pm
+
             </p>
           </div>
         </div>
