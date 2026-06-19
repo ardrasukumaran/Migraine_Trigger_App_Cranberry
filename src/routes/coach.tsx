@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { saveAllStreaksToSheet } from "@/lib/saveStreak";
+import { useAuth } from "@/context/AuthContext";
 import { AppShell } from "@/components/AppShell";
 import { StreakPlant } from "@/components/StreakPlant";
 import {
@@ -28,8 +30,6 @@ import {
   Heart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { saveStreakToSheet } from "@/lib/saveStreak";
-import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/coach")({
   head: () => ({
@@ -59,6 +59,12 @@ function StreaksPage() {
 
   const dayCombo = DAY_COMBOS.find((c) => c.id === state.dayComboId)!;
   const nightCombo = NIGHT_COMBOS.find((c) => c.id === state.nightComboId)!;
+
+  // ── Auto-save to Google Sheet whenever entries change (3 sec debounce) ──
+  useEffect(() => {
+    if (!phone) return;
+    saveAllStreaksToSheet(state.entries, phone);
+  }, [state.entries, phone]);
 
   const setEntry = (date: string, slot: "morning" | "evening", ids: string[]) => {
     update((s) => ({
@@ -123,7 +129,6 @@ function StreaksPage() {
           entry={state.entries[activeDate]}
           onSave={(ids) => {
             setEntry(activeDate, "morning", ids);
-            saveStreakToSheet({ slot: "morning", date: activeDate, ids, phone: phone ?? "" });
             setView("home");
           }}
         />
@@ -137,7 +142,6 @@ function StreaksPage() {
           entry={state.entries[activeDate]}
           onSave={(ids) => {
             setEntry(activeDate, "evening", ids);
-            saveStreakToSheet({ slot: "evening", date: activeDate, ids, phone: phone ?? "" });
             setView("home");
           }}
         />
