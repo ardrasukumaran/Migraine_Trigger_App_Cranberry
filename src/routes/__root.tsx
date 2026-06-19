@@ -4,11 +4,83 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  useLocation,
-  useNavigate,
+  HeadContent,
+  Scripts,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { Toaster, toast } from "sonner";
+
+import appCss from "../styles.css?url";
+
+// ─── Foreground notification handler ─────────────────────────────────────────
+function useForegroundNotifications() {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+
+    // Load Firebase from CDN and listen for foreground messages
+    const scriptUrls = [
+      "https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js",
+      "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js",
+    ];
+
+    function loadScript(src: string): Promise<void> {
+      return new Promise((resolve) => {
+        if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+        const s = document.createElement("script");
+        s.src = src;
+        s.onload = () => resolve();
+        s.onerror = () => resolve(); // fail silently
+        document.head.appendChild(s);
+      });
+    }
+
+    async function setupForegroundListener() {
+      try {
+        await Promise.all(scriptUrls.map(loadScript));
+
+        const firebase = (window as any).firebase;
+        if (!firebase) return;
+
+        if (!firebase.apps.length) {
+          firebase.initializeApp({
+            apiKey:            "AIzaSyCcCVGSMA1nX5f2_jjG1pqkNSDRGduR_p0",
+            authDomain:        "meal-reminder-app.firebaseapp.com",
+            projectId:         "meal-reminder-app",
+            storageBucket:     "meal-reminder-app.appspot.com",
+            messagingSenderId: "1034543527787",
+            appId:             "1:1034543527787:web:5e04ce5cf292072badbe2e",
+          });
+        }
+
+        const messaging = firebase.messaging();
+
+        // Listen for foreground messages
+        messaging.onMessage((payload: any) => {
+          console.log("[FCM] Foreground message:", payload);
+          const title = payload.notification?.title ?? "Cranberry";
+          const body  = payload.notification?.body  ?? "";
+
+          // Show toast notification inside the app
+          toast(title, {
+            description: body,
+            duration:    6000,
+            icon:        "🌿",
+          });
+        });
+
+        console.log("[FCM] Foreground listener ready");
+      } catch (err) {
+        console.error("[FCM] Foreground setup error:", err);
+      }
+    }
+
+    setupForegroundListener();
+  }, []);
+}
+
+// ─── Components ───────────────────────────────────────────────────────────────
 
 function NotFoundComponent() {
   return (
@@ -68,48 +140,70 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  head: () => ({
+    meta: [
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title: "Migraine App Demo" },
+      { name: "description", content: "Migraine Minder helps users track migraine triggers, log attacks, and build healthy habits." },
+      { name: "author", content: "Lovable" },
+      { property: "og:title", content: "Migraine App Demo" },
+      { property: "og:description", content: "Migraine Minder helps users track migraine triggers, log attacks, and build healthy habits." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Migraine App Demo" },
+      { name: "twitter:description", content: "Migraine Minder helps users track migraine triggers, log attacks, and build healthy habits." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4f1253b3-23f5-4f66-a4ad-840dd4db68a0/id-preview-2a3f66c7--06a1a847-01a7-4830-a0f6-55a601d4ae65.lovable.app-1781363945395.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4f1253b3-23f5-4f66-a4ad-840dd4db68a0/id-preview-2a3f66c7--06a1a847-01a7-4830-a0f6-55a601d4ae65.lovable.app-1781363945395.png" },
+    ],
+    links: [
+      {
+        rel: "stylesheet",
+        href: appCss,
+      },
+    ],
+  }),
+  shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
 
-function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { phone, isLoading } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const isLoginPage = location.pathname === "/login";
-
-  useEffect(() => {
-    if (isLoading) return;
-    if (!phone && !isLoginPage) {
-      navigate({ to: "/login" });
-    }
-  }, [isLoading, phone, isLoginPage, navigate]);
-
-  if (isLoading) {
-    return (
-      <div className="phone-frame bg-background flex items-center justify-center min-h-screen">
-        <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-      </div>
-    );
-  }
-
-  if (!phone && !isLoginPage) return null;
-
-  return <>{children}</>;
+function RootShell({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+      </body>
+    </html>
+  );
 }
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  // Listen for foreground FCM messages and show toast
+  useForegroundNotifications();
+
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AuthGuard>
-          <Outlet />
-        </AuthGuard>
-      </AuthProvider>
+      <Outlet />
+      <Toaster
+        position="top-center"
+        richColors
+        toastOptions={{
+          style: {
+            background: "var(--card)",
+            border:     "1px solid var(--border)",
+            color:      "var(--foreground)",
+          },
+        }}
+      />
     </QueryClientProvider>
   );
 }
