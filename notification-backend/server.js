@@ -10,6 +10,9 @@ const app    = express();
 const PORT   = process.env.PORT ?? 3000;
 const SECRET = process.env.API_SECRET;
 
+// Render URL — used for keep-alive ping
+const RENDER_URL = process.env.RENDER_EXTERNAL_URL ?? "";
+
 app.use(express.json());
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
@@ -30,7 +33,6 @@ function requireSecret(req, res, next) {
 }
 
 // ─── POST /register-token ─────────────────────────────────────────────────────
-// Body: { mobile_number, fcm_token, day_combo?, night_combo? }
 app.post("/register-token", async (req, res) => {
   const { mobile_number, fcm_token, day_combo, night_combo } = req.body ?? {};
 
@@ -89,9 +91,29 @@ app.get("/health", (req, res) => {
   });
 });
 
+// ─── Keep-alive ping (prevents Render free tier from sleeping) ────────────────
+function startKeepAlive() {
+  if (!RENDER_URL) {
+    console.log("[Keep-alive] No RENDER_EXTERNAL_URL set — skipping");
+    return;
+  }
+
+  console.log("[Keep-alive] Pinging every 14 minutes:", RENDER_URL);
+
+  setInterval(async () => {
+    try {
+      const res = await fetch(`${RENDER_URL}/health`);
+      console.log("[Keep-alive] Ping:", res.status === 200 ? "✓" : "✗");
+    } catch (err) {
+      console.error("[Keep-alive] Ping failed:", err.message);
+    }
+  }, 14 * 60 * 1000); // every 14 minutes
+}
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n🚀 Notification server running on http://localhost:${PORT}`);
   console.log(`   Health: http://localhost:${PORT}/health\n`);
   startScheduler();
+  startKeepAlive();
 });
