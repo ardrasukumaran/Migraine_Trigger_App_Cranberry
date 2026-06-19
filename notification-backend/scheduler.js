@@ -20,10 +20,12 @@ function buildMessages(dayCombo, nightCombo) {
     day: {
       title: "Cranberry · With lunch 🌿",
       body:  `Take ${day} with your lunch. Tap to mark them off.`,
+      url:   "/coach?view=morning",
     },
     night: {
       title: "Cranberry · With dinner 🌙",
       body:  `Take ${night} with your dinner. Tap to mark them off.`,
+      url:   "/coach?view=evening",
     },
   };
 }
@@ -90,7 +92,7 @@ async function runSchedule() {
       token: row.token,
       title: msg.title,
       body:  msg.body,
-      url:   "/coach",
+      url:   msg.url,
     });
 
     if (result.success) {
