@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
-import { saveAllStreaksToSheet } from "@/lib/saveStreak";
-import { useAuth } from "@/context/AuthContext";
 import { AppShell } from "@/components/AppShell";
 import { StreakPlant } from "@/components/StreakPlant";
+import { saveAllStreaksToSheet } from "@/lib/saveStreak";
+import { useAuth } from "@/context/AuthContext";
 import {
   ALL_SUPPLEMENTS,
   DAY_COMBOS,
@@ -60,7 +60,7 @@ function StreaksPage() {
   const dayCombo = DAY_COMBOS.find((c) => c.id === state.dayComboId)!;
   const nightCombo = NIGHT_COMBOS.find((c) => c.id === state.nightComboId)!;
 
-  // ── Auto-save to Google Sheet whenever entries change (3 sec debounce) ──
+  // Auto-save streak to Google Sheet whenever entries change (3 sec debounce)
   useEffect(() => {
     if (!phone) return;
     saveAllStreaksToSheet(state.entries, phone);
@@ -198,8 +198,141 @@ function statusLabel(streak: number) {
   return "Plant me";
 }
 
-function HomeView({
+function slotStreak(
+  entries: Record<string, DayEntry>,
+  slot: "morning" | "evening",
+) {
+  let n = 0;
+  const d = new Date();
+  for (let i = 0; i < 365; i++) {
+    const key = isoDate(d);
+    const e = entries[key];
+    const took = (e?.[slot]?.length ?? 0) > 0;
+    if (!took) {
+      if (i === 0) {
+        d.setDate(d.getDate() - 1);
+        continue;
+      }
+      break;
+    }
+    n++;
+    d.setDate(d.getDate() - 1);
+  }
+  return n;
+}
+
+function DayRing({
+  date,
+  ratio,
+  isToday,
+  isFuture,
+  letter,
+}: {
+  date: number;
+  ratio: number;
+  isToday: boolean;
+  isFuture: boolean;
+  letter: string;
+}) {
+  const size = 36;
+  const stroke = 3;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(1, ratio));
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <span className="text-[10px] text-warm-grey/70">{letter}</span>
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="-rotate-90">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            stroke="var(--muted)"
+            strokeWidth={stroke}
+          />
+          {pct > 0 && (
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={r}
+              fill="none"
+              stroke="var(--streak)"
+              strokeWidth={stroke}
+              strokeLinecap="round"
+              strokeDasharray={c}
+              strokeDashoffset={c * (1 - pct)}
+            />
+          )}
+        </svg>
+        <span
+          className={cn(
+            "absolute inset-0 grid place-items-center text-[11px] tabular-nums",
+            isFuture ? "text-warm-grey/40" : "text-foreground",
+            isToday && "font-bold",
+          )}
+        >
+          {date}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function StreakCard({
+  label,
   streak,
+  size = 96,
+}: {
+  label: string;
+  streak: number;
+  size?: number;
+}) {
+  return (
+    <div className="rounded-3xl bg-card border border-border p-4 relative overflow-hidden">
+      <div
+        className="absolute inset-x-0 top-0 h-24 opacity-30 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(70% 80% at 50% 0%, var(--streak-soft), transparent)",
+        }}
+      />
+      <div className="relative flex flex-col items-center text-center">
+        <p className="text-[10px] uppercase tracking-[0.18em] text-warm-grey/70 font-medium">
+          {label}
+        </p>
+        <div className="flex items-baseline gap-1 mt-1">
+          <span className="font-serif-display text-[44px] leading-none tabular-nums">
+            {streak}
+          </span>
+          <span className="text-warm-grey/80 text-[12px] font-medium">days</span>
+        </div>
+        <span className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--streak-soft)] text-[var(--streak)] text-[10px] font-semibold">
+          <Heart className="h-3 w-3" />
+          {statusLabel(streak)}
+        </span>
+        <div className="mt-1">
+          <StreakPlant days={streak} size={size} />
+        </div>
+        <p className="font-serif-display text-[13px] leading-snug">
+          I showed up for my migraine.
+        </p>
+        <p className="text-[11px] text-warm-grey/80 mt-1">
+          {streak >= 14
+            ? "Two strong weeks of self-care."
+            : streak >= 7
+            ? "One full week of showing up."
+            : streak > 0
+            ? `${streak} day${streak > 1 ? "s" : ""} of caring for yourself.`
+            : "Tap a dose to begin."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function HomeView({
   state,
   go,
   setActiveDate,
@@ -212,103 +345,52 @@ function HomeView({
   setActiveDate: (d: string) => void;
 }) {
   const today = state.entries[todayIso()];
-  const morningTaken = today?.morning?.length ?? 0;
-  const eveningTaken = today?.evening?.length ?? 0;
 
   const dayCombo = DAY_COMBOS.find((c) => c.id === state.dayComboId)!;
   const nightCombo = NIGHT_COMBOS.find((c) => c.id === state.nightComboId)!;
 
-  // Total points across all logged days
-  const totalPoints = Object.values(state.entries).reduce((sum, e) => {
-    return sum + (scoreForCount(e.morning?.length ?? 0) + scoreForCount(e.evening?.length ?? 0)) * 10;
-  }, 0);
-
-  const next = MILESTONES.find((m) => streak < m.days);
-  const progress = next ? Math.min(100, (streak / next.days) * 100) : 100;
+  const dayStreak = useMemo(() => slotStreak(state.entries, "morning"), [state.entries]);
+  const nightStreak = useMemo(() => slotStreak(state.entries, "evening"), [state.entries]);
 
   const now = new Date();
   const dateLabel = `${MONTHS[now.getMonth()]} ${now.getDate()}`;
-  const todayDow = now.getDay(); // 0..6 (Sun..Sat)
+  const todayDow = now.getDay();
+  const todayKey = todayIso();
+  const totalPerDay = dayCombo.ids.length + nightCombo.ids.length;
 
   return (
     <div className="mt-4 space-y-5">
-      {/* HERO — streak + plant + milestone bar */}
-      <div className="rounded-3xl bg-card border border-border p-5 relative overflow-hidden">
-        <div
-          className="absolute inset-x-0 top-0 h-32 opacity-30 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(70% 80% at 50% 0%, var(--streak-soft), transparent)",
-          }}
-        />
-        <div className="relative flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-serif-display text-[64px] leading-none tabular-nums">
-                {streak}
-              </span>
-              <span className="text-warm-grey/80 text-[14px] font-medium">days</span>
-            </div>
-            <span className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--streak-soft)] text-[var(--streak)] text-[12px] font-semibold">
-              <Heart className="h-3.5 w-3.5" />
-              {statusLabel(streak)}
-            </span>
-            <p className="font-serif-display text-[18px] leading-snug mt-3">
-              I showed up for my migraine.
-            </p>
-            <p className="text-[12px] text-warm-grey/80 mt-1">
-              {streak >= 14
-                ? "Two strong weeks of self-care."
-                : streak >= 7
-                ? "One full week of showing up."
-                : streak > 0
-                ? `${streak} day${streak > 1 ? "s" : ""} of caring for yourself.`
-                : "Tap a dose to begin."}
-            </p>
-
-          </div>
-          <div className="shrink-0">
-            <StreakPlant days={streak} size={120} />
-          </div>
-        </div>
-
-        {/* Milestone progress with 3 stops */}
-        <div className="relative mt-5">
-          <div className="flex items-center justify-between text-[11px] mb-2">
-            <span className="text-[var(--streak)] font-semibold">
-              {next ? `${next.days - streak} days to ${next.reward}` : "All milestones cleared"}
-            </span>
-            <span className="text-warm-grey/80 tabular-nums">{totalPoints.toLocaleString()} pts</span>
-          </div>
-          <div className="relative h-2 rounded-full bg-muted overflow-visible">
-            <div
-              className="absolute inset-y-0 left-0 rounded-full"
-              style={{ width: `${progress}%`, background: "var(--streak)" }}
-            />
-            {MILESTONES.map((m) => {
-              const left = Math.min(100, (m.days / 90) * 100);
-              const reached = streak >= m.days;
+      {/* THIS WEEK — sticky */}
+      <div className="sticky top-0 z-20 -mx-5 px-5 bg-background pb-2 pt-1">
+        <div className="rounded-3xl bg-card border border-border p-3">
+          <div className="grid grid-cols-7 gap-2">
+            {Array.from({ length: 7 }).map((_, i) => {
+              const offset = i - todayDow;
+              const d = new Date();
+              d.setDate(d.getDate() + offset);
+              const key = isoDate(d);
+              const e = state.entries[key];
+              const count = (e?.morning?.length ?? 0) + (e?.evening?.length ?? 0);
+              const ratio = totalPerDay > 0 ? count / totalPerDay : 0;
               return (
-                <span
-                  key={m.days}
-                  className="absolute -top-1 h-4 w-4 rounded-full border-2"
-                  style={{
-                    left: `calc(${left}% - 8px)`,
-                    background: reached ? "var(--streak)" : "var(--card)",
-                    borderColor: reached ? "var(--streak)" : "var(--border)",
-                  }}
+                <DayRing
+                  key={i}
+                  letter={DAY_LETTERS[i]}
+                  date={d.getDate()}
+                  ratio={ratio}
+                  isToday={key === todayKey}
+                  isFuture={offset > 0}
                 />
               );
             })}
           </div>
-          <div className="flex justify-between mt-2 text-[10px] text-warm-grey/70 tabular-nums">
-            {MILESTONES.map((m) => (
-              <span key={m.days}>
-                {m.days} · {m.reward.replace(/^\D*/, "").replace(" off", "%") || m.reward}
-              </span>
-            ))}
-          </div>
         </div>
+      </div>
+
+      {/* STREAK CARDS */}
+      <div className="grid grid-cols-2 gap-3">
+        <StreakCard label="Day" streak={dayStreak} />
+        <StreakCard label="Night" streak={nightStreak} />
       </div>
 
       {/* TODAY */}
@@ -338,51 +420,7 @@ function HomeView({
               go("evening");
             }}
           />
-
         </div>
-      </div>
-
-      {/* THIS WEEK */}
-      <div>
-        <p className="font-serif-display text-[22px] mb-2">This week</p>
-        <div className="rounded-3xl bg-card border border-border p-4">
-          <div className="grid grid-cols-7 gap-2">
-            {Array.from({ length: 7 }).map((_, i) => {
-              const offset = i - todayDow;
-              const d = new Date();
-              d.setDate(d.getDate() + offset);
-              const key = isoDate(d);
-              const e = state.entries[key];
-              const count = (e?.morning?.length ?? 0) + (e?.evening?.length ?? 0);
-              const done = count > 0;
-              const isFuture = offset > 0;
-              return (
-                <div key={i} className="flex flex-col items-center gap-1.5">
-                  <span className="text-[10px] text-warm-grey/70">{DAY_LETTERS[i]}</span>
-                  <span
-                    className={cn(
-                      "h-9 w-9 rounded-full grid place-items-center",
-                      done
-                        ? "bg-[var(--streak)] text-[var(--streak-foreground)]"
-                        : isFuture
-                        ? "bg-muted/50 text-warm-grey/40"
-                        : "bg-muted text-warm-grey/60",
-                    )}
-                  >
-                    {done ? (
-                      <Check className="h-4 w-4" strokeWidth={3} />
-                    ) : (
-                      <span className="text-[10px] tabular-nums">{d.getDate()}</span>
-                    )}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        <p className="text-[11px] text-warm-grey/70 mt-2 px-1">
-          You can log today or back-fill a missed day — never a day that hasn't happened yet.
-        </p>
       </div>
 
       {/* Quick actions */}
