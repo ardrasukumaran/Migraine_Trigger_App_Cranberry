@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useRef } from "react";
 import { AppShell } from "@/components/AppShell";
+import { Berry } from "@/components/Berry";
 import { StreakPlant } from "@/components/StreakPlant";
 import { saveStreakToSheet, saveComboToSheet } from "@/lib/saveStreak";
 import { useAuth } from "@/context/AuthContext";
@@ -774,7 +775,7 @@ function BackFillView({
 function MilestonesView() {
   return (
     <div className="mt-16 flex flex-col items-center text-center">
-      <span className="text-[72px]">🏆</span>
+      <Berry mood="binoculars" size={160} />
       <h2 className="font-serif-display text-[32px] mt-4">Coming soon</h2>
       <p className="text-sm text-warm-grey/80 mt-2 max-w-[260px]">
         Rewards for your consistency are on the way. Keep logging!
