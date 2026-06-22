@@ -20,24 +20,8 @@ export type StreakState = {
 const DEFAULT_STATE: StreakState = {
   dayComboId: DAY_COMBOS[0].id,
   nightComboId: NIGHT_COMBOS[0].id,
-  entries: seedHistory(),
+  entries: {},
 };
-
-function seedHistory(): Record<string, DayEntry> {
-  const out: Record<string, DayEntry> = {};
-  const today = new Date();
-  for (let i = 1; i <= 12; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const key = isoDate(d);
-    if (i === 4) continue;
-    out[key] = {
-      morning: ["ribo", "coq-mgox"],
-      evening: i % 3 === 0 ? ["ribo"] : ["ribo", "mg-gly"],
-    };
-  }
-  return out;
-}
 
 export function isoDate(d: Date) {
   return d.toISOString().slice(0, 10);
