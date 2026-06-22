@@ -182,9 +182,9 @@ function StreaksPage() {
         <SetupView
           dayId={state.dayComboId}
           nightId={state.nightComboId}
+          locked={!!state.comboLocked}
           onSave={(d, n) => {
-            update((s) => ({ ...s, dayComboId: d, nightComboId: n }));
-            // Save combo to Google Sheet
+            update((s) => ({ ...s, dayComboId: d, nightComboId: n, comboLocked: true }));
             const dayLabel   = DAY_COMBOS.find((c) => c.id === d)?.label ?? "";
             const nightLabel = NIGHT_COMBOS.find((c) => c.id === n)?.label ?? "";
             saveComboToSheet({ phone: phone ?? "", dayCombo: dayLabel, nightCombo: nightLabel });
@@ -484,7 +484,7 @@ function DoseRow({
   const total = comboIds.length;
   const count = taken.length;
   const complete = count >= total && total > 0;
-  const points = scoreForCount(count) * 10;
+  const points = scoreForCount(count);
   const Icon = slot === "morning" ? Utensils : UtensilsCrossed;
   const label = slot === "morning" ? "With lunch" : "With dinner";
 
@@ -835,16 +835,23 @@ function MilestonesView({ streak }: { streak: number }) {
 function SetupView({
   dayId,
   nightId,
+  locked,
   onSave,
 }: {
   dayId: string;
   nightId: string;
+  locked: boolean;
   onSave: (d: string, n: string) => void;
 }) {
   const [d, setD] = useState(dayId);
   const [n, setN] = useState(nightId);
   return (
     <div className="mt-4 space-y-4">
+      {locked && (
+        <p className="text-[12px] text-warm-grey/70 bg-muted rounded-xl px-3 py-2">
+          Your combo is locked. Contact support to change it.
+        </p>
+      )}
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
           Morning combo
@@ -856,7 +863,7 @@ function SetupView({
               label={c.label}
               ids={c.ids}
               active={c.id === d}
-              onPick={() => setD(c.id)}
+              onPick={locked ? undefined : () => setD(c.id)}
             />
           ))}
         </div>
@@ -872,17 +879,19 @@ function SetupView({
               label={c.label}
               ids={c.ids}
               active={c.id === n}
-              onPick={() => setN(c.id)}
+              onPick={locked ? undefined : () => setN(c.id)}
             />
           ))}
         </div>
       </div>
-      <button
-        onClick={() => onSave(d, n)}
-        className="w-full rounded-2xl bg-primary text-primary-foreground py-3.5 font-semibold"
-      >
-        Save combo
-      </button>
+      {!locked && (
+        <button
+          onClick={() => onSave(d, n)}
+          className="w-full rounded-2xl bg-primary text-primary-foreground py-3.5 font-semibold"
+        >
+          Save combo
+        </button>
+      )}
     </div>
   );
 }
@@ -896,16 +905,18 @@ function ComboRow({
   label: string;
   ids: string[];
   active: boolean;
-  onPick: () => void;
+  onPick?: () => void;
 }) {
   return (
     <button
       onClick={onPick}
+      disabled={!onPick}
       className={cn(
         "w-full rounded-2xl border p-3 flex items-center gap-3 text-left",
         active
           ? "bg-[var(--streak-soft)] border-[var(--streak)]/50"
           : "bg-card border-border",
+        !onPick && "cursor-default",
       )}
     >
       <div className="flex -space-x-1.5">
