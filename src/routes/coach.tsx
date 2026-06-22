@@ -163,7 +163,7 @@ function StreaksPage() {
         />
       )}
 
-      {view === "milestones" && <MilestonesView streak={streak} />}
+      {view === "milestones" && <MilestonesView />}
 
       {view === "setup" && (
         <SetupView
@@ -771,48 +771,14 @@ function BackFillView({
 
 /* ---------------- MILESTONES ---------------- */
 
-function MilestonesView({ streak }: { streak: number }) {
+function MilestonesView() {
   return (
-    <div className="mt-4 space-y-3">
-      {MILESTONES.map((m) => {
-        const earned = streak >= m.days;
-        const pct = Math.min(100, (streak / m.days) * 100);
-        return (
-          <div
-            key={m.days}
-            className={cn(
-              "rounded-2xl border p-4",
-              earned
-                ? "bg-[var(--streak-soft)] border-[var(--streak)]/50"
-                : "bg-card border-border",
-            )}
-          >
-            <div className="flex items-center justify-between">
-              <p className="font-serif-display text-[22px]">{m.days} days</p>
-              <span
-                className={cn(
-                  "text-[12px] font-semibold px-2.5 py-1 rounded-full",
-                  earned
-                    ? "bg-[var(--streak)] text-[var(--streak-foreground)]"
-                    : "bg-muted text-warm-grey",
-                )}
-              >
-                {m.reward}
-              </span>
-            </div>
-            <p className="text-[12px] text-warm-grey/80 mt-1">{m.desc}</p>
-            <div className="mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full"
-                style={{
-                  width: `${pct}%`,
-                  background: earned ? "var(--streak)" : "var(--brand-mid-lavender)",
-                }}
-              />
-            </div>
-          </div>
-        );
-      })}
+    <div className="mt-16 flex flex-col items-center text-center">
+      <span className="text-[72px]">🏆</span>
+      <h2 className="font-serif-display text-[32px] mt-4">Coming soon</h2>
+      <p className="text-sm text-warm-grey/80 mt-2 max-w-[260px]">
+        Rewards for your consistency are on the way. Keep logging!
+      </p>
     </div>
   );
 }
