@@ -6,6 +6,10 @@ import { Pencil, Sun, Moon, ChevronRight, Check } from "lucide-react";
 import { RECENT_ATTACKS } from "@/lib/mock-data";
 import { isoDate, todayIso, useStreakState, type DayEntry } from "@/lib/streak-store";
 import { ALL_SUPPLEMENTS, DAY_COMBOS, NIGHT_COMBOS } from "@/lib/supplements";
+import { useAuth } from "@/context/AuthContext";
+import { useState, useEffect } from "react";
+
+const BACKEND_URL = "https://cranberry-notifications.onrender.com";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -21,26 +25,28 @@ function slotStreak(
   entries: Record<string, DayEntry>,
   slot: "morning" | "evening",
 ) {
-  let n = 0;
-  const d = new Date();
-  for (let i = 0; i < 365; i++) {
-    const key = isoDate(d);
-    const took = (entries[key]?.[slot]?.length ?? 0) > 0;
-    if (!took) {
-      if (i === 0) {
-        d.setDate(d.getDate() - 1);
-        continue;
-      }
-      break;
-    }
-    n++;
-    d.setDate(d.getDate() - 1);
-  }
-  return n;
+  return Object.values(entries).filter((e) => (e?.[slot]?.length ?? 0) > 0).length;
 }
 
 function TodayPage() {
+  const { phone } = useAuth();
+  const [userName, setUserName] = useState<string>("");
   const [state, update] = useStreakState();
+
+  // Fetch user name from sheet 2 seconds after login
+  useEffect(() => {
+    if (!phone) return;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/user-info?mobile=${phone}`);
+        const data = await res.json();
+        if (data.name) setUserName(data.name);
+      } catch (err) {
+        console.error("[Name] Failed to fetch:", err);
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [phone]);
   const dayStreak = slotStreak(state.entries, "morning");
   const nightStreak = slotStreak(state.entries, "evening");
   const today = state.entries[todayIso()];
@@ -66,7 +72,7 @@ function TodayPage() {
   return (
     <AppShell
       subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-      title={<>Hello,<br /><span className="text-primary">How's your head today?</span></>}
+      title={<>Hello{userName ? `, ${userName}` : ""}, <span className="text-primary">How's your head today?</span></>}
       right={<Berry mood="wave" size={68} className="-mt-2 -mr-1" />}
     >
       {/* Streak cards — Day & Night side-by-side */}

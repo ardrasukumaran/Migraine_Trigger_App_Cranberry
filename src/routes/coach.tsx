@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { StreakPlant } from "@/components/StreakPlant";
-import { saveAllStreaksToSheet, saveComboToSheet } from "@/lib/saveStreak";
+import { saveStreakToSheet, saveComboToSheet } from "@/lib/saveStreak";
 import { useAuth } from "@/context/AuthContext";
 import {
   ALL_SUPPLEMENTS,
@@ -61,22 +61,7 @@ function StreaksPage() {
   const dayCombo = DAY_COMBOS.find((c) => c.id === state.dayComboId)!;
   const nightCombo = NIGHT_COMBOS.find((c) => c.id === state.nightComboId)!;
 
-  // Auto-save streak to Google Sheet — only when data actually changes
-  const lastSavedHash = useRef<string>("");
-  useEffect(() => {
-    if (!phone) return;
-
-    // Hash of ALL entries — catches both today and backfill changes
-    const hash = JSON.stringify(state.entries);
-
-    // Skip if same data as last save
-    if (hash === lastSavedHash.current) return;
-    lastSavedHash.current = hash;
-
-    saveAllStreaksToSheet(state.entries, phone);
-  }, [state.entries, phone]);
-
-  const setEntry = (date: string, slot: "morning" | "evening", ids: string[]) => {
+  const setEntry = (date: string, slot: "morning" | "evening", ids: string[], skipped = false) => {
     update((s) => ({
       ...s,
       entries: {
@@ -84,7 +69,10 @@ function StreaksPage() {
         [date]: {
           morning: s.entries[date]?.morning ?? [],
           evening: s.entries[date]?.evening ?? [],
+          morningSkipped: s.entries[date]?.morningSkipped,
+          eveningSkipped: s.entries[date]?.eveningSkipped,
           [slot]: ids,
+          [slot === "morning" ? "morningSkipped" : "eveningSkipped"]: skipped,
         },
       },
     }));
@@ -128,6 +116,7 @@ function StreaksPage() {
           nightLabel={nightCombo.label}
           go={setView}
           setActiveDate={setActiveDate}
+          setFromBackFill={setFromBackFill}
         />
       )}
 
@@ -137,14 +126,13 @@ function StreaksPage() {
           date={activeDate}
           comboIds={dayCombo.ids}
           entry={state.entries[activeDate]}
-          onSave={(ids) => {
-            setEntry(activeDate, "morning", ids);
-            if (fromBackFill) {
-              setView("evening"); // go to evening dose for same date
-            } else {
-              setView("home");
-            }
+          onSave={(ids, skipped) => {
+            setEntry(activeDate, "morning", ids, skipped);
+            if (!skipped) saveStreakToSheet({ slot: "morning", date: activeDate, ids, phone: phone ?? "" });
+            setView(fromBackFill ? "evening" : "home");
           }}
+          onUpdate={(ids) => setEntry(activeDate, "morning", ids)}
+          onContinue={fromBackFill ? () => setView("evening") : undefined}
         />
       )}
 
@@ -154,21 +142,23 @@ function StreaksPage() {
           date={activeDate}
           comboIds={nightCombo.ids}
           entry={state.entries[activeDate]}
-          onSave={(ids) => {
-            setEntry(activeDate, "evening", ids);
+          onSave={(ids, skipped) => {
+            setEntry(activeDate, "evening", ids, skipped);
+            if (!skipped) saveStreakToSheet({ slot: "evening", date: activeDate, ids, phone: phone ?? "" });
             setFromBackFill(false);
             setView("home");
           }}
+          onUpdate={(ids) => setEntry(activeDate, "evening", ids)}
         />
       )}
 
       {view === "back-fill" && (
         <BackFillView
           entries={state.entries}
-          onPick={(d) => {
+          onPick={(d, slot) => {
             setActiveDate(d);
             setFromBackFill(true);
-            setView("morning");
+            setView(slot);
           }}
         />
       )}
@@ -179,9 +169,9 @@ function StreaksPage() {
         <SetupView
           dayId={state.dayComboId}
           nightId={state.nightComboId}
+          locked={!!state.comboLocked}
           onSave={(d, n) => {
-            update((s) => ({ ...s, dayComboId: d, nightComboId: n }));
-            // Save combo to Google Sheet
+            update((s) => ({ ...s, dayComboId: d, nightComboId: n, comboLocked: true }));
             const dayLabel   = DAY_COMBOS.find((c) => c.id === d)?.label ?? "";
             const nightLabel = NIGHT_COMBOS.find((c) => c.id === n)?.label ?? "";
             saveComboToSheet({ phone: phone ?? "", dayCombo: dayLabel, nightCombo: nightLabel });
@@ -222,23 +212,7 @@ function slotStreak(
   entries: Record<string, DayEntry>,
   slot: "morning" | "evening",
 ) {
-  let n = 0;
-  const d = new Date();
-  for (let i = 0; i < 365; i++) {
-    const key = isoDate(d);
-    const e = entries[key];
-    const took = (e?.[slot]?.length ?? 0) > 0;
-    if (!took) {
-      if (i === 0) {
-        d.setDate(d.getDate() - 1);
-        continue;
-      }
-      break;
-    }
-    n++;
-    d.setDate(d.getDate() - 1);
-  }
-  return n;
+  return Object.values(entries).filter((e) => (e?.[slot]?.length ?? 0) > 0).length;
 }
 
 function DayRing({
@@ -356,6 +330,7 @@ function HomeView({
   state,
   go,
   setActiveDate,
+  setFromBackFill,
 }: {
   streak: number;
   state: ReturnType<typeof useStreakState>[0];
@@ -363,11 +338,15 @@ function HomeView({
   nightLabel: string;
   go: (v: View) => void;
   setActiveDate: (d: string) => void;
+  setFromBackFill: (v: boolean) => void;
 }) {
   const today = state.entries[todayIso()];
 
   const dayCombo = DAY_COMBOS.find((c) => c.id === state.dayComboId)!;
   const nightCombo = NIGHT_COMBOS.find((c) => c.id === state.nightComboId)!;
+
+  const morningLogged = (today?.morning?.length ?? 0) > 0 || !!today?.morningSkipped;
+  const eveningLogged = (today?.evening?.length ?? 0) > 0 || !!today?.eveningSkipped;
 
   const dayStreak = useMemo(() => slotStreak(state.entries, "morning"), [state.entries]);
   const nightStreak = useMemo(() => slotStreak(state.entries, "evening"), [state.entries]);
@@ -426,9 +405,11 @@ function HomeView({
             comboIds={dayCombo.ids}
             taken={today?.morning ?? []}
             onLog={() => {
+              setFromBackFill(false);
               setActiveDate(todayIso());
               go("morning");
             }}
+            locked={morningLogged}
           />
           <DoseRow
             slot="evening"
@@ -436,9 +417,11 @@ function HomeView({
             comboIds={nightCombo.ids}
             taken={today?.evening ?? []}
             onLog={() => {
+              setFromBackFill(false);
               setActiveDate(todayIso());
               go("evening");
             }}
+            locked={eveningLogged}
           />
         </div>
       </div>
@@ -476,31 +459,30 @@ function DoseRow({
   comboIds,
   taken,
   onLog,
+  locked,
 }: {
   slot: "morning" | "evening";
   time: string;
   comboIds: string[];
   taken: string[];
   onLog: () => void;
+  locked?: boolean;
 }) {
   const total = comboIds.length;
   const count = taken.length;
   const complete = count >= total && total > 0;
-  const points = scoreForCount(count) * 10;
+  const points = scoreForCount(count);
   const Icon = slot === "morning" ? Utensils : UtensilsCrossed;
   const label = slot === "morning" ? "With lunch" : "With dinner";
 
+  const cls = cn(
+    "w-full rounded-2xl border p-3 flex items-center gap-3 text-left transition",
+    complete ? "bg-[var(--streak-soft)]/40 border-[var(--streak)]/40" : "bg-card border-border",
+    !locked && "active:scale-[0.99]",
+  );
 
-  return (
-    <button
-      onClick={onLog}
-      className={cn(
-        "w-full rounded-2xl border p-3 flex items-center gap-3 text-left transition active:scale-[0.99]",
-        complete
-          ? "bg-[var(--streak-soft)]/40 border-[var(--streak)]/40"
-          : "bg-card border-border",
-      )}
-    >
+  const inner = (
+    <>
       <div
         className={cn(
           "h-11 w-11 rounded-2xl grid place-items-center shrink-0",
@@ -553,6 +535,8 @@ function DoseRow({
               {count} of {total} taken
             </p>
           </>
+        ) : locked ? (
+          <p className="text-[11px] text-warm-grey/50">{count > 0 ? `${count}/${total}` : "Logged"}</p>
         ) : (
           <>
             <p className="text-primary font-semibold text-[13px] inline-flex items-center gap-0.5">
@@ -564,8 +548,11 @@ function DoseRow({
           </>
         )}
       </div>
-    </button>
+    </>
   );
+
+  if (locked) return <div className={cls}>{inner}</div>;
+  return <button onClick={onLog} className={cls}>{inner}</button>;
 }
 
 function ActionTile({
@@ -597,38 +584,68 @@ function ChecklistView({
   comboIds,
   entry,
   onSave,
+  onUpdate,
+  onContinue,
 }: {
   slot: "morning" | "evening";
   date: string;
   comboIds: string[];
   entry?: DayEntry;
-  onSave: (ids: string[]) => void;
+  onSave: (ids: string[], skipped: boolean) => void;
+  onUpdate?: (ids: string[]) => void;
+  onContinue?: () => void;
 }) {
   const initial = entry?.[slot] ?? [];
   const [picked, setPicked] = useState<string[]>(initial);
+  const [allDone, setAllDone] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
   const supplements = comboIds
     .map((id) => ALL_SUPPLEMENTS.find((s) => s.id === id)!)
     .filter(Boolean);
   const score = scoreForCount(picked.length);
 
-  const toggle = (id: string) =>
-    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  const toggle = (id: string) => {
+    if (allDone) return;
+    const newPicked = picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id];
+    setPicked(newPicked);
+    onUpdate?.(newPicked);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (newPicked.length >= comboIds.length) {
+      setAllDone(true);
+      timerRef.current = setTimeout(() => onSave(newPicked, false), 5000);
+    } else {
+      setAllDone(false);
+    }
+  };
 
   return (
     <div className="mt-4 space-y-4">
-      <div className="rounded-3xl bg-card border border-border p-4">
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
-            {slot === "morning" ? "Morning" : "Evening"} · {date}
-          </p>
-          <span className="text-[11px] text-[var(--streak)] tabular-nums">
-            +{score} pts
-          </span>
+      {allDone ? (
+        <div className="rounded-3xl bg-[var(--streak-soft)] border border-[var(--streak)]/50 p-4 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-[var(--streak)] grid place-items-center shrink-0">
+            <Check className="h-5 w-5 text-[var(--streak-foreground)]" strokeWidth={3} />
+          </div>
+          <div>
+            <p className="text-[14px] font-semibold text-[var(--streak)]">All done!</p>
+            <p className="text-[11px] text-warm-grey/80">Moving to the next step…</p>
+          </div>
         </div>
-        <p className="font-serif-display text-[22px] mt-1">
-          Tap what you took.
-        </p>
-      </div>
+      ) : (
+        <div className="rounded-3xl bg-card border border-border p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
+              {slot === "morning" ? "Morning" : "Evening"} · {date}
+            </p>
+            <span className="text-[11px] text-[var(--streak)] tabular-nums">
+              +{score} pts
+            </span>
+          </div>
+          <p className="font-serif-display text-[22px] mt-1">
+            Tap what you took.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-2">
         {supplements.map((s) => {
@@ -637,11 +654,11 @@ function ChecklistView({
             <button
               key={s.id}
               onClick={() => toggle(s.id)}
+              disabled={allDone}
               className={cn(
-                "w-full rounded-2xl border p-3 flex items-center gap-3 transition active:scale-[0.99]",
-                on
-                  ? "bg-[var(--streak-soft)] border-[var(--streak)]/50"
-                  : "bg-card border-border",
+                "w-full rounded-2xl border p-3 flex items-center gap-3 transition",
+                on ? "bg-[var(--streak-soft)] border-[var(--streak)]/50" : "bg-card border-border",
+                allDone ? "cursor-default opacity-80" : "active:scale-[0.99]",
               )}
             >
               <span className="text-2xl">{s.emoji}</span>
@@ -662,14 +679,33 @@ function ChecklistView({
             </button>
           );
         })}
-      </div>
 
-      <button
-        onClick={() => onSave(picked)}
-        className="w-full rounded-2xl bg-primary text-primary-foreground py-3.5 font-semibold active:scale-[0.99] transition"
-      >
-        Save
-      </button>
+        {/* Skipped row */}
+        {!allDone && (
+          <button
+            onClick={() => onSave([], true)}
+            className="w-full rounded-2xl border border-border bg-card p-3 flex items-center gap-3 transition active:scale-[0.99]"
+          >
+            <span className="text-2xl">🚫</span>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-[14px] font-semibold truncate">Skipped</p>
+            </div>
+            <span className="h-7 w-7 rounded-full grid place-items-center border-2 border-border text-transparent">
+              <Check className="h-4 w-4" strokeWidth={3} />
+            </span>
+          </button>
+        )}
+
+        {/* Evening shortcut — only shown in back-fill morning flow */}
+        {onContinue && !allDone && (
+          <button
+            onClick={onContinue}
+            className="w-full rounded-2xl border border-primary/40 bg-card p-3 flex items-center justify-center gap-2 text-[14px] font-semibold text-primary transition active:scale-[0.99]"
+          >
+            Evening doses <ChevronRight className="h-4 w-4" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -681,9 +717,8 @@ function BackFillView({
   onPick,
 }: {
   entries: Record<string, DayEntry>;
-  onPick: (date: string) => void;
+  onPick: (date: string, slot: "morning" | "evening") => void;
 }) {
-  // Show last 30 days; future disabled
   const days = Array.from({ length: 30 }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - i);
@@ -692,29 +727,39 @@ function BackFillView({
   return (
     <div className="mt-4 space-y-3">
       <p className="text-[12px] text-warm-grey/80">
-        You can log past days, not future ones.
+        Tap an empty day to log. Fully logged days are locked.
       </p>
       <div className="grid grid-cols-7 gap-1.5">
         {days.reverse().map((d) => {
           const key = isoDate(d);
           const e = entries[key];
+          const morningLogged = (e?.morning?.length ?? 0) > 0 || !!e?.morningSkipped;
+          const eveningLogged = (e?.evening?.length ?? 0) > 0 || !!e?.eveningSkipped;
+          const fullyLogged = morningLogged && eveningLogged;
+          const anyLogged = morningLogged || eveningLogged;
+          const nextSlot: "morning" | "evening" = morningLogged ? "evening" : "morning";
           const count = (e?.morning?.length ?? 0) + (e?.evening?.length ?? 0);
           const isToday = key === todayIso();
           return (
             <button
               key={key}
-              onClick={() => onPick(key)}
+              onClick={() => !fullyLogged && onPick(key, nextSlot)}
+              disabled={fullyLogged}
               className={cn(
                 "aspect-square rounded-lg border text-[10px] font-medium flex flex-col items-center justify-center transition",
-                count > 0
+                fullyLogged
+                  ? "border-[var(--streak)]/50 bg-[var(--streak-soft)] text-foreground opacity-40 cursor-not-allowed"
+                  : anyLogged
                   ? "border-[var(--streak)]/50 bg-[var(--streak-soft)] text-foreground"
                   : "border-border bg-card text-warm-grey/80",
                 isToday && "ring-2 ring-primary",
               )}
             >
               <span className="tabular-nums">{d.getDate()}</span>
-              {count > 0 && (
-                <span className="text-[9px] text-[var(--streak)]">{count}</span>
+              {(anyLogged || count > 0) && (
+                <span className="text-[9px] text-[var(--streak)]">
+                  {count > 0 ? count : "✓"}
+                </span>
               )}
             </button>
           );
@@ -777,16 +822,23 @@ function MilestonesView({ streak }: { streak: number }) {
 function SetupView({
   dayId,
   nightId,
+  locked,
   onSave,
 }: {
   dayId: string;
   nightId: string;
+  locked: boolean;
   onSave: (d: string, n: string) => void;
 }) {
   const [d, setD] = useState(dayId);
   const [n, setN] = useState(nightId);
   return (
     <div className="mt-4 space-y-4">
+      {locked && (
+        <p className="text-[12px] text-warm-grey/70 bg-muted rounded-xl px-3 py-2">
+          Your combo is locked. Contact support to change it.
+        </p>
+      )}
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
           Morning combo
@@ -798,7 +850,7 @@ function SetupView({
               label={c.label}
               ids={c.ids}
               active={c.id === d}
-              onPick={() => setD(c.id)}
+              onPick={locked ? undefined : () => setD(c.id)}
             />
           ))}
         </div>
@@ -814,17 +866,19 @@ function SetupView({
               label={c.label}
               ids={c.ids}
               active={c.id === n}
-              onPick={() => setN(c.id)}
+              onPick={locked ? undefined : () => setN(c.id)}
             />
           ))}
         </div>
       </div>
-      <button
-        onClick={() => onSave(d, n)}
-        className="w-full rounded-2xl bg-primary text-primary-foreground py-3.5 font-semibold"
-      >
-        Save combo
-      </button>
+      {!locked && (
+        <button
+          onClick={() => onSave(d, n)}
+          className="w-full rounded-2xl bg-primary text-primary-foreground py-3.5 font-semibold"
+        >
+          Save combo
+        </button>
+      )}
     </div>
   );
 }
@@ -838,16 +892,18 @@ function ComboRow({
   label: string;
   ids: string[];
   active: boolean;
-  onPick: () => void;
+  onPick?: () => void;
 }) {
   return (
     <button
       onClick={onPick}
+      disabled={!onPick}
       className={cn(
         "w-full rounded-2xl border p-3 flex items-center gap-3 text-left",
         active
           ? "bg-[var(--streak-soft)] border-[var(--streak)]/50"
           : "bg-card border-border",
+        !onPick && "cursor-default",
       )}
     >
       <div className="flex -space-x-1.5">
