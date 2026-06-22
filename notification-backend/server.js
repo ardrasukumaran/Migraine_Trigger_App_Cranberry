@@ -48,6 +48,31 @@ app.post("/register-token", async (req, res) => {
   res.json({ ok: true, sheet: result });
 });
 
+// ─── POST /save-combo ────────────────────────────────────────────────────────
+app.post("/save-combo", async (req, res) => {
+  const { phone, dayCombo, nightCombo } = req.body ?? {};
+  if (!phone) return res.status(400).json({ error: "phone is required" });
+
+  console.log(`[save-combo] phone=${phone} day=${dayCombo} night=${nightCombo}`);
+
+  if (WEBHOOK) {
+    fetch(WEBHOOK, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({
+        action: "updateCombo",
+        record: {
+          mobile:     phone,
+          dayCombo:   dayCombo   ?? "",
+          nightCombo: nightCombo ?? "",
+        },
+      }),
+    }).catch((err) => console.error("[save-combo] Sheet sync failed:", err));
+  }
+
+  res.json({ ok: true });
+});
+
 // ─── POST /save-streak ────────────────────────────────────────────────────────
 // Called when user saves supplement log in the app
 // Body: { phone, date, type, supplements, score }

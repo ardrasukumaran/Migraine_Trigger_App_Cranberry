@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
 import { StreakPlant } from "@/components/StreakPlant";
-import { saveAllStreaksToSheet } from "@/lib/saveStreak";
+import { saveAllStreaksToSheet, saveComboToSheet } from "@/lib/saveStreak";
 import { useAuth } from "@/context/AuthContext";
 import {
   ALL_SUPPLEMENTS,
@@ -165,6 +165,10 @@ function StreaksPage() {
           nightId={state.nightComboId}
           onSave={(d, n) => {
             update((s) => ({ ...s, dayComboId: d, nightComboId: n }));
+            // Save combo to Google Sheet
+            const dayLabel   = DAY_COMBOS.find((c) => c.id === d)?.label ?? "";
+            const nightLabel = NIGHT_COMBOS.find((c) => c.id === n)?.label ?? "";
+            saveComboToSheet({ phone: phone ?? "", dayCombo: dayLabel, nightCombo: nightLabel });
             setView("home");
           }}
         />

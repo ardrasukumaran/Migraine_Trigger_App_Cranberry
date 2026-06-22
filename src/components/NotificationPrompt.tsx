@@ -185,8 +185,8 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
         </p>
 
         <div className="mt-4 flex gap-2">
-          <span className="px-3 py-1.5 rounded-full bg-muted text-[12px] font-medium">🌿 Morning dose</span>
-          <span className="px-3 py-1.5 rounded-full bg-muted text-[12px] font-medium">🌙 Evening dose</span>
+          <span className="px-3 py-1.5 rounded-full bg-muted text-[12px] font-medium">🌿 Day dose</span>
+          <span className="px-3 py-1.5 rounded-full bg-muted text-[12px] font-medium">🌙 Night dose</span>
         </div>
 
         <div className="mt-5 flex flex-col gap-2">
