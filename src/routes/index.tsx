@@ -7,7 +7,8 @@ import { RECENT_ATTACKS } from "@/lib/mock-data";
 import { isoDate, todayIso, useStreakState, type DayEntry } from "@/lib/streak-store";
 import { ALL_SUPPLEMENTS, DAY_COMBOS, NIGHT_COMBOS } from "@/lib/supplements";
 import { useAuth } from "@/context/AuthContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { saveStreakToSheet } from "@/lib/saveStreak";
 
 const BACKEND_URL = "https://cranberry-notifications.onrender.com";
 
@@ -59,13 +60,27 @@ function TodayPage() {
   const morningSkipped = !!today?.morningSkipped;
   const eveningSkipped = !!today?.eveningSkipped;
 
+  const toggleTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
   const toggle = (slot: "morning" | "evening", id: string) => {
     update((s) => {
       const key = todayIso();
       const entry = s.entries[key] ?? { morning: [], evening: [] };
       const current = entry[slot] ?? [];
       const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
-      return { ...s, entries: { ...s.entries, [key]: { ...entry, [slot]: next } } };
+      const newEntries = { ...s, entries: { ...s.entries, [key]: { ...entry, [slot]: next } } };
+
+      // Debounced save — 5 seconds after last toggle
+      const timerKey = `${slot}`;
+      if (toggleTimers.current[timerKey]) clearTimeout(toggleTimers.current[timerKey]);
+      toggleTimers.current[timerKey] = setTimeout(() => {
+        if (phone && next.length > 0) {
+          saveStreakToSheet({ slot, date: key, ids: next, phone });
+        }
+        delete toggleTimers.current[timerKey];
+      }, 5000);
+
+      return newEntries;
     });
   };
 
