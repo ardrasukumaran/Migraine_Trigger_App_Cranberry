@@ -13,48 +13,49 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Background message handler
+const BASE_URL = "https://test-app-cranberry.onrender.com";
+
+// Background message handler — only shows notification when app is CLOSED
 messaging.onBackgroundMessage((payload) => {
   const { title = "Cranberry", body = "" } = payload.notification ?? {};
+  const url = payload.data?.url ?? "/coach";
 
-  // Get URL from notification data
-  // Day → /coach?view=morning
-  // Night → /coach?view=evening
-  const url = payload.data?.url ?? payload.notification?.click_action ?? "/coach";
+  // Check if app is already open — if yes, skip system notification
+  // (foreground handler in __root.tsx will show toast instead)
+  self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+    const appOpen = clientList.some(c => c.url.includes(BASE_URL));
+    if (appOpen) return; // app is open → don't show system notification
 
-  self.registration.showNotification(title, {
-    body,
-    icon:    "/favicon.ico",
-    badge:   "/favicon.ico",
-    data:    { url },
-    vibrate: [150, 80, 150],
-    actions: [
-      { action: "open",    title: "Log dose" },
-      { action: "dismiss", title: "Dismiss"  },
-    ],
+    // App is closed → show system notification
+    self.registration.showNotification(title, {
+      body,
+      icon:    "/favicon.ico",
+      badge:   "/favicon.ico",
+      data:    { url },
+      vibrate: [150, 80, 150],
+    });
   });
 });
 
 // Notification click → open correct page
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  if (event.action === "dismiss") return;
 
-  // Get the URL from notification data
-  const target = event.notification.data?.url ?? "/coach";
+  const url = event.notification.data?.url ?? "/coach";
+  const fullUrl = BASE_URL + url;
 
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
-      // If app is already open → focus and navigate
-      for (const client of list) {
-        if ("focus" in client) {
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      // If app is already open → post message to navigate
+      for (const client of clientList) {
+        if (client.url.includes(BASE_URL)) {
           client.focus();
-          client.navigate(target);
+          client.postMessage({ type: "NOTIFICATION_CLICK", url });
           return;
         }
       }
-      // Otherwise open new window
-      return clients.openWindow(target);
+      // App is closed → open new window
+      return self.clients.openWindow(fullUrl);
     })
   );
 });

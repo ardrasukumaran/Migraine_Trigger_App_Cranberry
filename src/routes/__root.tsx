@@ -63,6 +63,13 @@ function useForegroundNotifications() {
           });
         });
 
+        // Listen for notification click from service worker
+        navigator.serviceWorker.addEventListener("message", (event) => {
+          if (event.data?.type === "NOTIFICATION_CLICK" && event.data?.url) {
+            window.location.href = event.data.url;
+          }
+        });
+
         console.log("[FCM] Foreground listener ready");
       } catch (err) {
         console.error("[FCM] Foreground setup error:", err);
