@@ -51,16 +51,25 @@ export function saveStreakToSheet({
   }, 3000);
 }
 
-// Save all entries
+// Save only today's entries — historical data already in sheet
 export function saveAllStreaksToSheet(
   entries: Record<string, { morning?: string[]; evening?: string[] }>,
   phone: string
 ): void {
   if (!phone) return;
-  Object.entries(entries).forEach(([date, entry]) => {
-    if (entry.morning?.length) saveStreakToSheet({ slot: "morning", date, ids: entry.morning, phone });
-    if (entry.evening?.length) saveStreakToSheet({ slot: "evening", date, ids: entry.evening, phone });
-  });
+
+  // Only save today — avoids race condition on initial load
+  const today = new Date().toISOString().split("T")[0]; // yyyy-MM-dd
+  const entry = entries[today];
+
+  if (!entry) return;
+
+  if (entry.morning && entry.morning.length > 0) {
+    saveStreakToSheet({ slot: "morning", date: today, ids: entry.morning, phone });
+  }
+  if (entry.evening && entry.evening.length > 0) {
+    saveStreakToSheet({ slot: "evening", date: today, ids: entry.evening, phone });
+  }
 }
 
 // Save combo to Google Sheet Users columns G and H
