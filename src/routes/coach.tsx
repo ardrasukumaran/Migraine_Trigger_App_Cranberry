@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { AppShell } from "@/components/AppShell";
 import { StreakPlant } from "@/components/StreakPlant";
 import { saveStreakToSheet, saveComboToSheet } from "@/lib/saveStreak";
