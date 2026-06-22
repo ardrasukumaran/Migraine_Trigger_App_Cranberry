@@ -61,6 +61,24 @@ function StreaksPage() {
   const dayCombo = DAY_COMBOS.find((c) => c.id === state.dayComboId)!;
   const nightCombo = NIGHT_COMBOS.find((c) => c.id === state.nightComboId)!;
 
+<<<<<<< HEAD
+=======
+  // Auto-save streak to Google Sheet — only when data actually changes
+  const lastSavedHash = useRef<string>("");
+  useEffect(() => {
+    if (!phone) return;
+
+    // Hash of ALL entries — catches both today and backfill changes
+    const hash = JSON.stringify(state.entries);
+
+    // Skip if same data as last save
+    if (hash === lastSavedHash.current) return;
+    lastSavedHash.current = hash;
+
+    saveAllStreaksToSheet(state.entries, phone);
+  }, [state.entries, phone]);
+
+>>>>>>> 8f34e0f91c6724529315f46e2b4b3a30ddfbf2e1
   const setEntry = (date: string, slot: "morning" | "evening", ids: string[], skipped = false) => {
     update((s) => ({
       ...s,
@@ -128,7 +146,10 @@ function StreaksPage() {
           entry={state.entries[activeDate]}
           onSave={(ids, skipped) => {
             setEntry(activeDate, "morning", ids, skipped);
+<<<<<<< HEAD
             if (!skipped) saveStreakToSheet({ slot: "morning", date: activeDate, ids, phone: phone ?? "" });
+=======
+>>>>>>> 8f34e0f91c6724529315f46e2b4b3a30ddfbf2e1
             setView(fromBackFill ? "evening" : "home");
           }}
           onUpdate={(ids) => setEntry(activeDate, "morning", ids)}
@@ -144,7 +165,10 @@ function StreaksPage() {
           entry={state.entries[activeDate]}
           onSave={(ids, skipped) => {
             setEntry(activeDate, "evening", ids, skipped);
+<<<<<<< HEAD
             if (!skipped) saveStreakToSheet({ slot: "evening", date: activeDate, ids, phone: phone ?? "" });
+=======
+>>>>>>> 8f34e0f91c6724529315f46e2b4b3a30ddfbf2e1
             setFromBackFill(false);
             setView("home");
           }}

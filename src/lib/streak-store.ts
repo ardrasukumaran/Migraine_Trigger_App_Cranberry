@@ -13,6 +13,7 @@ export type DayEntry = {
 export type StreakState = {
   dayComboId: string;
   nightComboId: string;
+  comboLocked?: boolean;
   entries: Record<string, DayEntry>;
 };
 
