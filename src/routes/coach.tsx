@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { AppShell } from "@/components/AppShell";
 import { StreakPlant } from "@/components/StreakPlant";
 import { saveAllStreaksToSheet, saveComboToSheet } from "@/lib/saveStreak";
@@ -60,9 +60,20 @@ function StreaksPage() {
   const dayCombo = DAY_COMBOS.find((c) => c.id === state.dayComboId)!;
   const nightCombo = NIGHT_COMBOS.find((c) => c.id === state.nightComboId)!;
 
-  // Auto-save streak to Google Sheet whenever entries change (3 sec debounce)
+  // Auto-save streak to Google Sheet — only when data actually changes
+  const lastSavedHash = useRef<string>("");
   useEffect(() => {
     if (!phone) return;
+
+    // Build hash of today's data only
+    const today = new Date().toISOString().split("T")[0];
+    const entry = state.entries[today];
+    const hash  = JSON.stringify(entry ?? {});
+
+    // Skip if same data as last save
+    if (hash === lastSavedHash.current) return;
+    lastSavedHash.current = hash;
+
     saveAllStreaksToSheet(state.entries, phone);
   }, [state.entries, phone]);
 
