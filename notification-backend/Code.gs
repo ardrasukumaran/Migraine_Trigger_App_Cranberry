@@ -28,6 +28,11 @@ const COL = {
 function doGet(e) {
   const action = e?.parameter?.action;
   if (action === "list") return respond({ ok: true, tokens: getActiveTokens() });
+
+  if (action === "getUser") {
+    const mobile = e?.parameter?.mobile ?? "";
+    return respond(getUserByMobile(mobile));
+  }
   const sheet = getSheet(USERS_SHEET);
   return respond({ ok: true, sheet: USERS_SHEET, totalRows: Math.max(0, sheet.getLastRow() - 1) });
 }
@@ -157,6 +162,27 @@ function getActiveTokens() {
   return result;
 }
 
+// ─── Get user by mobile ───────────────────────────────────────────────────────
+function getUserByMobile(mobile) {
+  const sheet = getSheet(USERS_SHEET);
+  const rows  = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim() === String(mobile).trim()) {
+      return {
+        ok:        true,
+        mobile:    String(rows[i][COL.MOBILE      - 1] ?? "").trim(),
+        name:      String(rows[i][COL.NAME        - 1] ?? "").trim(),
+        dayTime:   String(rows[i][COL.DAY_TIME    - 1] ?? "").trim(),
+        nightTime: String(rows[i][COL.NIGHT_TIME  - 1] ?? "").trim(),
+        dayCombo:  String(rows[i][COL.DAY_COMBO   - 1] ?? "").trim(),
+        nightCombo:String(rows[i][COL.NIGHT_COMBO - 1] ?? "").trim(),
+      };
+    }
+  }
+  return { ok: false, name: "" };
+}
+
 // ─── Update combo only (no token needed) ─────────────────────────────────────
 function updateCombo(record) {
   const sheet  = getSheet(USERS_SHEET);
@@ -203,13 +229,11 @@ function logNotification(record) {
   return "logged";
 }
 
-// ─── Streak Log — UPSERT (update if exists, insert if not) ───────────────────
-// Key = Phone + Date + Type (one row per user per day per slot)
+// ─── Streak Log — UPSERT with skip if same data ──────────────────────────────
 function upsertStreak(record) {
   const ss    = SpreadsheetApp.openById(SHEET_ID);
   let   sheet = ss.getSheetByName(STREAK_LOG_SHEET);
 
-  // Create sheet if not exists
   if (!sheet) {
     sheet = ss.insertSheet(STREAK_LOG_SHEET);
     const headers = ["Phone", "Streak Log Date", "Streak Type", "Supplement Name", "Score"];
@@ -221,7 +245,7 @@ function upsertStreak(record) {
 
   const now   = new Date();
   const phone = String(record.phone  ?? record.mobile ?? "").trim();
-  const date  = String(record.date   ?? Utilities.formatDate(now, "Asia/Kolkata", "dd/MM/yyyy")).trim();
+  const date  = record.date ?? Utilities.formatDate(now, "Asia/Kolkata", "yyyy-MM-dd");
   const type  = String(record.type   ?? "day").trim();
   const supp  = String(record.supplements ?? "").trim();
   const score = record.score ?? 0;
@@ -236,7 +260,15 @@ function upsertStreak(record) {
       const rowType  = String(rows[i][2]).trim();
 
       if (rowPhone === phone && rowDate === date && rowType === type) {
-        // UPDATE existing row
+        // Check if data is same — if yes, skip
+        const existingSupp  = String(rows[i][3]).trim();
+        const existingScore = rows[i][4];
+
+        if (existingSupp === supp && existingScore == score) {
+          return "skipped - same data";
+        }
+
+        // Data is different → UPDATE
         const rowNum = i + 2;
         sheet.getRange(rowNum, 4).setValue(supp);
         sheet.getRange(rowNum, 5).setValue(score);

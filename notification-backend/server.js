@@ -48,6 +48,22 @@ app.post("/register-token", async (req, res) => {
   res.json({ ok: true, sheet: result });
 });
 
+// ─── GET /user-info ───────────────────────────────────────────────────────────
+// Returns user name from Google Sheet
+app.get("/user-info", async (req, res) => {
+  const mobile = req.query.mobile as string;
+  if (!mobile) return res.status(400).json({ error: "mobile is required" });
+
+  try {
+    const response = await fetch(`${WEBHOOK}?action=getUser&mobile=${mobile}`);
+    const data = await response.json();
+    res.json({ ok: true, name: data.name ?? "", dayTime: data.dayTime ?? "", nightTime: data.nightTime ?? "" });
+  } catch (err) {
+    console.error("[user-info] Error:", err);
+    res.json({ ok: false, name: "" });
+  }
+});
+
 // ─── POST /save-combo ────────────────────────────────────────────────────────
 app.post("/save-combo", async (req, res) => {
   const { phone, dayCombo, nightCombo } = req.body ?? {};
