@@ -13,57 +13,62 @@ const SUPP_NAMES: Record<string, string> = {
   "vitd":     "D3",
 };
 
-function idsToLabel(ids: string[]): string {
-  return ids.map((id) => SUPP_NAMES[id] ?? id).join(" + ");
+// Score formula: 2^position
+// 1st supplement → 2, 2nd → 4, 3rd → 8, Skipped → 1
+// Total = sum of all taken
+function scoreForPosition(position: number): number {
+  return Math.pow(2, position);
 }
 
-// ─── Save single slot to sheet ────────────────────────────────────────────────
-// Called directly when user saves (5 sec timer in ChecklistView handles the delay)
-// No extra debounce needed here — just send immediately
+// ─── Save streak — one row per supplement ─────────────────────────────────────
 export async function saveStreakToSheet({
-  slot, date, ids, phone,
+  slot, date, ids, phone, skipped = false,
 }: {
   slot: "morning" | "evening";
   date: string;
   ids: string[];
   phone: string;
+  skipped?: boolean;
 }): Promise<void> {
   if (!phone) return;
+
+  const type = slot === "morning" ? "day" : "night";
+
   try {
-    const supplements = idsToLabel(ids);
-    const score       = ids.length;
-    const type        = slot === "morning" ? "day" : "night";
-    await fetch(`${BACKEND_URL}/save-streak`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ phone, date, type, supplements, score }),
-    });
-    console.log(`[Streak] ✓ Saved ${type} for ${phone} on ${date}: ${supplements} (${score} pts)`);
+    if (skipped || ids.length === 0) {
+      // Save one row for skipped with score 1
+      await fetch(`${BACKEND_URL}/save-streak`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ phone, date, type, supplements: "Skipped", score: 1 }),
+      });
+      console.log(`[Streak] ✓ Saved skipped for ${phone} on ${date} (${type})`);
+      return;
+    }
+
+    // Save one row per supplement with 2^position score
+    for (let i = 0; i < ids.length; i++) {
+      const suppName = SUPP_NAMES[ids[i]] ?? ids[i];
+      const score    = Math.pow(2, i + 1); // 2, 4, 8, 16...
+
+      await fetch(`${BACKEND_URL}/save-streak`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ phone, date, type, supplements: suppName, score }),
+      });
+    }
+    console.log(`[Streak] ✓ Saved ${ids.length} supplements for ${phone} on ${date} (${type})`);
   } catch (err) {
     console.error("[Streak] Save failed:", err);
   }
 }
 
-// ─── Called from useEffect when state.entries changes ────────────────────────
-// Only saves today's entry — no historical sync on load
+// ─── saveAllStreaksToSheet — not used anymore but kept for compatibility ───────
 export function saveAllStreaksToSheet(
   entries: Record<string, { morning?: string[]; evening?: string[] }>,
   phone: string
 ): void {
-  if (!phone) return;
-
-  const today = new Date().toISOString().split("T")[0]; // yyyy-MM-dd
-  const entry = entries[today];
-  if (!entry) return;
-
-  // Save today's morning if exists
-  if (entry.morning && entry.morning.length > 0) {
-    saveStreakToSheet({ slot: "morning", date: today, ids: entry.morning, phone });
-  }
-  // Save today's evening if exists
-  if (entry.evening && entry.evening.length > 0) {
-    saveStreakToSheet({ slot: "evening", date: today, ids: entry.evening, phone });
-  }
+  // No-op — saving is now done directly in onSave handlers
 }
 
 // ─── Save combo to Google Sheet ───────────────────────────────────────────────

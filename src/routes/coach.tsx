@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useRef } from "react";
 import { AppShell } from "@/components/AppShell";
+import { Berry } from "@/components/Berry";
 import { StreakPlant } from "@/components/StreakPlant";
 import { saveStreakToSheet, saveComboToSheet } from "@/lib/saveStreak";
 import { useAuth } from "@/context/AuthContext";
@@ -128,7 +129,7 @@ function StreaksPage() {
           entry={state.entries[activeDate]}
           onSave={(ids, skipped) => {
             setEntry(activeDate, "morning", ids, skipped);
-            if (!skipped) saveStreakToSheet({ slot: "morning", date: activeDate, ids, phone: phone ?? "" });
+            saveStreakToSheet({ slot: "morning", date: activeDate, ids, phone: phone ?? "", skipped });
             setView(fromBackFill ? "evening" : "home");
           }}
           onUpdate={(ids) => setEntry(activeDate, "morning", ids)}
@@ -144,7 +145,7 @@ function StreaksPage() {
           entry={state.entries[activeDate]}
           onSave={(ids, skipped) => {
             setEntry(activeDate, "evening", ids, skipped);
-            if (!skipped) saveStreakToSheet({ slot: "evening", date: activeDate, ids, phone: phone ?? "" });
+            saveStreakToSheet({ slot: "evening", date: activeDate, ids, phone: phone ?? "", skipped });
             setFromBackFill(false);
             setView("home");
           }}
@@ -163,7 +164,7 @@ function StreaksPage() {
         />
       )}
 
-      {view === "milestones" && <MilestonesView streak={streak} />}
+      {view === "milestones" && <MilestonesView />}
 
       {view === "setup" && (
         <SetupView
@@ -611,8 +612,9 @@ function ChecklistView({
     setPicked(newPicked);
     onUpdate?.(newPicked);
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (newPicked.length >= comboIds.length) {
-      setAllDone(true);
+    if (newPicked.length > 0) {
+      // Save after 5 seconds — works for partial AND full selection
+      if (newPicked.length >= comboIds.length) setAllDone(true);
       timerRef.current = setTimeout(() => onSave(newPicked, false), 5000);
     } else {
       setAllDone(false);
@@ -771,48 +773,14 @@ function BackFillView({
 
 /* ---------------- MILESTONES ---------------- */
 
-function MilestonesView({ streak }: { streak: number }) {
+function MilestonesView() {
   return (
-    <div className="mt-4 space-y-3">
-      {MILESTONES.map((m) => {
-        const earned = streak >= m.days;
-        const pct = Math.min(100, (streak / m.days) * 100);
-        return (
-          <div
-            key={m.days}
-            className={cn(
-              "rounded-2xl border p-4",
-              earned
-                ? "bg-[var(--streak-soft)] border-[var(--streak)]/50"
-                : "bg-card border-border",
-            )}
-          >
-            <div className="flex items-center justify-between">
-              <p className="font-serif-display text-[22px]">{m.days} days</p>
-              <span
-                className={cn(
-                  "text-[12px] font-semibold px-2.5 py-1 rounded-full",
-                  earned
-                    ? "bg-[var(--streak)] text-[var(--streak-foreground)]"
-                    : "bg-muted text-warm-grey",
-                )}
-              >
-                {m.reward}
-              </span>
-            </div>
-            <p className="text-[12px] text-warm-grey/80 mt-1">{m.desc}</p>
-            <div className="mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full"
-                style={{
-                  width: `${pct}%`,
-                  background: earned ? "var(--streak)" : "var(--brand-mid-lavender)",
-                }}
-              />
-            </div>
-          </div>
-        );
-      })}
+    <div className="mt-16 flex flex-col items-center text-center">
+      <Berry mood="binoculars" size={160} />
+      <h2 className="font-serif-display text-[32px] mt-4">Coming soon</h2>
+      <p className="text-sm text-warm-grey/80 mt-2 max-w-[260px]">
+        Rewards for your consistency are on the way. Keep logging!
+      </p>
     </div>
   );
 }

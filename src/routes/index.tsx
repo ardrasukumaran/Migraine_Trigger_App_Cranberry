@@ -72,7 +72,7 @@ function TodayPage() {
   return (
     <AppShell
       subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-      title={<>Hello{userName ? `, ${userName}` : ""}, <span className="text-primary">How's your head today?</span></>}
+      title={<>Hello{userName ? ` ${userName}` : ""},<br /><span className="text-primary">How's your head today?</span></>}
       right={<Berry mood="wave" size={68} className="-mt-2 -mr-1" />}
     >
       {/* Streak cards — Day & Night side-by-side */}
