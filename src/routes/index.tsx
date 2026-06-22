@@ -21,22 +21,7 @@ function slotStreak(
   entries: Record<string, DayEntry>,
   slot: "morning" | "evening",
 ) {
-  let n = 0;
-  const d = new Date();
-  for (let i = 0; i < 365; i++) {
-    const key = isoDate(d);
-    const took = (entries[key]?.[slot]?.length ?? 0) > 0;
-    if (!took) {
-      if (i === 0) {
-        d.setDate(d.getDate() - 1);
-        continue;
-      }
-      break;
-    }
-    n++;
-    d.setDate(d.getDate() - 1);
-  }
-  return n;
+  return Object.values(entries).filter((e) => (e?.[slot]?.length ?? 0) > 0).length;
 }
 
 function TodayPage() {
