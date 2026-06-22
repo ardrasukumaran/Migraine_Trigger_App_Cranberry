@@ -49,9 +49,8 @@ app.post("/register-token", async (req, res) => {
 });
 
 // ─── GET /user-info ───────────────────────────────────────────────────────────
-// Returns user name from Google Sheet
 app.get("/user-info", async (req, res) => {
-  const mobile = req.query.mobile as string;
+  const mobile = req.query.mobile;
   if (!mobile) return res.status(400).json({ error: "mobile is required" });
 
   try {
