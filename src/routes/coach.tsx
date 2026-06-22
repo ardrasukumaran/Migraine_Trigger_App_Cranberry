@@ -54,6 +54,7 @@ function StreaksPage() {
   const [state, update] = useStreakState();
   const [view, setView] = useState<View>(searchView ?? "home");
   const [activeDate, setActiveDate] = useState<string>(todayIso());
+  const [fromBackFill, setFromBackFill] = useState(false);
 
   const streak = useMemo(() => currentStreak(state.entries), [state.entries]);
 
@@ -65,10 +66,8 @@ function StreaksPage() {
   useEffect(() => {
     if (!phone) return;
 
-    // Build hash of today's data only
-    const today = new Date().toISOString().split("T")[0];
-    const entry = state.entries[today];
-    const hash  = JSON.stringify(entry ?? {});
+    // Hash of ALL entries — catches both today and backfill changes
+    const hash = JSON.stringify(state.entries);
 
     // Skip if same data as last save
     if (hash === lastSavedHash.current) return;
@@ -140,7 +139,11 @@ function StreaksPage() {
           entry={state.entries[activeDate]}
           onSave={(ids) => {
             setEntry(activeDate, "morning", ids);
-            setView("home");
+            if (fromBackFill) {
+              setView("evening"); // go to evening dose for same date
+            } else {
+              setView("home");
+            }
           }}
         />
       )}
@@ -153,6 +156,7 @@ function StreaksPage() {
           entry={state.entries[activeDate]}
           onSave={(ids) => {
             setEntry(activeDate, "evening", ids);
+            setFromBackFill(false);
             setView("home");
           }}
         />
@@ -163,6 +167,7 @@ function StreaksPage() {
           entries={state.entries}
           onPick={(d) => {
             setActiveDate(d);
+            setFromBackFill(true);
             setView("morning");
           }}
         />
