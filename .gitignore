@@ -35,3 +35,4 @@ dist-ssr
 *.sln
 *.sw?
 notification-backend/.env
+apply-patches.js
