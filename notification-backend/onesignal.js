@@ -17,13 +17,12 @@ export async function sendViaOneSignal({ playerId, title, body, url }) {
         "Authorization": `Key ${ONESIGNAL_API_KEY}`,
       },
       body: JSON.stringify({
-        app_id:             ONESIGNAL_APP_ID,
+        app_id:                   ONESIGNAL_APP_ID,
         include_subscription_ids: [playerId],
-        headings:           { en: title },
-        contents:           { en: body },
-        url:                `https://test-app-cranberry.onrender.com${url}`,
-        web_url:            `https://test-app-cranberry.onrender.com${url}`,
-        chrome_web_icon:    "https://test-app-cranberry.onrender.com/favicon.ico",
+        headings:                 { en: title },
+        contents:                 { en: body },
+        web_url:                  `https://test-app-cranberry.onrender.com${url}`,
+        chrome_web_icon:          "https://test-app-cranberry.onrender.com/favicon.ico",
       }),
     });
 
