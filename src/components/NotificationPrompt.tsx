@@ -77,21 +77,29 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
     try {
       // Load OneSignal SDK
       await loadOneSignal();
-      const OneSignal = (window as any).OneSignal;
 
-      // Initialize OneSignal
-      await OneSignal.init({
-        appId:                ONESIGNAL_APP_ID,
-        serviceWorkerPath:    "/OneSignalSDKWorker.js",
-        notifyButton:         { enable: false },
+      const OneSignal = (window as any).OneSignal;
+      if (!OneSignal) throw new Error("OneSignal not loaded");
+
+      // Initialize OneSignal v16
+      OneSignal.init({
+        appId:                        ONESIGNAL_APP_ID,
+        serviceWorkerPath:            "/OneSignalSDKWorker.js",
+        notifyButton:                 { enable: false },
         allowLocalhostAsSecureOrigin: true,
       });
+
+      // Wait for init to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Request permission
       await OneSignal.Notifications.requestPermission();
 
-      // Get Player ID (subscription ID)
-      const playerId = await OneSignal.User.PushSubscription.id;
+      // Wait for subscription
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Get Player ID
+      const playerId = OneSignal.User?.PushSubscription?.id;
       if (!playerId) throw new Error("No player ID received");
 
       // Save locally
@@ -105,10 +113,9 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({
           mobile_number: mobile,
-          fcm_token:     playerId, // reuse same field
+          fcm_token:     playerId,
           day_combo:     dayCombo,
           night_combo:   nightCombo,
-          platform:      "onesignal",
         }),
       });
 
