@@ -2,7 +2,7 @@
 // Logs every notification sent to Google Sheet (Notification Logs tab)
 
 import cron from "node-cron";
-import { sendToToken }                      from "./fcm.js";
+import { sendViaOneSignal } from "./onesignal.js";
 import { getActiveTokens, deactivateToken } from "./sheet.js";
 
 const UTC_OFFSET_HOURS = parseFloat(process.env.UTC_OFFSET_HOURS ?? "5.5");
