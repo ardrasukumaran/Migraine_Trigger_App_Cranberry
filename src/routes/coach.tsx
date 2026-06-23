@@ -86,9 +86,9 @@ function StreaksPage() {
         view === "home" ? (
           <>Your streak.</>
         ) : view === "morning" ? (
-          <>Morning dose</>
+          <>Day dose</>
         ) : view === "evening" ? (
-          <>Evening dose</>
+          <>Night dose</>
         ) : view === "back-fill" ? (
           <>Back-fill</>
         ) : view === "milestones" ? (
@@ -199,6 +199,11 @@ const PILL: Record<string, { label: string; bg: string; fg: string }> = {
 };
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function fmtDate(iso: string) {
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
 const DAY_LETTERS = ["S","M","T","W","T","F","S"];
 
 function statusLabel(streak: number) {
@@ -474,7 +479,7 @@ function DoseRow({
   const complete = count >= total && total > 0;
   const points = scoreForCount(count);
   const Icon = slot === "morning" ? Utensils : UtensilsCrossed;
-  const label = slot === "morning" ? "With lunch" : "With dinner";
+  const label = slot === "morning" ? "Day" : "Night";
 
   const cls = cn(
     "w-full rounded-2xl border p-3 flex items-center gap-3 text-left transition",
@@ -637,7 +642,7 @@ function ChecklistView({
         <div className="rounded-3xl bg-card border border-border p-4">
           <div className="flex items-center justify-between">
             <p className="text-[11px] uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
-              {slot === "morning" ? "Morning" : "Evening"} · {date}
+              {slot === "morning" ? "Day" : "Night"} · {fmtDate(date)}
             </p>
             <span className="text-[11px] text-[var(--streak)] tabular-nums">
               +{score} pts
@@ -704,7 +709,7 @@ function ChecklistView({
             onClick={onContinue}
             className="w-full rounded-2xl border border-primary/40 bg-card p-3 flex items-center justify-center gap-2 text-[14px] font-semibold text-primary transition active:scale-[0.99]"
           >
-            Evening doses <ChevronRight className="h-4 w-4" />
+            Night doses <ChevronRight className="h-4 w-4" />
           </button>
         )}
       </div>
@@ -809,7 +814,7 @@ function SetupView({
       )}
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
-          Morning combo
+          Day combo
         </p>
         <div className="space-y-2">
           {DAY_COMBOS.map((c) => (
@@ -825,7 +830,7 @@ function SetupView({
       </div>
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
-          Evening combo
+          Night combo
         </p>
         <div className="space-y-2">
           {NIGHT_COMBOS.map((c) => (
@@ -913,7 +918,7 @@ function LockScreenView({ dayLabel }: { dayLabel: string }) {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between">
-              <p className="text-[12px] font-semibold">Cranberry · With lunch</p>
+              <p className="text-[12px] font-semibold">Cranberry · Day</p>
               <span className="text-[10px] text-warm-grey/70">now</span>
             </div>
             <p className="text-[12px] mt-0.5">
@@ -926,7 +931,7 @@ function LockScreenView({ dayLabel }: { dayLabel: string }) {
             <UtensilsCrossed className="h-5 w-5 text-[var(--streak)]" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-semibold">Cranberry · With dinner</p>
+            <p className="text-[12px] font-semibold">Cranberry · Night</p>
             <p className="text-[11px] text-warm-grey/80 mt-0.5">
               Scheduled for 7:30 pm
 

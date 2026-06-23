@@ -161,16 +161,21 @@ Bun.serve({
         const creds = JSON.parse(saJson);
         const rows  = await readAllSheetRows(creds, sheetId);
 
-        const matched = rows.some(row => {
+        let matchedRow: string[] | null = null;
+        for (const row of rows) {
           const rowPhone   = String(row[3] ?? "").replace(/\D/g, "").slice(-10); // Column D
           const rowOrderId = String(row[1] ?? "").trim();                         // Column B (stored as #1001)
-          return rowPhone === normalizedPhone && rowOrderId === `#${orderId}`;
-        });
+          if (rowPhone === normalizedPhone && rowOrderId === `#${orderId}`) {
+            matchedRow = row;
+            break;
+          }
+        }
 
-        if (matched) {
-          const token = createSessionToken(normalizedPhone);
-          console.log(`[verify-user] verified phone=${normalizedPhone}`);
-          return new Response(JSON.stringify({ verified: true, message: "Success", token, phone: normalizedPhone }), {
+        if (matchedRow) {
+          const token    = createSessionToken(normalizedPhone);
+          const userName = String(matchedRow[2] ?? "").trim(); // Column C = name
+          console.log(`[verify-user] verified phone=${normalizedPhone} name=${userName}`);
+          return new Response(JSON.stringify({ verified: true, message: "Success", token, phone: normalizedPhone, user_name: userName }), {
             headers: { "content-type": "application/json" },
           });
         }

@@ -114,10 +114,10 @@ function LoginPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ phone: pendingPhone, order_id: orderId.trim() }),
       });
-      const data = await res.json() as { verified: boolean; message: string; token?: string; phone?: string };
+      const data = await res.json() as { verified: boolean; message: string; token?: string; phone?: string; user_name?: string };
       if (data.verified && data.token && data.phone) {
         justLoggedIn.current = true; // ← block auto-navigate
-        login(data.phone, data.token);
+        login(data.phone, data.token, data.user_name);
         setLoggedInPhone(data.phone); // ← show notification popup
       } else {
         setError(data.message ?? 'Invalid phone or order ID.');
