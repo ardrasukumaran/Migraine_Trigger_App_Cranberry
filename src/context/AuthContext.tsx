@@ -1,10 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { getStoredPhone, storePhone, clearPhone, storeSession, getSession, clearSession } from '@/lib/auth';
+import { getStoredPhone, storePhone, clearPhone, storeSession, getSession, clearSession, getUserName, storeUserName, clearUserName } from '@/lib/auth';
 
 interface AuthContextValue {
   phone: string | null;
+  userName: string | null;
   isLoading: boolean;
-  login: (phone: string, token?: string) => void;
+  login: (phone: string, token?: string, userName?: string) => void;
   logout: () => void;
 }
 
@@ -12,6 +13,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [phone, setPhone] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -21,23 +23,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       setPhone(getStoredPhone());
     }
+    setUserName(getUserName());
     setIsLoading(false);
   }, []);
 
-  function login(p: string, token?: string) {
+  function login(p: string, token?: string, name?: string) {
     if (token) storeSession(token);
     storePhone(p);
     setPhone(p);
+    if (name) {
+      storeUserName(name);
+      setUserName(name);
+    }
   }
 
   function logout() {
     clearSession();
     clearPhone();
+    clearUserName();
     setPhone(null);
+    setUserName(null);
   }
 
   return (
-    <AuthContext.Provider value={{ phone, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ phone, userName, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

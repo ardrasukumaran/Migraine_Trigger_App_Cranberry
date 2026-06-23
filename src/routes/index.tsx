@@ -7,10 +7,8 @@ import { RECENT_ATTACKS } from "@/lib/mock-data";
 import { isoDate, todayIso, useStreakState, type DayEntry } from "@/lib/streak-store";
 import { ALL_SUPPLEMENTS, DAY_COMBOS, NIGHT_COMBOS } from "@/lib/supplements";
 import { useAuth } from "@/context/AuthContext";
-import { useState, useEffect, useRef } from "react";
+import { useRef } from "react";
 import { saveStreakToSheet } from "@/lib/saveStreak";
-
-const BACKEND_URL = "https://cranberry-notifications.onrender.com";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -30,24 +28,9 @@ function slotStreak(
 }
 
 function TodayPage() {
-  const { phone } = useAuth();
-  const [userName, setUserName] = useState<string>("");
+  const { userName, phone } = useAuth();
   const [state, update] = useStreakState();
 
-  // Fetch user name from sheet 2 seconds after login
-  useEffect(() => {
-    if (!phone) return;
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`${BACKEND_URL}/user-info?mobile=${phone}`);
-        const data = await res.json();
-        if (data.name) setUserName(data.name);
-      } catch (err) {
-        console.error("[Name] Failed to fetch:", err);
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [phone]);
   const dayStreak = slotStreak(state.entries, "morning");
   const nightStreak = slotStreak(state.entries, "evening");
   const today = state.entries[todayIso()];
@@ -70,7 +53,6 @@ function TodayPage() {
       const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
       const newEntries = { ...s, entries: { ...s.entries, [key]: { ...entry, [slot]: next } } };
 
-      // Debounced save — 5 seconds after last toggle
       const timerKey = `${slot}`;
       if (toggleTimers.current[timerKey]) clearTimeout(toggleTimers.current[timerKey]);
       toggleTimers.current[timerKey] = setTimeout(() => {
@@ -87,7 +69,7 @@ function TodayPage() {
   return (
     <AppShell
       subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-      title={<>Hello{userName ? ` ${userName}` : ""},<br /><span className="text-primary">How's your head today?</span></>}
+      title={<>Hello{userName ? `, ${userName}` : ""},</>}
       right={<Berry mood="wave" size={68} className="-mt-2 -mr-1" />}
     >
       {/* Streak cards — Day & Night side-by-side */}
@@ -104,7 +86,7 @@ function TodayPage() {
         <div className="grid grid-cols-2 gap-3">
           <PlanList
             icon={<Sun className="h-4 w-4" />}
-            label="With Lunch"
+            label="Day"
             slot="morning"
             comboIds={dayCombo.ids}
             taken={morningTaken}
@@ -114,7 +96,7 @@ function TodayPage() {
           />
           <PlanList
             icon={<Moon className="h-4 w-4" />}
-            label="With Dinner"
+            label="Night"
             slot="evening"
             comboIds={nightCombo.ids}
             taken={eveningTaken}
