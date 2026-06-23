@@ -3,7 +3,7 @@ import { getStoredPhone, storePhone, clearPhone, storeSession, getSession, clear
 
 interface AuthContextValue {
   phone: string | null;
-  userName: string | null;
+  userName: string;
   isLoading: boolean;
   login: (phone: string, token?: string, userName?: string) => void;
   logout: () => void;
@@ -13,7 +13,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [phone, setPhone] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       setPhone(getStoredPhone());
     }
-    setUserName(getUserName());
+    setUserName(getUserName() ?? "");
     setIsLoading(false);
   }, []);
 
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearPhone();
     clearUserName();
     setPhone(null);
-    setUserName(null);
+    setUserName("");
   }
 
   return (
