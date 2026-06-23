@@ -83,6 +83,7 @@ async function runSchedule() {
 
   for (const row of tokens) {
     const userTime = isDay ? row.dayTime : row.nightTime;
+    console.log(`[Scheduler] Checking ${row.mobile}: userTime=${userTime} slotTime=${timeStr} match=${userTime === timeStr}`);
     if (userTime !== timeStr) continue;
 
     const msgs   = buildMessages(row.dayCombo, row.nightCombo);
