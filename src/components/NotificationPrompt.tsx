@@ -38,13 +38,32 @@ function getComboFromStorage() {
 
 function loadOneSignal(): Promise<any> {
   return new Promise((resolve, reject) => {
-    if ((window as any).OneSignal) { resolve((window as any).OneSignal); return; }
+    // Set up deferred queue before loading script
+    (window as any).OneSignalDeferred = (window as any).OneSignalDeferred || [];
+
+    if (document.querySelector('script[src*="OneSignalSDK.page.js"]')) {
+      // Script already loaded — wait for it
+      const wait = setInterval(() => {
+        if ((window as any).OneSignal) {
+          clearInterval(wait);
+          resolve((window as any).OneSignal);
+        }
+      }, 200);
+      setTimeout(() => { clearInterval(wait); reject(new Error("OneSignal timeout")); }, 10000);
+      return;
+    }
+
     const script = document.createElement("script");
     script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
     script.defer = true;
     script.onload = () => {
-      const OneSignal = (window as any).OneSignal || [];
-      resolve(OneSignal);
+      const wait = setInterval(() => {
+        if ((window as any).OneSignal) {
+          clearInterval(wait);
+          resolve((window as any).OneSignal);
+        }
+      }, 200);
+      setTimeout(() => { clearInterval(wait); reject(new Error("OneSignal timeout")); }, 10000);
     };
     script.onerror = () => reject(new Error("Failed to load OneSignal SDK"));
     document.head.appendChild(script);
