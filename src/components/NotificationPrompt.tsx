@@ -1,23 +1,14 @@
 // src/components/NotificationPrompt.tsx
+// Uses OneSignal for push notifications (supports Android + iPhone PWA)
+
 import { useState, useEffect } from "react";
 import { Bell, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const BACKEND_URL = "https://cranberry-notifications.onrender.com";
-const FCM_KEY     = "cranberry.fcm_token.v1";
-const STREAK_KEY  = "cranberry.streaks.v1";
-
-// Firebase config — hardcoded (public values, safe in frontend)
-const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyCcCVGSMA1nX5f2_jjG1pqkNSDRGduR_p0",
-  authDomain:        "meal-reminder-app.firebaseapp.com",
-  projectId:         "meal-reminder-app",
-  storageBucket:     "meal-reminder-app.appspot.com",
-  messagingSenderId: "1034543527787",
-  appId:             "1:1034543527787:web:5e04ce5cf292072badbe2e",
-};
-
-const VAPID_KEY = "BJv94GZl_CnEMK4TMWxZSWEiF0VE87j0xy6swee4fs3ck6Iw6aloDqz86l9VHKtBFRNMjhbHEb48fD0szET2zSc";
+const BACKEND_URL     = "https://cranberry-notifications.onrender.com";
+const ONESIGNAL_APP_ID = "9532e810-57ec-4019-b7c0-82a5eac1922b";
+const PLAYER_KEY       = "cranberry.onesignal_player_id.v1";
+const STREAK_KEY       = "cranberry.streaks.v1";
 
 const DAY_COMBO_MAP: Record<string, string> = {
   "day-a": "Ribo + Mg + Premence",
@@ -45,21 +36,19 @@ function getComboFromStorage() {
   }
 }
 
-function loadScript(src: string): Promise<void> {
+function loadOneSignal(): Promise<any> {
   return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
-    const s = document.createElement("script");
-    s.src = src;
-    s.onload  = () => resolve();
-    s.onerror = () => reject(new Error(`Failed to load ${src}`));
-    document.head.appendChild(s);
+    if ((window as any).OneSignal) { resolve((window as any).OneSignal); return; }
+    const script = document.createElement("script");
+    script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+    script.defer = true;
+    script.onload = () => {
+      const OneSignal = (window as any).OneSignal || [];
+      resolve(OneSignal);
+    };
+    script.onerror = () => reject(new Error("Failed to load OneSignal SDK"));
+    document.head.appendChild(script);
   });
-}
-
-async function loadFirebase() {
-  await loadScript("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js");
-  await loadScript("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js");
-  return (window as any).firebase;
 }
 
 interface Props {
@@ -73,19 +62,12 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
   const [done,    setDone]    = useState(false);
 
   useEffect(() => {
-    if (typeof Notification === "undefined") { onDone?.(); return; }
-    if (Notification.permission === "denied") { onDone?.(); return; }
+    if (typeof window === "undefined") { onDone?.(); return; }
 
-    // Only skip if already granted AND token already saved
-    if (
-      Notification.permission === "granted" &&
-      localStorage.getItem(FCM_KEY)
-    ) {
-      onDone?.();
-      return;
-    }
+    // Only skip if already subscribed
+    const existingPlayerId = localStorage.getItem(PLAYER_KEY);
+    if (existingPlayerId) { onDone?.(); return; }
 
-    // Show popup after 1 second
     const timer = setTimeout(() => setShow(true), 1000);
     return () => clearTimeout(timer);
   }, []);
@@ -93,57 +75,49 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
   async function handleAllow() {
     setLoading(true);
     try {
-      // Step 1: Request permission
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") throw new Error("Permission denied");
+      // Load OneSignal SDK
+      await loadOneSignal();
+      const OneSignal = (window as any).OneSignal;
 
-      // Step 2: Register service worker
-      const reg = await navigator.serviceWorker.register(
-        "/firebase-messaging-sw.js", { scope: "/" }
-      );
-      await navigator.serviceWorker.ready;
-
-      // Step 3: Load Firebase from CDN
-      const firebase = await loadFirebase();
-      if (!firebase.apps.length) {
-        firebase.initializeApp(FIREBASE_CONFIG);
-      }
-      const messaging = firebase.messaging();
-
-      // Step 4: Get FCM token
-      const token = await messaging.getToken({
-        vapidKey:                  VAPID_KEY,
-        serviceWorkerRegistration: reg,
+      // Initialize OneSignal
+      await OneSignal.init({
+        appId:                ONESIGNAL_APP_ID,
+        serviceWorkerPath:    "/OneSignalSDKWorker.js",
+        notifyButton:         { enable: false },
+        allowLocalhostAsSecureOrigin: true,
       });
 
-      if (!token) throw new Error("No token received");
+      // Request permission
+      await OneSignal.Notifications.requestPermission();
 
-      // Step 5: Save token locally
-      localStorage.setItem(FCM_KEY, token);
-      console.log("[FCM] Token obtained:", token.slice(0, 30) + "…");
+      // Get Player ID (subscription ID)
+      const playerId = await OneSignal.User.PushSubscription.id;
+      if (!playerId) throw new Error("No player ID received");
 
-      // Step 6: Send to backend
+      // Save locally
+      localStorage.setItem(PLAYER_KEY, playerId);
+      console.log("[OneSignal] Player ID:", playerId);
+
+      // Register to backend
       const { dayCombo, nightCombo } = getComboFromStorage();
       await fetch(`${BACKEND_URL}/register-token`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({
           mobile_number: mobile,
-          fcm_token:     token,
+          fcm_token:     playerId, // reuse same field
           day_combo:     dayCombo,
           night_combo:   nightCombo,
+          platform:      "onesignal",
         }),
       });
 
-      console.log("[FCM] Token registered successfully!");
-
-      // Only save to localStorage on successful Allow
+      console.log("[OneSignal] Registered successfully!");
       setDone(true);
       setTimeout(() => { setShow(false); onDone?.(); }, 2000);
 
     } catch (err) {
-      console.error("[FCM] Error:", err);
-      // On error — don't save to localStorage, ask again next login
+      console.error("[OneSignal] Error:", err);
       setShow(false);
       onDone?.();
     } finally {
@@ -151,8 +125,6 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
     }
   }
 
-  // Maybe later OR click outside — don't save to localStorage
-  // Popup will show again on next login
   function handleSkip() {
     setShow(false);
     onDone?.();
@@ -162,9 +134,7 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
 
   return (
     <>
-      {/* Backdrop — click outside = same as Maybe later */}
       <div className="fixed inset-0 bg-black/60 z-40" onClick={handleSkip} />
-
       <div className="fixed inset-x-4 bottom-6 z-50 rounded-3xl bg-card border border-border p-6 shadow-2xl">
         <button
           onClick={handleSkip}

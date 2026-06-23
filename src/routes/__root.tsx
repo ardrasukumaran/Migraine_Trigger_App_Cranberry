@@ -11,72 +11,40 @@ import { useEffect } from "react";
 import { Toaster, toast } from "sonner";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
-// ─── Foreground FCM notification handler ─────────────────────────────────────
+// ─── OneSignal foreground notification handler ────────────────────────────────
 function useForegroundNotifications() {
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!("Notification" in window)) return;
-    if (Notification.permission !== "granted") return;
 
-    const scriptUrls = [
-      "https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js",
-      "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js",
-    ];
-
-    function loadScript(src: string): Promise<void> {
-      return new Promise((resolve) => {
-        if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
-        const s = document.createElement("script");
-        s.src = src;
-        s.onload = () => resolve();
-        s.onerror = () => resolve();
-        document.head.appendChild(s);
+    // Listen for notification click from service worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", (event) => {
+        if (event.data?.type === "NOTIFICATION_CLICK" && event.data?.url) {
+          window.location.href = event.data.url;
+        }
       });
     }
 
-    async function setupForegroundListener() {
-      try {
-        await Promise.all(scriptUrls.map(loadScript));
-        const firebase = (window as any).firebase;
-        if (!firebase) return;
+    // OneSignal foreground notification handler
+    const checkOneSignal = setInterval(() => {
+      const OneSignal = (window as any).OneSignal;
+      if (!OneSignal) return;
+      clearInterval(checkOneSignal);
 
-        if (!firebase.apps.length) {
-          firebase.initializeApp({
-            apiKey:            "AIzaSyCcCVGSMA1nX5f2_jjG1pqkNSDRGduR_p0",
-            authDomain:        "meal-reminder-app.firebaseapp.com",
-            projectId:         "meal-reminder-app",
-            storageBucket:     "meal-reminder-app.appspot.com",
-            messagingSenderId: "1034543527787",
-            appId:             "1:1034543527787:web:5e04ce5cf292072badbe2e",
-          });
-        }
+      OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
+        // Show toast instead of system notification when app is open
+        const title = event.notification.title ?? "Cranberry";
+        const body  = event.notification.body  ?? "";
+        toast(title, { description: body, duration: 6000, icon: "🌿" });
+        // Prevent system notification when app is open
+        event.preventDefault();
+        console.log("[OneSignal] Foreground notification:", title);
+      });
 
-        const messaging = firebase.messaging();
-        messaging.onMessage((payload: any) => {
-          console.log("[FCM] Foreground message:", payload);
-          const title = payload.notification?.title ?? "Cranberry";
-          const body  = payload.notification?.body  ?? "";
-          toast(title, {
-            description: body,
-            duration:    6000,
-            icon:        "🌿",
-          });
-        });
+      console.log("[OneSignal] Foreground listener ready");
+    }, 1000);
 
-        // Listen for notification click from service worker
-        navigator.serviceWorker.addEventListener("message", (event) => {
-          if (event.data?.type === "NOTIFICATION_CLICK" && event.data?.url) {
-            window.location.href = event.data.url;
-          }
-        });
-
-        console.log("[FCM] Foreground listener ready");
-      } catch (err) {
-        console.error("[FCM] Foreground setup error:", err);
-      }
-    }
-
-    setupForegroundListener();
+    return () => clearInterval(checkOneSignal);
   }, []);
 }
 

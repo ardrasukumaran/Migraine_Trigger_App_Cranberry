@@ -88,30 +88,20 @@ async function runSchedule() {
     const msgs   = buildMessages(row.dayCombo, row.nightCombo);
     const msg    = isDay ? msgs.day : msgs.night;
     const slot   = isDay ? "day" : "night";
-    const result = await sendToToken({
-      token: row.token,
-      title: msg.title,
-      body:  msg.body,
-      url:   msg.url,
+    const result = await sendViaOneSignal({
+      playerId: row.token,
+      title:    msg.title,
+      body:     msg.body,
+      url:      msg.url,
     });
 
     if (result.success) {
       sent++;
       console.log(`[Scheduler] ✓ ${slot} → ${row.mobile} (${timeStr})`);
-      // Log success to sheet
       logToSheet(row.mobile, row.token, timeStr, "Sent");
     } else {
       console.error(`[Scheduler] ✗ ${row.mobile}:`, result.error);
-      // Log failure to sheet
       logToSheet(row.mobile, row.token, timeStr, "Failed");
-
-      if (
-        result.error?.includes("UNREGISTERED") ||
-        result.error?.includes("INVALID_ARGUMENT") ||
-        result.error?.includes("NOT_FOUND")
-      ) {
-        deactivateToken(row.token);
-      }
     }
   }
 
