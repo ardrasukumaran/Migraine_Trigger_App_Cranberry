@@ -36,3 +36,4 @@ dist-ssr
 *.sw?
 notification-backend/.env
 apply-patches.js
+package-lock.json
