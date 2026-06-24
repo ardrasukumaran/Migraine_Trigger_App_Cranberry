@@ -243,9 +243,9 @@ function DayRing({
   const c = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(1, ratio));
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className={cn("flex flex-col items-center gap-1.5 rounded-lg p-1", isToday && "bg-warm-grey/20")}>
       <span className="text-[10px] text-warm-grey/70">{letter}</span>
-      <div className={cn("relative", isToday && "ring-2 ring-warm-grey/40 rounded-full")} style={{ width: size, height: size }}>
+      <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="-rotate-90">
           <circle
             cx={size / 2}

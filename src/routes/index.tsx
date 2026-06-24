@@ -258,8 +258,10 @@ function PlanList({
               >
                 <span
                   className={`h-5 w-5 shrink-0 rounded-full grid place-items-center border-2 transition ${
-                    on
+                    on && !locked
                       ? "bg-[var(--streak)] border-[var(--streak)] text-[var(--streak-foreground)]"
+                      : on && locked
+                      ? "bg-warm-grey/30 border-warm-grey/30 text-background"
                       : "bg-background border-warm-grey/40"
                   }`}
                   aria-hidden
@@ -267,7 +269,7 @@ function PlanList({
                   {on && <Check className="h-3 w-3" strokeWidth={4} />}
                 </span>
                 <span className="flex-1 min-w-0">
-                  <span className={`block text-xs font-semibold leading-tight ${on ? "text-[var(--streak)]" : ""}`}>
+                  <span className={`block text-xs font-semibold leading-tight ${on && !locked ? "text-[var(--streak)]" : on && locked ? "text-warm-grey/50" : ""}`}>
                     {sup?.name ?? id}
                   </span>
                 </span>
