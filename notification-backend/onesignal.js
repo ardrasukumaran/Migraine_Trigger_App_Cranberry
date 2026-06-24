@@ -21,8 +21,8 @@ export async function sendViaOneSignal({ playerId, title, body, url }) {
         include_subscription_ids: [playerId],
         headings:                 { en: title },
         contents:                 { en: body },
-        web_url:                  `https://test-app-cranberry.onrender.com${url}`,
-        chrome_web_icon:          "https://test-app-cranberry.onrender.com/favicon.ico",
+        web_url:                  `https://app.cranberry.fit${url}`,
+        chrome_web_icon:          "https://app.cranberry.fit/favicon.ico",
       }),
     });
 
