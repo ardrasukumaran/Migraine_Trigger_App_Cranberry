@@ -234,7 +234,7 @@ function PlanList({
         </span>
       </div>
 
-      <ul className="mt-2 space-y-1">
+      <ul className={`mt-2 space-y-1 ${skipped ? "opacity-40" : ""}`}>
         {comboIds.map((id) => {
           const sup = ALL_SUPPLEMENTS.find((s) => s.id === id);
           const on = taken.includes(id);
