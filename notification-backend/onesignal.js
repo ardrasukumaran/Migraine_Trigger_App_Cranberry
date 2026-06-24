@@ -38,9 +38,10 @@ export async function sendViaOneSignal({ playerId, title, body, url }) {
   }
 }
 
-export async function sendToMany({ playerIds, title, body, url }) {
+export async function sendToMany({ playerIds, tokens, title, body, url }) {
+  const ids = playerIds ?? tokens ?? [];
   const results = await Promise.allSettled(
-    playerIds.map(id => sendViaOneSignal({ playerId: id, title, body, url }))
+    ids.map(id => sendViaOneSignal({ playerId: id, title, body, url }))
   );
 
   const sent   = results.filter(r => r.status === "fulfilled" && r.value.success).length;

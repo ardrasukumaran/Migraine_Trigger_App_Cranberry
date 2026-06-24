@@ -3,7 +3,7 @@
 import "dotenv/config";
 import express from "express";
 import cron    from "node-cron";
-import { sendToToken, sendToMany } from "./fcm.js";
+import { sendViaOneSignal, sendToMany } from "./onesignal.js";
 import { upsertToken, getActiveTokens } from "./sheet.js";
 import { startScheduler } from "./scheduler.js";
 
@@ -143,7 +143,7 @@ app.get("/health", (req, res) => {
     ok:        true,
     service:   "migraine-notification-backend",
     timestamp: new Date().toISOString(),
-    project:   process.env.FIREBASE_PROJECT_ID ?? "not set",
+    platform:  "onesignal",
     sheet:     process.env.SHEET_WEBHOOK_URL ? "configured" : "not set",
   });
 });
