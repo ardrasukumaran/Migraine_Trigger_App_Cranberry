@@ -3,12 +3,12 @@ import { AppShell } from "@/components/AppShell";
 import { Berry } from "@/components/Berry";
 import { StreakPlant } from "@/components/StreakPlant";
 import { Pencil, Sun, Moon, ChevronRight, Check } from "lucide-react";
-import { RECENT_ATTACKS } from "@/lib/mock-data";
 import { isoDate, todayIso, useStreakState, type DayEntry } from "@/lib/streak-store";
 import { ALL_SUPPLEMENTS, DAY_COMBOS, NIGHT_COMBOS } from "@/lib/supplements";
 import { useAuth } from "@/context/AuthContext";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { saveStreakToSheet } from "@/lib/saveStreak";
+import { getAttacks, formatAttackDate, type AttackLog } from "@/lib/storage";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -30,6 +30,7 @@ function slotStreak(
 function TodayPage() {
   const { userName, phone } = useAuth();
   const [state, update] = useStreakState();
+  const [attacks] = useState<AttackLog[]>(() => getAttacks());
 
   const dayStreak = slotStreak(state.entries, "morning");
   const nightStreak = slotStreak(state.entries, "evening");
@@ -115,36 +116,43 @@ function TodayPage() {
           </p>
           <Link to="/insights" className="text-xs font-semibold text-primary">See all</Link>
         </div>
-        <div className="space-y-3">
-          {RECENT_ATTACKS.slice(0, 3).map((a) => (
-            <div
-              key={a.date}
-              className="rounded-2xl bg-card border border-border p-5 flex items-center justify-between gap-4"
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-semibold">{a.date}</p>
-                <p className="text-xs text-warm-grey/80 truncate mt-1">
-                  {a.duration} · {a.triggers.join(", ")}
-                </p>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
+        {attacks.length === 0 ? (
+          <p className="text-xs text-warm-grey/60 py-3">No attacks logged yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {attacks.slice(0, 3).map((a) => {
+              const triggers = [...a.foods, ...a.nonFoodTriggers];
+              return (
                 <div
-                  className="h-10 w-10 rounded-full grid place-items-center text-sm font-bold text-[var(--brand-ink)]"
-                  style={{ backgroundColor: `var(--pain-${Math.min(10, Math.max(1, a.intensity))})` }}
+                  key={a.id}
+                  className="rounded-2xl bg-card border border-border p-5 flex items-center justify-between gap-4"
                 >
-                  {a.intensity}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">{formatAttackDate(a.date)}</p>
+                    <p className="text-xs text-warm-grey/80 truncate mt-1">
+                      {a.duration}{triggers.length > 0 ? ` · ${triggers.slice(0, 2).join(", ")}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div
+                      className="h-10 w-10 rounded-full grid place-items-center text-sm font-bold text-[var(--brand-ink)]"
+                      style={{ backgroundColor: `var(--pain-${Math.min(10, Math.max(1, a.intensity))})` }}
+                    >
+                      {a.intensity}
+                    </div>
+                    <Link
+                      to="/log"
+                      aria-label="Log new attack"
+                      className="h-10 w-10 rounded-full grid place-items-center bg-muted text-foreground hover:bg-accent transition"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Link>
+                  </div>
                 </div>
-                <Link
-                  to="/log"
-                  aria-label={`Log new attack`}
-                  className="h-10 w-10 rounded-full grid place-items-center bg-muted text-foreground hover:bg-accent transition"
-                >
-                  <Pencil className="h-4 w-4" />
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </section>
     </AppShell>
   );
@@ -218,11 +226,11 @@ function PlanList({
         </span>
         <span
           className={`text-[11px] tabular-nums flex items-center gap-1 ${
-            done ? "text-[var(--streak)]" : "text-warm-grey/70"
+            done ? "text-[var(--streak)]" : skipped ? "text-warm-grey/50" : "text-warm-grey/70"
           }`}
         >
-          {taken.length}/{comboIds.length}
-          <ChevronRight className="h-3 w-3" />
+          {skipped ? "Skipped" : `${taken.length}/${comboIds.length}`}
+          {!skipped && <ChevronRight className="h-3 w-3" />}
         </span>
       </div>
 

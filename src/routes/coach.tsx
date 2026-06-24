@@ -11,6 +11,8 @@ import {
   NIGHT_COMBOS,
   MILESTONES,
   scoreForCount,
+  totalPossibleScore,
+  SKIP_SCORE,
 } from "@/lib/supplements";
 import {
   currentStreak,
@@ -130,7 +132,7 @@ function StreaksPage() {
           onSave={(ids, skipped) => {
             setEntry(activeDate, "morning", ids, skipped);
             saveStreakToSheet({ slot: "morning", date: activeDate, ids, phone: phone ?? "", skipped });
-            setView(fromBackFill ? "evening" : "home");
+            if (!fromBackFill) setView("home");
           }}
           onUpdate={(ids) => setEntry(activeDate, "morning", ids)}
           onContinue={fromBackFill ? () => setView("evening") : undefined}
@@ -156,6 +158,7 @@ function StreaksPage() {
       {view === "back-fill" && (
         <BackFillView
           entries={state.entries}
+          total={dayCombo.ids.length + nightCombo.ids.length}
           onPick={(d, slot) => {
             setActiveDate(d);
             setFromBackFill(true);
@@ -242,7 +245,7 @@ function DayRing({
   return (
     <div className="flex flex-col items-center gap-1.5">
       <span className="text-[10px] text-warm-grey/70">{letter}</span>
-      <div className="relative" style={{ width: size, height: size }}>
+      <div className={cn("relative", isToday && "ring-2 ring-warm-grey/40 rounded-full")} style={{ width: size, height: size }}>
         <svg width={size} height={size} className="-rotate-90">
           <circle
             cx={size / 2}
@@ -361,7 +364,7 @@ function HomeView({
   const dateLabel = `${MONTHS[now.getMonth()]} ${now.getDate()}`;
   const todayDow = now.getDay();
   const todayKey = todayIso();
-  const totalPerDay = dayCombo.ids.length + nightCombo.ids.length;
+  const maxDayScore = totalPossibleScore(dayCombo.ids.length) + totalPossibleScore(nightCombo.ids.length);
 
   return (
     <div className="mt-4 space-y-5">
@@ -375,8 +378,9 @@ function HomeView({
               d.setDate(d.getDate() + offset);
               const key = isoDate(d);
               const e = state.entries[key];
-              const count = (e?.morning?.length ?? 0) + (e?.evening?.length ?? 0);
-              const ratio = totalPerDay > 0 ? count / totalPerDay : 0;
+              const morningScore = e?.morningSkipped ? SKIP_SCORE : scoreForCount(e?.morning?.length ?? 0);
+              const eveningScore = e?.eveningSkipped ? SKIP_SCORE : scoreForCount(e?.evening?.length ?? 0);
+              const ratio = maxDayScore > 0 ? (morningScore + eveningScore) / maxDayScore : 0;
               return (
                 <DayRing
                   key={i}
@@ -416,6 +420,7 @@ function HomeView({
               go("morning");
             }}
             locked={morningLogged}
+            skipped={!!today?.morningSkipped}
           />
           <DoseRow
             slot="evening"
@@ -428,6 +433,7 @@ function HomeView({
               go("evening");
             }}
             locked={eveningLogged}
+            skipped={!!today?.eveningSkipped}
           />
         </div>
       </div>
@@ -466,6 +472,7 @@ function DoseRow({
   taken,
   onLog,
   locked,
+  skipped,
 }: {
   slot: "morning" | "evening";
   time: string;
@@ -473,6 +480,7 @@ function DoseRow({
   taken: string[];
   onLog: () => void;
   locked?: boolean;
+  skipped?: boolean;
 }) {
   const total = comboIds.length;
   const count = taken.length;
@@ -541,8 +549,19 @@ function DoseRow({
               {count} of {total} taken
             </p>
           </>
+        ) : locked && skipped ? (
+          <p className="text-[11px] text-warm-grey/50">Skipped</p>
+        ) : locked && count > 0 ? (
+          <>
+            <p className="text-warm-grey/60 font-bold text-[14px] tabular-nums leading-none">
+              +{points}
+            </p>
+            <p className="text-[10px] text-warm-grey/70 mt-1">
+              {count}/{total} taken
+            </p>
+          </>
         ) : locked ? (
-          <p className="text-[11px] text-warm-grey/50">{count > 0 ? `${count}/${total}` : "Logged"}</p>
+          <p className="text-[11px] text-warm-grey/50">Logged</p>
         ) : (
           <>
             <p className="text-primary font-semibold text-[13px] inline-flex items-center gap-0.5">
@@ -635,7 +654,7 @@ function ChecklistView({
           </div>
           <div>
             <p className="text-[14px] font-semibold text-[var(--streak)]">All done!</p>
-            <p className="text-[11px] text-warm-grey/80">Moving to the next step…</p>
+            <p className="text-[11px] text-warm-grey/80">{onContinue ? "Tap Night doses to continue." : "Moving to the next step…"}</p>
           </div>
         </div>
       ) : (
@@ -703,8 +722,8 @@ function ChecklistView({
           </button>
         )}
 
-        {/* Evening shortcut — only shown in back-fill morning flow */}
-        {onContinue && !allDone && (
+        {/* Night doses shortcut — shown in back-fill morning flow */}
+        {onContinue && (
           <button
             onClick={onContinue}
             className="w-full rounded-2xl border border-primary/40 bg-card p-3 flex items-center justify-center gap-2 text-[14px] font-semibold text-primary transition active:scale-[0.99]"
@@ -721,9 +740,11 @@ function ChecklistView({
 
 function BackFillView({
   entries,
+  total,
   onPick,
 }: {
   entries: Record<string, DayEntry>;
+  total: number;
   onPick: (date: string, slot: "morning" | "evening") => void;
 }) {
   const days = Array.from({ length: 30 }).map((_, i) => {
@@ -763,11 +784,11 @@ function BackFillView({
               )}
             >
               <span className="tabular-nums">{d.getDate()}</span>
-              {(anyLogged || count > 0) && (
-                <span className="text-[9px] text-[var(--streak)]">
-                  {count > 0 ? count : "✓"}
-                </span>
-              )}
+              {count >= total && total > 0 ? (
+                <span className="text-[9px] text-[var(--streak)]">✓</span>
+              ) : count > 0 ? (
+                <span className="text-[9px] text-[var(--streak)]">{count}/{total}</span>
+              ) : null}
             </button>
           );
         })}
