@@ -68,6 +68,29 @@ async function ensureSheetExists(sheets, sheetName, headers) {
   }
 }
 
+// ─── Convert "3 PM" / "10 AM" / "12 AM" style text to "15:00" / "10:00" / "00:00" ─
+function formatTime(raw) {
+  const str = String(raw ?? "").trim();
+  if (!str) return "";
+
+  // Already in HH:MM format? Pass through.
+  if (/^\d{1,2}:\d{2}$/.test(str)) {
+    const [h, m] = str.split(":");
+    return `${h.padStart(2, "0")}:${m}`;
+  }
+
+  const match = str.match(/^(\d{1,2})\s*(AM|PM)$/i);
+  if (!match) return str; // unknown format — return as-is
+
+  let hour = parseInt(match[1], 10);
+  const period = match[2].toUpperCase();
+
+  if (period === "PM" && hour !== 12) hour += 12;
+  if (period === "AM" && hour === 12) hour = 0;
+
+  return `${String(hour).padStart(2, "0")}:00`;
+}
+
 // ─── Get active tokens for scheduler ─────────────────────────────────────────
 export async function getActiveTokens() {
   return withRetry(async () => {
@@ -83,8 +106,8 @@ export async function getActiveTokens() {
     for (const row of rows) {
       const mobile     = String(row[COL.MOBILE]      ?? "").trim();
       const token      = String(row[COL.TOKEN]       ?? "").trim();
-      const dayTime    = String(row[COL.DAY_TIME]    ?? "").trim();
-      const nightTime  = String(row[COL.NIGHT_TIME]  ?? "").trim();
+      const dayTime    = formatTime(row[COL.DAY_TIME]);
+      const nightTime  = formatTime(row[COL.NIGHT_TIME]);
       const status     = String(row[COL.STATUS]      ?? "").trim().toLowerCase();
       const dayCombo   = String(row[COL.DAY_COMBO]   ?? "").trim();
       const nightCombo = String(row[COL.NIGHT_COMBO] ?? "").trim();
@@ -197,8 +220,8 @@ export async function getUserByMobile(mobile) {
       ok:         true,
       mobile:     String(row[COL.MOBILE]      ?? "").trim(),
       name:       String(row[COL.NAME]        ?? "").trim(),
-      dayTime:    String(row[COL.DAY_TIME]    ?? "").trim(),
-      nightTime:  String(row[COL.NIGHT_TIME]  ?? "").trim(),
+      dayTime:    formatTime(row[COL.DAY_TIME]),
+      nightTime:  formatTime(row[COL.NIGHT_TIME]),
       dayCombo:   String(row[COL.DAY_COMBO]   ?? "").trim(),
       nightCombo: String(row[COL.NIGHT_COMBO] ?? "").trim(),
     };
