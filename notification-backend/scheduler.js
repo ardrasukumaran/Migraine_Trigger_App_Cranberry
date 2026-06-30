@@ -1,12 +1,11 @@
 // scheduler.js — runs EXACTLY at fixed slot times (IST)
-// Logs every notification sent to Google Sheet (Notification Logs tab)
+// Logs every notification sent to Google Sheet (batch, via direct Sheets API)
 
 import cron from "node-cron";
 import { sendViaOneSignal } from "./onesignal.js";
-import { getActiveTokens, deactivateToken } from "./sheet.js";
+import { getActiveTokens, batchLogNotifications } from "./sheet.js";
 
 const UTC_OFFSET_HOURS = parseFloat(process.env.UTC_OFFSET_HOURS ?? "5.5");
-const SHEET_WEBHOOK    = process.env.SHEET_WEBHOOK_URL;
 
 // ─── Fixed time slots (IST) ───────────────────────────────────────────────────
 const DAY_SLOTS   = ["08:00", "09:00", "10:00", "13:00", "14:00", "15:00"];
@@ -39,22 +38,16 @@ function getISTTimeStr() {
          String(local.getUTCMinutes()).padStart(2, "0");
 }
 
-// ─── Log notification to Google Sheet ────────────────────────────────────────
-async function logToSheet(mobile, token, time, status) {
-  if (!SHEET_WEBHOOK) return;
-  try {
-    await fetch(SHEET_WEBHOOK, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({
-        action: "log",
-        record: { mobile, token, time, status },
-      }),
-    });
-  } catch (err) {
-    console.error("[Scheduler] Log failed:", err.message);
+// ─── Chunk helper — split array into groups of N ─────────────────────────────
+function chunkArray(arr, size) {
+  const chunks = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
   }
+  return chunks;
 }
+
+const SEND_CHUNK_SIZE = 20; // send 20 notifications in parallel at a time
 
 // ─── Main schedule runner ─────────────────────────────────────────────────────
 async function runSchedule() {
@@ -79,45 +72,80 @@ async function runSchedule() {
     return;
   }
 
-  let sent = 0;
-
-  for (const row of tokens) {
+  // Filter to only users matching this exact slot time
+  const matchingRows = tokens.filter(row => {
     const userTime = isDay ? row.dayTime : row.nightTime;
-    console.log(`[Scheduler] Checking ${row.mobile}: userTime=${userTime} slotTime=${timeStr} match=${userTime === timeStr}`);
-    if (userTime !== timeStr) continue;
+    return userTime === timeStr;
+  });
 
-    const msgs   = buildMessages(row.dayCombo, row.nightCombo);
-    const msg    = isDay ? msgs.day : msgs.night;
-    const slot   = isDay ? "day" : "night";
-    const result = await sendViaOneSignal({
-      playerId: row.token,
-      title:    msg.title,
-      body:     msg.body,
-      url:      msg.url,
-    });
+  if (!matchingRows.length) {
+    console.log(`[Scheduler] ${timeStr} IST — no users match this slot.`);
+    return;
+  }
 
-    if (result.success) {
-      sent++;
-      console.log(`[Scheduler] ✓ ${slot} → ${row.mobile} (${timeStr})`);
-      logToSheet(row.mobile, row.token, timeStr, "Sent");
-    } else {
-      console.error(`[Scheduler] ✗ ${row.mobile}:`, result.error);
-      logToSheet(row.mobile, row.token, timeStr, "Failed");
+  let sent = 0;
+  const logEntries = [];
+  const slot = isDay ? "day" : "night";
+
+  // Send in parallel chunks of SEND_CHUNK_SIZE — fast even for 300+ users
+  const chunks = chunkArray(matchingRows, SEND_CHUNK_SIZE);
+
+  for (const chunk of chunks) {
+    const results = await Promise.allSettled(
+      chunk.map(async (row) => {
+        const msgs = buildMessages(row.dayCombo, row.nightCombo);
+        const msg  = isDay ? msgs.day : msgs.night;
+        const result = await sendViaOneSignal({
+          playerId: row.token,
+          title:    msg.title,
+          body:     msg.body,
+          url:      msg.url,
+        });
+        return { row, result };
+      })
+    );
+
+    for (const settled of results) {
+      if (settled.status !== "fulfilled") {
+        console.error("[Scheduler] Unexpected send error:", settled.reason);
+        continue;
+      }
+      const { row, result } = settled.value;
+
+      if (result.success) {
+        sent++;
+        console.log(`[Scheduler] ✓ ${slot} → ${row.mobile} (${timeStr})`);
+        logEntries.push({ mobile: row.mobile, token: row.token, time: timeStr, status: "Sent" });
+      } else {
+        console.error(`[Scheduler] ✗ ${row.mobile}:`, result.error);
+        logEntries.push({ mobile: row.mobile, token: row.token, time: timeStr, status: "Failed" });
+      }
     }
   }
 
-  console.log(`[Scheduler] ${timeStr} IST — ${isDay ? "DAY" : "NIGHT"} — sent ${sent}/${tokens.length}`);
+  // Batch log all entries in ONE request — reliable even with 250+ users
+  if (logEntries.length) {
+    try {
+      const result = await batchLogNotifications(logEntries);
+      console.log(`[Scheduler] Logged: ${result}`);
+    } catch (err) {
+      console.error("[Scheduler] Batch log failed:", err.message);
+    }
+  }
+
+  console.log(`[Scheduler] ${timeStr} IST — ${isDay ? "DAY" : "NIGHT"} — sent ${sent}/${matchingRows.length}`);
 }
 
 // ─── Start cron — exactly at slot times (UTC) ─────────────────────────────────
 // IST 08:00=UTC 02:30, 09:00=03:30, 10:00=04:30
 // IST 13:00=UTC 07:30, 14:00=08:30, 15:00=09:30
-// IST 19:00=UTC 13:30, 20:00=14:30, 21:00=15:30, 22:00=16:30, 03:00=UTC 21:30
+// IST 19:00=UTC 13:30, 20:00=14:30, 21:00=15:30, 22:00=16:30
+// IST 03:00=UTC 21:30
 export function startScheduler() {
   console.log("[Scheduler] Started — exact slot times only");
   console.log("[Scheduler] Day slots:  ", DAY_SLOTS.join(", "), "(IST)");
   console.log("[Scheduler] Night slots:", NIGHT_SLOTS.join(", "), "(IST)");
-  console.log("[Scheduler] Runs 11 times/day + logs to sheet");
+  console.log("[Scheduler] Runs 11 times/day + batch logs to sheet");
 
   cron.schedule("30 2,3,4,7,8,9,13,14,15,16,21 * * *", runSchedule);
 }
