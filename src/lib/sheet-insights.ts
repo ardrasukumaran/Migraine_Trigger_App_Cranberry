@@ -1,4 +1,4 @@
-import { getAttacks } from "./storage";
+import { getAttacks, type AttackLog } from "./storage";
 
 export type TriggerStat = {
   name: string;
@@ -10,7 +10,8 @@ export type RawAttack = {
   date: string;
   intensity: number;
   duration: string;
-  triggers: string[];
+  foods: string[];
+  nonFoodTriggers: string[];
 };
 
 export type SheetAttack = {
@@ -73,8 +74,17 @@ function normalizeDuration(raw: string): string {
   return "3-6h";
 }
 
+function toTimestamp(dateStr: string): number {
+  const p = parseDate(dateStr);
+  if (!p) return 0;
+  return new Date(p.year, p.month, p.day).getTime();
+}
+
+const ATTACKS_KEY = "cranberry_attacks";
+
 // ── Cache-first: load all attacks ─────────────────────────────────
-// Returns localStorage attacks if non-empty; otherwise fetches from sheet.
+// Returns localStorage attacks if non-empty; otherwise fetches from sheet
+// and saves the result to localStorage for future visits.
 export async function loadAttacks(phone: string): Promise<SheetAttack[]> {
   const cached = getAttacks();
 
@@ -98,12 +108,30 @@ export async function loadAttacks(phone: string): Promise<SheetAttack[]> {
       console.error("[sheet-insights] /api/attacks error:", data.error);
       return [];
     }
-    return (data.attacks ?? []).map(a => ({
+
+    const raw = data.attacks ?? [];
+
+    // Save to localStorage so future visits use the cache
+    if (raw.length > 0 && typeof window !== "undefined") {
+      const logs: AttackLog[] = raw.map((a, i) => ({
+        id:              `sheet-${a.date}-${i}`,
+        date:            a.date,
+        intensity:       a.intensity,
+        status:          "Done",
+        duration:        normalizeDuration(a.duration),
+        foods:           a.foods,
+        nonFoodTriggers: a.nonFoodTriggers,
+        createdAt:       toTimestamp(a.date),
+      }));
+      localStorage.setItem(ATTACKS_KEY, JSON.stringify(logs));
+    }
+
+    return raw.map(a => ({
       date:        a.date,
       displayDate: formatDisplayDate(a.date),
       intensity:   a.intensity,
       duration:    normalizeDuration(a.duration),
-      triggers:    a.triggers,
+      triggers:    [...a.foods, ...a.nonFoodTriggers],
     }));
   } catch (e) {
     console.error("[sheet-insights] /api/attacks fetch failed:", e);

@@ -290,13 +290,11 @@ Bun.serve({
         const attacks = rows
           .filter(row => String(row[0] ?? "").replace(/\D/g, "").slice(-10) === normalizedPhone)
           .map(row => ({
-            date:      String(row[1] ?? "").trim(),
-            intensity: parseInt(String(row[2] ?? "0"), 10) || 0,
-            duration:  String(row[4] ?? "").trim(),
-            triggers:  [
-              ...String(row[5] ?? "").split(",").map(s => s.trim()).filter(Boolean),
-              ...String(row[6] ?? "").split(",").map(s => s.trim()).filter(Boolean),
-            ],
+            date:            String(row[1] ?? "").trim(),
+            intensity:       parseInt(String(row[2] ?? "0"), 10) || 0,
+            duration:        String(row[4] ?? "").trim(),
+            foods:           String(row[5] ?? "").split(",").map(s => s.trim()).filter(Boolean),
+            nonFoodTriggers: String(row[6] ?? "").split(",").map(s => s.trim()).filter(Boolean),
           }))
           .filter(a => a.date)
           .sort((a, b) => b.date.localeCompare(a.date));
