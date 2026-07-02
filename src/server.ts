@@ -264,6 +264,50 @@ Bun.serve({
       }
     }
 
+    // ── /api/attacks ──────────────────────────────────────────
+    if (url.pathname === "/api/attacks" && req.method === "GET") {
+      const phone   = url.searchParams.get("phone") ?? "";
+      const saJson  = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+      const sheetId = process.env.GOOGLE_SHEET_ID;
+
+      if (!phone) {
+        return new Response(JSON.stringify({ error: "Missing phone" }), {
+          status: 400, headers: { "content-type": "application/json" },
+        });
+      }
+      if (!saJson || !sheetId) {
+        return new Response(JSON.stringify({ error: "Server configuration error" }), {
+          status: 500, headers: { "content-type": "application/json" },
+        });
+      }
+
+      try {
+        const creds = JSON.parse(saJson);
+        const rows  = await readSheetRows(creds, sheetId, "Sheet1");
+
+        // Col A=phone(0), B=date(1), C=intensity(2), E=duration(4)
+        const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
+        const attacks = rows
+          .filter(row => String(row[0] ?? "").replace(/\D/g, "").slice(-10) === normalizedPhone)
+          .map(row => ({
+            date:      String(row[1] ?? "").trim(),
+            intensity: parseInt(String(row[2] ?? "0"), 10) || 0,
+            duration:  String(row[4] ?? "").trim(),
+          }))
+          .filter(a => a.date);
+
+        console.log(`[attacks] phone=${normalizedPhone} rows=${attacks.length}`);
+        return new Response(JSON.stringify({ attacks }), {
+          headers: { "content-type": "application/json" },
+        });
+      } catch (err) {
+        console.error("[attacks] error:", err);
+        return new Response(JSON.stringify({ error: "Failed to fetch attacks" }), {
+          status: 500, headers: { "content-type": "application/json" },
+        });
+      }
+    }
+
     // ── Static files ───────────────────────────────────────────
     const filePath = path.join(clientDir, url.pathname);
     if (!path.resolve(filePath).startsWith(clientDir)) {
