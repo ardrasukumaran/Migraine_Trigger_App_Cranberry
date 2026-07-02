@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { getAttacks } from "@/lib/storage";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { fetchTopTriggers, type TriggerStat } from "@/lib/sheet-insights";
+import { fetchTopTriggers, fetchMonthData, type TriggerStat, type SheetMonthData } from "@/lib/sheet-insights";
 
 export const Route = createFileRoute("/insights")({
   head: () => ({
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/insights")({
 const DURATION_OPTIONS = ["<3h", "3-6h", "6h", ">6h", "24h"] as const;
 type DurationBucket = (typeof DURATION_OPTIONS)[number];
 
-const DURATION_HEIGHT_PCT: Record<DurationBucket, number> = {
+const DURATION_HEIGHT_PCT: Record<string, number> = {
   "<3h": 20,
   "3-6h": 40,
   "6h": 60,
@@ -34,53 +34,6 @@ function painColor(v: number) {
   return `var(--pain-${Math.min(10, Math.max(1, Math.round(v)))})`;
 }
 
-// ---------- Month-wise mock data ----------
-type DayAttack = { day: number; intensity: number; duration: DurationBucket };
-type MonthData = { label: string; year: number; monthIndex: number; days: number; attacks: DayAttack[] };
-
-const MONTHS: MonthData[] = [
-  {
-    label: "Jun 2026",
-    year: 2026,
-    monthIndex: 5,
-    days: 30,
-    attacks: [
-      { day: 8, intensity: 4, duration: "3-6h" },
-      { day: 10, intensity: 7, duration: "6h" },
-      { day: 15, intensity: 5, duration: "3-6h" },
-      { day: 16, intensity: 6, duration: "6h" },
-      { day: 17, intensity: 4, duration: "3-6h" },
-      { day: 22, intensity: 5, duration: "3-6h" },
-      { day: 24, intensity: 6, duration: "6h" },
-      { day: 25, intensity: 4, duration: "3-6h" },
-    ],
-  },
-  {
-    label: "May 2026",
-    year: 2026,
-    monthIndex: 4,
-    days: 31,
-    attacks: [
-      { day: 3, intensity: 8, duration: "3-6h" },
-      { day: 7, intensity: 3, duration: "<3h" },
-      { day: 14, intensity: 9, duration: "24h" },
-      { day: 20, intensity: 5, duration: ">6h" },
-      { day: 27, intensity: 8, duration: "6h" },
-    ],
-  },
-  {
-    label: "Apr 2026",
-    year: 2026,
-    monthIndex: 3,
-    days: 30,
-    attacks: [
-      { day: 5, intensity: 6, duration: "6h" },
-      { day: 12, intensity: 4, duration: "3-6h" },
-      { day: 19, intensity: 7, duration: ">6h" },
-      { day: 26, intensity: 5, duration: "3-6h" },
-    ],
-  },
-];
 
 
 function InsightsPage() {
@@ -90,6 +43,12 @@ function InsightsPage() {
   const [topTriggers, setTopTriggers] = useState<TriggerStat[]>([]);
   useEffect(() => {
     if (phone) fetchTopTriggers(phone).then(setTopTriggers);
+  }, [phone]);
+
+  // ---------- Month-wise pattern (from Google Sheet) ----------
+  const [months, setMonths] = useState<SheetMonthData[]>([]);
+  useEffect(() => {
+    if (phone) fetchMonthData(phone).then(setMonths);
   }, [phone]);
 
   // ---------- Attack stats (from localStorage) ----------
@@ -243,9 +202,11 @@ function InsightsPage() {
           </div>
           <TooltipProvider delayDuration={0}>
             <div className="space-y-5">
-              {MONTHS.map((m) => (
-                <MonthRow key={m.label} month={m} />
-              ))}
+              {months.length === 0 ? (
+                <p className="text-[13px] text-warm-grey/50 py-2">No attack data yet.</p>
+              ) : (
+                months.map((m) => <MonthRow key={m.label} month={m} />)
+              )}
             </div>
           </TooltipProvider>
         </div>
@@ -302,7 +263,7 @@ function ordinal(n: number) {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-const DURATION_LABEL: Record<DurationBucket, string> = {
+const DURATION_LABEL: Record<string, string> = {
   "<3h": "<3 hours",
   "3-6h": "3-6 hours",
   "6h": "6 hours",
@@ -310,8 +271,8 @@ const DURATION_LABEL: Record<DurationBucket, string> = {
   "24h": "24 hours",
 };
 
-function MonthRow({ month }: { month: MonthData }) {
-  const byDay = new Map<number, DayAttack>();
+function MonthRow({ month }: { month: SheetMonthData }) {
+  const byDay = new Map<number, SheetMonthData["attacks"][number]>();
   for (const a of month.attacks) {
     const existing = byDay.get(a.day);
     if (!existing) byDay.set(a.day, a);
