@@ -59,19 +59,17 @@ function formatDisplayDate(raw: string): string {
 }
 
 // ── Duration normaliser ───────────────────────────────────────────
-const DURATION_MAP: [RegExp, string][] = [
-  [/24/,             "24h"],
-  [/>\s*6/,          ">6h"],
-  [/3\s*[-–]\s*6/i,  "3-6h"],  // must come before "6h" — "3-6h" contains "6h"
-  [/6\s*h/i,         "6h"],
-  [/<\s*3/,          "<3h"],
-];
+const DURATION_EXACT: Record<string, string> = {
+  "<3h":  "<3h",
+  "3-6h": "3-6h",
+  "3–6h": "3-6h",  // em dash variant
+  "6h":   "6h",
+  ">6h":  ">6h",
+  "24h":  "24h",
+};
 
 function normalizeDuration(raw: string): string {
-  for (const [re, bucket] of DURATION_MAP) {
-    if (re.test(raw)) return bucket;
-  }
-  return "3-6h";
+  return DURATION_EXACT[raw.trim()] ?? "3-6h";
 }
 
 function toTimestamp(dateStr: string): number {
