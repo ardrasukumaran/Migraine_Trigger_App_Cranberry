@@ -204,7 +204,7 @@ Bun.serve({
     if (url.pathname === "/api/triggers" && req.method === "GET") {
       const phone   = url.searchParams.get("phone") ?? "";
       const saJson  = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-      const sheetId = process.env.GOOGLE_SHEET_ID;
+      const sheetId = process.env.ATTACK_SHEET_ID;
 
       if (!phone) {
         return new Response(JSON.stringify({ error: "Missing phone" }), {
@@ -268,7 +268,7 @@ Bun.serve({
     if (url.pathname === "/api/attacks" && req.method === "GET") {
       const phone   = url.searchParams.get("phone") ?? "";
       const saJson  = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-      const sheetId = process.env.GOOGLE_SHEET_ID;
+      const sheetId = process.env.ATTACK_SHEET_ID;
 
       if (!phone) {
         return new Response(JSON.stringify({ error: "Missing phone" }), {
