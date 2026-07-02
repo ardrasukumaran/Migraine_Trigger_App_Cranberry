@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { getAttacks } from "@/lib/storage";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { fetchTopTriggers, fetchMonthData, fetchRecentAttacks, type TriggerStat, type SheetMonthData, type SheetAttack } from "@/lib/sheet-insights";
+import { loadAttacks, fetchTopTriggers, buildMonthData, type TriggerStat, type SheetMonthData, type SheetAttack } from "@/lib/sheet-insights";
 
 export const Route = createFileRoute("/insights")({
   head: () => ({
@@ -38,47 +37,37 @@ function painColor(v: number) {
 function InsightsPage() {
   const { phone } = useAuth();
 
-  // ---------- Top triggers (from Google Sheet) ----------
+  // ---------- All attacks: cache-first, then sheet fallback ----------
+  const [allAttacks, setAllAttacks] = useState<SheetAttack[]>([]);
+  const [showAll, setShowAll] = useState(false);
+  useEffect(() => {
+    if (phone) loadAttacks(phone).then(setAllAttacks);
+  }, [phone]);
+
+  // ---------- Top triggers: cache-first ----------
   const [topTriggers, setTopTriggers] = useState<TriggerStat[]>([]);
   useEffect(() => {
     if (phone) fetchTopTriggers(phone).then(setTopTriggers);
   }, [phone]);
 
-  // ---------- Month-wise pattern (from Google Sheet) ----------
-  const [months, setMonths] = useState<SheetMonthData[]>([]);
-  useEffect(() => {
-    if (phone) fetchMonthData(phone).then(setMonths);
-  }, [phone]);
-
-  // ---------- Recent attacks (from Google Sheet) ----------
-  const [sheetAttacks, setSheetAttacks] = useState<SheetAttack[]>([]);
-  const [showAll, setShowAll] = useState(false);
-  useEffect(() => {
-    if (phone) fetchRecentAttacks(phone).then(setSheetAttacks);
-  }, [phone]);
-
-  // ---------- Attack stats (from localStorage) ----------
-  const [attacks] = useState(() => getAttacks());
-
-  const totalAttacks = attacks.length;
-  const clearDaysLast30 = 30 - Math.min(30, attacks.filter(a => {
-    const d = new Date(a.date);
-    return (Date.now() - d.getTime()) < 30 * 86400_000;
-  }).length);
-
-  const avgIntensity = attacks.length > 0
-    ? Math.round((attacks.reduce((s, a) => s + a.intensity, 0) / attacks.length) * 10) / 10
+  // ---------- Stats derived from allAttacks ----------
+  const totalAttacks = allAttacks.length;
+  const avgIntensity = allAttacks.length > 0
+    ? Math.round((allAttacks.reduce((s, a) => s + a.intensity, 0) / allAttacks.length) * 10) / 10
     : 0;
-  const minIntensity = attacks.length ? Math.min(...attacks.map(a => a.intensity)) : 0;
-  const maxIntensity = attacks.length ? Math.max(...attacks.map(a => a.intensity)) : 0;
+  const minIntensity = allAttacks.length ? Math.min(...allAttacks.map(a => a.intensity)) : 0;
+  const maxIntensity = allAttacks.length ? Math.max(...allAttacks.map(a => a.intensity)) : 0;
 
   const durationCounts: Record<string, number> = {};
-  for (const a of attacks) {
+  for (const a of allAttacks) {
     durationCounts[a.duration] = (durationCounts[a.duration] ?? 0) + 1;
   }
   const typicalDuration = Object.keys(durationCounts).length > 0
     ? Object.entries(durationCounts).reduce((best, cur) => cur[1] > best[1] ? cur : best)[0]
     : "—";
+
+  // ---------- Month data derived from allAttacks ----------
+  const months: SheetMonthData[] = buildMonthData(allAttacks);
 
   return (
     <AppShell title="Your patterns">
@@ -224,7 +213,7 @@ function InsightsPage() {
           <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
             Recent logs
           </p>
-          {sheetAttacks.length > 3 && (
+          {allAttacks.length > 3 && (
             <button
               type="button"
               onClick={() => setShowAll(v => !v)}
@@ -234,11 +223,11 @@ function InsightsPage() {
             </button>
           )}
         </div>
-        {sheetAttacks.length === 0 ? (
+        {allAttacks.length === 0 ? (
           <p className="text-[13px] text-warm-grey/50 py-2">No attacks logged yet.</p>
         ) : (
           <div className="rounded-3xl bg-card border border-border divide-y divide-border/60 overflow-hidden">
-            {(showAll ? sheetAttacks : sheetAttacks.slice(0, 3)).map((a, i) => (
+            {(showAll ? allAttacks : allAttacks.slice(0, 3)).map((a, i) => (
               <div key={`${a.date}-${i}`} className="p-4 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-semibold">{a.displayDate}</p>

@@ -219,7 +219,7 @@ Bun.serve({
 
       try {
         const creds = JSON.parse(saJson);
-        const rows  = await readSheetRows(creds, sheetId, "Sheet1");
+        const rows  = await readSheetRows(creds, sheetId, "Migraine_attack_log");
 
         // Col A = phone (index 0), F = food triggers (5), G = non-food (6)
         const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
@@ -283,7 +283,7 @@ Bun.serve({
 
       try {
         const creds = JSON.parse(saJson);
-        const rows  = await readSheetRows(creds, sheetId, "Sheet1");
+        const rows  = await readSheetRows(creds, sheetId, "Migraine_attack_log");
 
         // Col A=phone(0), B=date(1), C=intensity(2), E=duration(4), F=food(5), G=nonFood(6)
         const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
