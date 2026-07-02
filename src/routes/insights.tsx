@@ -159,11 +159,9 @@ function InsightsPage() {
   });
 
   return (
-    <AppShell subtitle="Last 30 days" title="Your patterns">
+    <AppShell title="Your patterns">
       {/* Header line */}
-      <p className="mt-3 text-[20px] leading-snug text-white">
-        You had <span className="font-bold text-white">{clearDaysLast30}</span> migraine-free days in the last 30 days.
-      </p>
+
 
       {/* YOUR ATTACKS SO FAR */}
       <section className="mt-6">
