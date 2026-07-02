@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { RECENT_ATTACKS, TOP_TRIGGERS, CALENDAR_DATA } from "@/lib/mock-data";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useStreakState, isoDate, currentStreak, type DayEntry } from "@/lib/streak-store";
+import { DAY_COMBOS, NIGHT_COMBOS, scoreForCount, totalPossibleScore, SKIP_SCORE } from "@/lib/supplements";
 
 export const Route = createFileRoute("/insights")({
   head: () => ({
@@ -107,7 +109,55 @@ const MONTHS: MonthData[] = [
 // ---------- Top triggers with counts ----------
 const TRIGGERS_WITH_COUNTS = TOP_TRIGGERS.slice(0, 5);
 
+function slotDone(e: DayEntry | undefined, slot: "morning" | "evening", total: number) {
+  if (!e) return false;
+  if (slot === "morning") return !!e.morningSkipped || (e.morning?.length ?? 0) >= total;
+  return !!e.eveningSkipped || (e.evening?.length ?? 0) >= total;
+}
+
 function InsightsPage() {
+  const [state] = useStreakState();
+  const { entries, dayComboId, nightComboId } = state;
+  const dayCombo   = DAY_COMBOS.find((c) => c.id === dayComboId)!;
+  const nightCombo = NIGHT_COMBOS.find((c) => c.id === nightComboId)!;
+
+  const allDates = Object.keys(entries).sort();
+  const totalDaysLogged = allDates.length;
+  const streak = currentStreak(entries);
+
+  let bestStreak = 0, run = 0;
+  for (const key of allDates) {
+    const e = entries[key];
+    const active = (e?.morning?.length ?? 0) + (e?.evening?.length ?? 0) > 0;
+    run = active ? run + 1 : 0;
+    if (run > bestStreak) bestStreak = run;
+  }
+
+  const bothDone = allDates.filter((key) =>
+    slotDone(entries[key], "morning", dayCombo.ids.length) &&
+    slotDone(entries[key], "evening", nightCombo.ids.length)
+  ).length;
+  const dayDone   = allDates.filter((key) => slotDone(entries[key], "morning", dayCombo.ids.length)).length;
+  const nightDone = allDates.filter((key) => slotDone(entries[key], "evening", nightCombo.ids.length)).length;
+  const compliance      = totalDaysLogged > 0 ? Math.round((bothDone  / totalDaysLogged) * 100) : 0;
+  const dayCompliance   = totalDaysLogged > 0 ? Math.round((dayDone   / totalDaysLogged) * 100) : 0;
+  const nightCompliance = totalDaysLogged > 0 ? Math.round((nightDone / totalDaysLogged) * 100) : 0;
+
+  const maxDayScore = totalPossibleScore(dayCombo.ids.length) + totalPossibleScore(nightCombo.ids.length);
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const key = isoDate(d);
+    const e = entries[key];
+    const ms = e?.morningSkipped ? SKIP_SCORE : scoreForCount(e?.morning?.length ?? 0);
+    const es = e?.eveningSkipped ? SKIP_SCORE : scoreForCount(e?.evening?.length ?? 0);
+    return {
+      label: d.toLocaleDateString("en-GB", { weekday: "short" }),
+      score: ms + es,
+      pct: maxDayScore > 0 ? ((ms + es) / maxDayScore) * 100 : 0,
+    };
+  });
+
   return (
     <AppShell subtitle="Last 30 days" title="Your patterns">
       {/* Header line */}
@@ -212,6 +262,44 @@ function InsightsPage() {
         </div>
       </section>
 
+      {/* YOUR PROGRESS */}
+      <section className="mt-6">
+        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
+          Your progress
+        </p>
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <StatTile big={streak}      label="Current streak" />
+          <StatTile big={bestStreak}  label="Best streak" />
+          <StatTile big={`${compliance}%`} label="Full compliance" />
+        </div>
+        <div className="rounded-3xl bg-card border border-border p-4 space-y-4 mb-3">
+          <ComplianceBar label="Day doses"   pct={dayCompliance} />
+          <ComplianceBar label="Night doses" pct={nightCompliance} />
+          <ComplianceBar label="Both slots"  pct={compliance} highlight />
+        </div>
+        <div className="rounded-3xl bg-card border border-border p-4">
+          <p className="text-[11px] text-warm-grey/60 mb-3">Score — last 7 days</p>
+          <div className="flex items-end justify-between gap-1 h-16">
+            {last7.map((d) => (
+              <div key={d.label} className="flex-1 flex flex-col items-center gap-1">
+                <div className="w-full flex-1 flex items-end rounded-[3px] overflow-hidden" style={{ background: "#2E1C35" }}>
+                  <div
+                    className="w-full rounded-t-[3px]"
+                    style={{
+                      height: `${Math.max(d.pct > 0 ? 8 : 0, d.pct)}%`,
+                      background: d.pct > 0
+                        ? "linear-gradient(180deg, var(--primary), var(--brand-mid-lavender))"
+                        : "transparent",
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] text-warm-grey/60">{d.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* MONTH WISE PATTERN */}
       <section className="mt-6">
         <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-3">
@@ -302,6 +390,30 @@ function StatTile({ big, label }: { big: number | string; label: string }) {
       <p className="text-[10px] uppercase tracking-[0.14em] text-warm-grey/70 mt-1">
         {label}
       </p>
+    </div>
+  );
+}
+
+function ComplianceBar({ label, pct, highlight }: { label: string; pct: number; highlight?: boolean }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-[13px] mb-1.5">
+        <span className="font-medium">{label}</span>
+        <span className={`tabular-nums font-semibold ${highlight ? "text-primary" : "text-warm-grey/80"}`}>
+          {pct}%
+        </span>
+      </div>
+      <div className="h-2 rounded-full bg-muted overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{
+            width: `${pct}%`,
+            background: highlight
+              ? "linear-gradient(90deg, var(--primary), var(--brand-mid-lavender))"
+              : "var(--primary)",
+          }}
+        />
+      </div>
     </div>
   );
 }
