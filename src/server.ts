@@ -287,8 +287,13 @@ Bun.serve({
 
         // Col A=phone(0), B=date(1), C=intensity(2), E=duration(4), F=food(5), G=nonFood(6)
         const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
+        const matchedIndices: number[] = [];
         const attacks = rows
-          .filter(row => String(row[0] ?? "").replace(/\D/g, "").slice(-10) === normalizedPhone)
+          .filter((row, i) => {
+            const match = String(row[0] ?? "").replace(/\D/g, "").slice(-10) === normalizedPhone;
+            if (match) matchedIndices.push(i + 2); // +2: 1-based + skip header
+            return match;
+          })
           .map(row => ({
             date:            String(row[1] ?? "").trim(),
             intensity:       parseInt(String(row[2] ?? "0"), 10) || 0,
@@ -299,7 +304,7 @@ Bun.serve({
           .filter(a => a.date)
           .sort((a, b) => b.date.localeCompare(a.date));
 
-        console.log(`[attacks] sheet=Migraine_attack_log totalRows=${rows.length} phone=${normalizedPhone} matched=${attacks.length}`);
+        console.log(`[attacks] sheet=Migraine_attack_log totalRows=${rows.length} phone=${normalizedPhone} matched=${attacks.length} rows=[${matchedIndices.join(",")}]`);
         return new Response(JSON.stringify({ attacks }), {
           headers: { "content-type": "application/json" },
         });
