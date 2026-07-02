@@ -93,7 +93,11 @@ export async function loadAttacks(phone: string): Promise<SheetAttack[]> {
   // Cache empty → fetch from Google Sheet
   try {
     const res  = await fetch(`/api/attacks?phone=${encodeURIComponent(phone)}`);
-    const data = await res.json() as { attacks?: RawAttack[] };
+    const data = await res.json() as { attacks?: RawAttack[]; error?: string };
+    if (data.error) {
+      console.error("[sheet-insights] /api/attacks error:", data.error);
+      return [];
+    }
     return (data.attacks ?? []).map(a => ({
       date:        a.date,
       displayDate: formatDisplayDate(a.date),
@@ -101,7 +105,8 @@ export async function loadAttacks(phone: string): Promise<SheetAttack[]> {
       duration:    normalizeDuration(a.duration),
       triggers:    a.triggers,
     }));
-  } catch {
+  } catch (e) {
+    console.error("[sheet-insights] /api/attacks fetch failed:", e);
     return [];
   }
 }
@@ -131,9 +136,14 @@ export async function fetchTopTriggers(phone: string): Promise<TriggerStat[]> {
   // Cache empty → fetch from sheet API
   try {
     const res  = await fetch(`/api/triggers?phone=${encodeURIComponent(phone)}`);
-    const data = await res.json() as { triggers?: TriggerStat[] };
+    const data = await res.json() as { triggers?: TriggerStat[]; error?: string };
+    if (data.error) {
+      console.error("[sheet-insights] /api/triggers error:", data.error);
+      return [];
+    }
     return data.triggers ?? [];
-  } catch {
+  } catch (e) {
+    console.error("[sheet-insights] /api/triggers fetch failed:", e);
     return [];
   }
 }
