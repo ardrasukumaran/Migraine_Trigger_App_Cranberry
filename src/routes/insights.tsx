@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { RECENT_ATTACKS, TOP_TRIGGERS, CALENDAR_DATA } from "@/lib/mock-data";
+import { RECENT_ATTACKS, TOP_TRIGGERS } from "@/lib/mock-data";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useStreakState, isoDate, currentStreak, type DayEntry } from "@/lib/streak-store";
 import { DAY_COMBOS, NIGHT_COMBOS, scoreForCount, totalPossibleScore, SKIP_SCORE } from "@/lib/supplements";
@@ -17,27 +17,7 @@ export const Route = createFileRoute("/insights")({
   component: InsightsPage,
 });
 
-// ---------- Derived stats ----------
-const [attacks] = useState(() => getAttacks());
-const totalAttacks     = attacks.length;
-const clearDaysLast30  = 30 - Math.min(30, attacks.filter(a => {
-  const d = new Date(a.date);
-  return (Date.now() - d.getTime()) < 30 * 86400_000;
-}).length);
-
-
-const avgIntensity = attacks.length > 0
-  ? Math.round((attacks.reduce((s, a) => s + a.intensity, 0) / attacks.length) * 10) / 10
-  : 0;
-
-const minIntensity = attacks.length ? Math.min(...attacks.map(a => a.intensity)) : 0;
-const maxIntensity = attacks.length ? Math.max(...attacks.map(a => a.intensity)) : 0;
-
-const durationCounts: Record<string, number> = {};
-for (const a of attacks) {
-  durationCounts[a.duration] = (durationCounts[a.duration] ?? 0) + 1;
-}
-
+// ---------- Chart constants (not data) ----------
 const DURATION_OPTIONS = ["<3h", "3-6h", "6h", ">6h", "24h"] as const;
 type DurationBucket = (typeof DURATION_OPTIONS)[number];
 
@@ -48,19 +28,6 @@ const DURATION_HEIGHT_PCT: Record<DurationBucket, number> = {
   ">6h": 80,
   "24h": 100,
 };
-
-// mode duration for "Typical Duration"
-const DURATION_COUNTS: Record<DurationBucket, number> = {
-  "<3h": 0,
-  "3-6h": 6,
-  "6h": 5,
-  ">6h": 0,
-  "24h": 0,
-};
-
-const typicalDuration = Object.keys(durationCounts).length > 0
-  ? Object.entries(durationCounts).reduce((best, cur) => cur[1] > best[1] ? cur : best)[0]
-  : "—";
 
 function painColor(v: number) {
   if (v <= 0) return "transparent";
@@ -115,7 +82,6 @@ const MONTHS: MonthData[] = [
   },
 ];
 
-// ---------- Top triggers with counts ----------
 const TRIGGERS_WITH_COUNTS = TOP_TRIGGERS.slice(0, 5);
 
 function slotDone(e: DayEntry | undefined, slot: "morning" | "evening", total: number) {
@@ -125,6 +91,30 @@ function slotDone(e: DayEntry | undefined, slot: "morning" | "evening", total: n
 }
 
 function InsightsPage() {
+  // ---------- Attack stats (from localStorage) ----------
+  const [attacks] = useState(() => getAttacks());
+
+  const totalAttacks = attacks.length;
+  const clearDaysLast30 = 30 - Math.min(30, attacks.filter(a => {
+    const d = new Date(a.date);
+    return (Date.now() - d.getTime()) < 30 * 86400_000;
+  }).length);
+
+  const avgIntensity = attacks.length > 0
+    ? Math.round((attacks.reduce((s, a) => s + a.intensity, 0) / attacks.length) * 10) / 10
+    : 0;
+  const minIntensity = attacks.length ? Math.min(...attacks.map(a => a.intensity)) : 0;
+  const maxIntensity = attacks.length ? Math.max(...attacks.map(a => a.intensity)) : 0;
+
+  const durationCounts: Record<string, number> = {};
+  for (const a of attacks) {
+    durationCounts[a.duration] = (durationCounts[a.duration] ?? 0) + 1;
+  }
+  const typicalDuration = Object.keys(durationCounts).length > 0
+    ? Object.entries(durationCounts).reduce((best, cur) => cur[1] > best[1] ? cur : best)[0]
+    : "—";
+
+  // ---------- Progress stats (from streak store) ----------
   const [state] = useStreakState();
   const { entries, dayComboId, nightComboId } = state;
   const dayCombo   = DAY_COMBOS.find((c) => c.id === dayComboId)!;
@@ -142,10 +132,7 @@ function InsightsPage() {
     if (run > bestStreak) bestStreak = run;
   }
 
-  const bothDone = allDates.filter((key) =>
-    slotDone(entries[key], "morning", dayCombo.ids.length) &&
-    slotDone(entries[key], "evening", nightCombo.ids.length)
-  ).length;
+  const bothDone  = allDates.filter((key) => slotDone(entries[key], "morning", dayCombo.ids.length) && slotDone(entries[key], "evening", nightCombo.ids.length)).length;
   const dayDone   = allDates.filter((key) => slotDone(entries[key], "morning", dayCombo.ids.length)).length;
   const nightDone = allDates.filter((key) => slotDone(entries[key], "evening", nightCombo.ids.length)).length;
   const compliance      = totalDaysLogged > 0 ? Math.round((bothDone  / totalDaysLogged) * 100) : 0;
@@ -168,9 +155,11 @@ function InsightsPage() {
   });
 
   return (
-    <AppShell title="Your patterns">
+    <AppShell subtitle="Last 30 days" title="Your patterns">
       {/* Header line */}
-
+      <p className="mt-3 text-[20px] leading-snug text-white">
+        You had <span className="font-bold text-white">{clearDaysLast30}</span> migraine-free days in the last 30 days.
+      </p>
 
       {/* YOUR ATTACKS SO FAR */}
       <section className="mt-6">
@@ -230,13 +219,10 @@ function InsightsPage() {
 
       {/* TOP TRIGGERS */}
       <section className="mt-6">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
-            Top triggers
-          </p>
-        </div>
+        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
+          Top triggers
+        </p>
         <div className="rounded-3xl bg-card border border-border p-4">
-          {/* Percentage scale */}
           <div className="flex justify-between text-[10px] text-warm-grey/50 mb-2">
             <span>0%</span>
             <span>25%</span>
@@ -244,15 +230,12 @@ function InsightsPage() {
             <span>75%</span>
             <span>100%</span>
           </div>
-
           <div className="space-y-3">
             {TRIGGERS_WITH_COUNTS.map((t) => (
               <div key={t.name}>
                 <div className="flex items-center justify-between text-[13px] mb-1.5">
                   <span className="font-medium">{t.name}</span>
-                  <span className="text-warm-grey/80 tabular-nums">
-                    {t.correlation}%
-                  </span>
+                  <span className="text-warm-grey/80 tabular-nums">{t.correlation}%</span>
                 </div>
                 <div className="h-2 rounded-full bg-muted overflow-hidden">
                   <div
@@ -269,46 +252,70 @@ function InsightsPage() {
         </div>
       </section>
 
-     <h2 className="font-serif-display text-[28px] leading-tight text-foreground mt-8 mb-2">
-  Your progress
-</h2>
+      {/* YOUR PROGRESS */}
+      <h2 className="font-serif-display text-[28px] leading-tight text-foreground mt-8 mb-4">
+        Your progress
+      </h2>
+
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        <StatTile big={streak}            label="Current streak" />
+        <StatTile big={bestStreak}        label="Best streak" />
+        <StatTile big={`${compliance}%`} label="Full compliance" />
+      </div>
+
+      <div className="rounded-3xl bg-card border border-border p-4 space-y-4 mb-3">
+        <ComplianceBar label="Day doses"   pct={dayCompliance} />
+        <ComplianceBar label="Night doses" pct={nightCompliance} />
+        <ComplianceBar label="Both slots"  pct={compliance} highlight />
+      </div>
+
+      <div className="rounded-3xl bg-card border border-border p-4">
+        <p className="text-[11px] text-warm-grey/60 mb-3">Score — last 7 days</p>
+        <div className="flex items-end justify-between gap-1 h-16">
+          {last7.map((d) => (
+            <div key={d.label} className="flex-1 flex flex-col items-center gap-1">
+              <div className="w-full flex-1 flex items-end rounded-[3px] overflow-hidden" style={{ background: "#2E1C35" }}>
+                <div
+                  className="w-full rounded-t-[3px]"
+                  style={{
+                    height: `${Math.max(d.pct > 0 ? 8 : 0, d.pct)}%`,
+                    background: d.pct > 0
+                      ? "linear-gradient(180deg, var(--primary), var(--brand-mid-lavender))"
+                      : "transparent",
+                  }}
+                />
+              </div>
+              <span className="text-[10px] text-warm-grey/60">{d.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* MONTH WISE PATTERN */}
       <section className="mt-6">
         <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-3">
           Month wise pattern
         </p>
-
         <div className="rounded-3xl bg-card border border-border p-4">
-          {/* Legend */}
           <div className="flex items-center justify-between gap-4 flex-wrap pb-4 mb-4 border-b border-border/60">
             <div className="flex items-center gap-2">
               <div
                 className="h-2.5 w-24 rounded-full"
-                style={{
-                  background:
-                    "linear-gradient(90deg, var(--pain-1), var(--pain-4), var(--pain-7), var(--pain-10))",
-                }}
+                style={{ background: "linear-gradient(90deg, var(--pain-1), var(--pain-4), var(--pain-7), var(--pain-10))" }}
               />
               <span className="text-[12px] text-white">Severity</span>
             </div>
             <div className="flex items-end gap-2">
               {DURATION_OPTIONS.map((d) => (
                 <div key={d} className="flex flex-col items-center">
-                  <div
-                    className="w-3 h-6 rounded-[2px] relative overflow-hidden"
-                    style={{ background: "#2E1C35" }}
-                  >
-                    <div
-                      className="absolute bottom-0 inset-x-0 bg-primary/70"
-                      style={{ height: `${DURATION_HEIGHT_PCT[d]}%` }}
-                    />
+                  <div className="w-3 h-6 rounded-[2px] relative overflow-hidden" style={{ background: "#2E1C35" }}>
+                    <div className="absolute bottom-0 inset-x-0 bg-primary/70" style={{ height: `${DURATION_HEIGHT_PCT[d]}%` }} />
                   </div>
                   <span className="text-[10px] text-white mt-0.5">{d}</span>
                 </div>
               ))}
             </div>
           </div>
-
           <TooltipProvider delayDuration={0}>
             <div className="space-y-5">
               {MONTHS.map((m) => (
@@ -329,16 +336,10 @@ function InsightsPage() {
             <div key={a.date} className="p-4 flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold">{a.date}</p>
-                <p className="text-[11px] text-warm-grey/70 truncate mt-0.5">
-                  {a.triggers.join(", ")}
-                </p>
+                <p className="text-[11px] text-warm-grey/70 truncate mt-0.5">{a.triggers.join(", ")}</p>
                 <div className="flex items-center gap-1.5 mt-1.5">
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/80">
-                    {a.duration}
-                  </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/80">
-                    Pain {a.intensity}
-                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/80">{a.duration}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/80">Pain {a.intensity}</span>
                 </div>
               </div>
               <div
@@ -359,9 +360,7 @@ function StatTile({ big, label }: { big: number | string; label: string }) {
   return (
     <div className="rounded-2xl bg-card border border-border p-3 text-center">
       <p className="font-serif-display text-[24px] leading-none">{big}</p>
-      <p className="text-[10px] uppercase tracking-[0.14em] text-warm-grey/70 mt-1">
-        {label}
-      </p>
+      <p className="text-[10px] uppercase tracking-[0.14em] text-warm-grey/70 mt-1">{label}</p>
     </div>
   );
 }
@@ -418,10 +417,7 @@ function MonthRow({ month }: { month: MonthData }) {
       byDay.set(a.day, {
         day: a.day,
         intensity: Math.max(existing.intensity, a.intensity),
-        duration:
-          DURATION_HEIGHT_PCT[a.duration] > DURATION_HEIGHT_PCT[existing.duration]
-            ? a.duration
-            : existing.duration,
+        duration: DURATION_HEIGHT_PCT[a.duration] > DURATION_HEIGHT_PCT[existing.duration] ? a.duration : existing.duration,
       });
     }
   }
@@ -441,7 +437,6 @@ function MonthRow({ month }: { month: MonthData }) {
         </div>
       </div>
       <div className="flex">
-        {/* Y-axis */}
         <div className="relative flex flex-col justify-end pr-2" style={{ width: 36, height: slotH + 16 }}>
           <div className="absolute right-0 top-0 bottom-4 w-px bg-white/20" />
           {DURATION_OPTIONS.map((d) => {
@@ -458,11 +453,8 @@ function MonthRow({ month }: { month: MonthData }) {
             );
           })}
         </div>
-
-        {/* Chart area */}
         <div className="flex-1">
           <div className="relative w-full" style={{ height: slotH }}>
-            {/* Faint horizontal grid lines */}
             {DURATION_OPTIONS.map((d) => (
               <div
                 key={d}
@@ -470,58 +462,40 @@ function MonthRow({ month }: { month: MonthData }) {
                 style={{ bottom: `${DURATION_HEIGHT_PCT[d]}%` }}
               />
             ))}
-            <div
-              className="flex w-full absolute inset-0 z-0"
-              style={{ gap }}
-            >
+            <div className="flex w-full absolute inset-0 z-0" style={{ gap }}>
               {days.map((d) => {
                 const a = byDay.get(d);
                 const fillPct = a ? DURATION_HEIGHT_PCT[a.duration] : 0;
                 const color = a ? painColor(a.intensity) : "transparent";
                 const slot = (
-                  <div
-                    className="rounded-[2px] relative overflow-hidden flex-1"
-                    style={{ background: "#2E1C35", height: slotH }}
-                  >
-                    {a && (
-                      <div
-                        className="absolute bottom-0 inset-x-0"
-                        style={{ height: `${fillPct}%`, background: color }}
-                      />
-                    )}
+                  <div className="rounded-[2px] relative overflow-hidden flex-1" style={{ background: "#2E1C35", height: slotH }}>
+                    {a && <div className="absolute bottom-0 inset-x-0" style={{ height: `${fillPct}%`, background: color }} />}
                   </div>
                 );
-              if (!a) return <div key={d} className="flex-1 flex">{slot}</div>;
-              return (
-                <Tooltip key={d}>
-                  <TooltipTrigger asChild>
-                    <button type="button" className="focus:outline-none flex-1 flex z-0">
-                      {slot}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-white text-brand-ink">
-                    <div className="text-[11px] leading-tight font-medium space-y-0.5">
-                      <div>{ordinal(a.day)} {monthName}</div>
-                      <div>Intensity: {a.intensity}/10</div>
-                      <div>Duration: {DURATION_LABEL[a.duration]}</div>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              );
-            })}
+                if (!a) return <div key={d} className="flex-1 flex">{slot}</div>;
+                return (
+                  <Tooltip key={d}>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="focus:outline-none flex-1 flex z-0">{slot}</button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-white text-brand-ink">
+                      <div className="text-[11px] leading-tight font-medium space-y-0.5">
+                        <div>{ordinal(a.day)} {monthName}</div>
+                        <div>Intensity: {a.intensity}/10</div>
+                        <div>Duration: {DURATION_LABEL[a.duration]}</div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </div>
           </div>
-        </div>
-        {/* Date axis */}
           <div className="relative mt-1 h-3 w-full">
             {[1, 5, 10, 15, 20, 25, 30].map((d) => {
               if (d > month.days) return null;
               const leftPct = ((d - 0.5) / month.days) * 100;
               return (
-                <span
-                  key={d}
-                  className="absolute -translate-x-1/2 text-[10px] text-white tabular-nums"
-                  style={{ left: `${leftPct}%` }}
-                >
+                <span key={d} className="absolute -translate-x-1/2 text-[10px] text-white tabular-nums" style={{ left: `${leftPct}%` }}>
                   {d}
                 </span>
               );
