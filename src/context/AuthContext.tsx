@@ -17,6 +17,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (import.meta.env.DEV) {
+      setPhone("9999999999");
+      setUserName("Dev");
+      setIsLoading(false);
+      return;
+    }
     const session = getSession();
     if (session) {
       setPhone(session.phone);
