@@ -1,4 +1,4 @@
-import { getAttacks, type AttackLog } from "./storage";
+import { getAttacks, ATTACKS_KEY, type AttackLog } from "./storage";
 
 export type TriggerStat = {
   name: string;
@@ -79,8 +79,6 @@ function toTimestamp(dateStr: string): number {
   if (!p) return 0;
   return new Date(p.year, p.month, p.day).getTime();
 }
-
-const ATTACKS_KEY = "cranberry_attacks";
 
 function toSheetAttack(a: AttackLog): SheetAttack {
   return {

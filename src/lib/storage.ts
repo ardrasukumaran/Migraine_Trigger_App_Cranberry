@@ -13,7 +13,7 @@ export interface AttackLog {
   createdAt: number;        // timestamp for sorting
 }
 
-const ATTACKS_KEY = 'cranberry_attacks';
+export const ATTACKS_KEY = 'cranberry_attacks_v2';
 
 export function getAttacks(): AttackLog[] {
   if (typeof window === 'undefined') return [];
