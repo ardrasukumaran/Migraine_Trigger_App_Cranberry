@@ -62,8 +62,8 @@ function formatDisplayDate(raw: string): string {
 const DURATION_MAP: [RegExp, string][] = [
   [/24/,             "24h"],
   [/>\s*6/,          ">6h"],
+  [/3\s*[-–]\s*6/i,  "3-6h"],  // must come before "6h" — "3-6h" contains "6h"
   [/6\s*h/i,         "6h"],
-  [/3\s*[-–]\s*6/i,  "3-6h"],
   [/<\s*3/,          "<3h"],
 ];
 
