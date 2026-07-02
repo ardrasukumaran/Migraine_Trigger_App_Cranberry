@@ -4,6 +4,8 @@ import { RECENT_ATTACKS, TOP_TRIGGERS, CALENDAR_DATA } from "@/lib/mock-data";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useStreakState, isoDate, currentStreak, type DayEntry } from "@/lib/streak-store";
 import { DAY_COMBOS, NIGHT_COMBOS, scoreForCount, totalPossibleScore, SKIP_SCORE } from "@/lib/supplements";
+import { getAttacks } from "@/lib/storage";
+import { useState } from "react";
 
 export const Route = createFileRoute("/insights")({
   head: () => ({
@@ -16,16 +18,25 @@ export const Route = createFileRoute("/insights")({
 });
 
 // ---------- Derived stats ----------
-const attackValues = CALENDAR_DATA.filter((v) => v > 0);
-const totalAttacks = attackValues.length;
-const clearDaysLast30 = 30 - Math.min(30, totalAttacks);
+const [attacks] = useState(() => getAttacks());
+const totalAttacks     = attacks.length;
+const clearDaysLast30  = 30 - Math.min(30, attacks.filter(a => {
+  const d = new Date(a.date);
+  return (Date.now() - d.getTime()) < 30 * 86400_000;
+}).length);
 
-const avgIntensity =
-  attackValues.length > 0
-    ? Math.round((attackValues.reduce((a, b) => a + b, 0) / attackValues.length) * 10) / 10
-    : 0;
-const minIntensity = attackValues.length ? Math.min(...attackValues) : 0;
-const maxIntensity = attackValues.length ? Math.max(...attackValues) : 0;
+
+const avgIntensity = attacks.length > 0
+  ? Math.round((attacks.reduce((s, a) => s + a.intensity, 0) / attacks.length) * 10) / 10
+  : 0;
+
+const minIntensity = attacks.length ? Math.min(...attacks.map(a => a.intensity)) : 0;
+const maxIntensity = attacks.length ? Math.max(...attacks.map(a => a.intensity)) : 0;
+
+const durationCounts: Record<string, number> = {};
+for (const a of attacks) {
+  durationCounts[a.duration] = (durationCounts[a.duration] ?? 0) + 1;
+}
 
 const DURATION_OPTIONS = ["<3h", "3-6h", "6h", ">6h", "24h"] as const;
 type DurationBucket = (typeof DURATION_OPTIONS)[number];
@@ -46,12 +57,10 @@ const DURATION_COUNTS: Record<DurationBucket, number> = {
   ">6h": 0,
   "24h": 0,
 };
-const typicalDuration = (() => {
-  const entries = Object.entries(DURATION_COUNTS) as [DurationBucket, number][];
-  const total = entries.reduce((a, [, n]) => a + n, 0);
-  if (!total) return "—";
-  return entries.reduce((best, cur) => (cur[1] > best[1] ? cur : best))[0];
-})();
+
+const typicalDuration = Object.keys(durationCounts).length > 0
+  ? Object.entries(durationCounts).reduce((best, cur) => cur[1] > best[1] ? cur : best)[0]
+  : "—";
 
 function painColor(v: number) {
   if (v <= 0) return "transparent";
@@ -260,44 +269,9 @@ function InsightsPage() {
         </div>
       </section>
 
-      {/* YOUR PROGRESS */}
-      <section className="mt-6">
-        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
-          Your progress
-        </p>
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <StatTile big={streak}      label="Current streak" />
-          <StatTile big={bestStreak}  label="Best streak" />
-          <StatTile big={`${compliance}%`} label="Full compliance" />
-        </div>
-        <div className="rounded-3xl bg-card border border-border p-4 space-y-4 mb-3">
-          <ComplianceBar label="Day doses"   pct={dayCompliance} />
-          <ComplianceBar label="Night doses" pct={nightCompliance} />
-          <ComplianceBar label="Both slots"  pct={compliance} highlight />
-        </div>
-        <div className="rounded-3xl bg-card border border-border p-4">
-          <p className="text-[11px] text-warm-grey/60 mb-3">Score — last 7 days</p>
-          <div className="flex items-end justify-between gap-1 h-16">
-            {last7.map((d) => (
-              <div key={d.label} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full flex-1 flex items-end rounded-[3px] overflow-hidden" style={{ background: "#2E1C35" }}>
-                  <div
-                    className="w-full rounded-t-[3px]"
-                    style={{
-                      height: `${Math.max(d.pct > 0 ? 8 : 0, d.pct)}%`,
-                      background: d.pct > 0
-                        ? "linear-gradient(180deg, var(--primary), var(--brand-mid-lavender))"
-                        : "transparent",
-                    }}
-                  />
-                </div>
-                <span className="text-[10px] text-warm-grey/60">{d.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
+     <h2 className="font-serif-display text-[28px] leading-tight text-foreground mt-8 mb-2">
+  Your progress
+</h2>
       {/* MONTH WISE PATTERN */}
       <section className="mt-6">
         <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-3">
