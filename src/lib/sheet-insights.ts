@@ -82,60 +82,60 @@ function toTimestamp(dateStr: string): number {
 
 const ATTACKS_KEY = "cranberry_attacks";
 
-// ── Cache-first: load all attacks ─────────────────────────────────
-// Returns localStorage attacks if non-empty; otherwise fetches from sheet
-// and saves the result to localStorage for future visits.
+function toSheetAttack(a: AttackLog): SheetAttack {
+  return {
+    date:        a.date,
+    displayDate: formatDisplayDate(a.date),
+    intensity:   a.intensity,
+    duration:    a.duration,
+    triggers:    [...(a.foods ?? []), ...(a.nonFoodTriggers ?? [])],
+  };
+}
+
+// ── Always fetch from sheet (source of truth), merge with local pending ──
+// Sheet data is authoritative for count and history.
+// Locally-logged attacks not yet in the sheet are merged in.
 export async function loadAttacks(phone: string): Promise<SheetAttack[]> {
   const cached = getAttacks();
 
-  if (cached.length > 0) {
-    return cached
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .map(a => ({
-        date:        a.date,
-        displayDate: formatDisplayDate(a.date),
-        intensity:   a.intensity,
-        duration:    normalizeDuration(a.duration),
-        triggers:    [...(a.foods ?? []), ...(a.nonFoodTriggers ?? [])],
-      }));
-  }
-
-  // Cache empty → fetch from Google Sheet
   try {
     const res  = await fetch(`/api/attacks?phone=${encodeURIComponent(phone)}`);
     const data = await res.json() as { attacks?: RawAttack[]; error?: string };
     if (data.error) {
       console.error("[sheet-insights] /api/attacks error:", data.error);
-      return [];
+      // Fall back to whatever is in cache
+      return cached.sort((a, b) => b.date.localeCompare(a.date)).map(toSheetAttack);
     }
 
-    const raw = data.attacks ?? [];
+    const sheetRaw = data.attacks ?? [];
+    const sheetDates = new Set(sheetRaw.map(a => a.date));
 
-    // Save to localStorage so future visits use the cache
-    if (raw.length > 0 && typeof window !== "undefined") {
-      const logs: AttackLog[] = raw.map((a, i) => ({
-        id:              `sheet-${a.date}-${i}`,
-        date:            a.date,
-        intensity:       a.intensity,
-        status:          "Done",
-        duration:        normalizeDuration(a.duration),
-        foods:           a.foods,
-        nonFoodTriggers: a.nonFoodTriggers,
-        createdAt:       toTimestamp(a.date),
-      }));
-      localStorage.setItem(ATTACKS_KEY, JSON.stringify(logs));
-    }
+    // Keep locally-logged attacks not yet present in sheet (by date)
+    const pendingLocal = cached.filter(
+      a => !a.id.startsWith("sheet-") && !sheetDates.has(a.date),
+    );
 
-    return raw.map(a => ({
-      date:        a.date,
-      displayDate: formatDisplayDate(a.date),
-      intensity:   a.intensity,
-      duration:    normalizeDuration(a.duration),
-      triggers:    [...a.foods, ...a.nonFoodTriggers],
+    // Build merged AttackLog[] — sheet data + pending local
+    const sheetLogs: AttackLog[] = sheetRaw.map((a, i) => ({
+      id:              `sheet-${a.date}-${i}`,
+      date:            a.date,
+      intensity:       a.intensity,
+      status:          "Done",
+      duration:        normalizeDuration(a.duration),
+      foods:           a.foods,
+      nonFoodTriggers: a.nonFoodTriggers,
+      createdAt:       toTimestamp(a.date),
     }));
+    const merged: AttackLog[] = [...pendingLocal, ...sheetLogs];
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem(ATTACKS_KEY, JSON.stringify(merged));
+    }
+
+    return merged.sort((a, b) => b.date.localeCompare(a.date)).map(toSheetAttack);
   } catch (e) {
     console.error("[sheet-insights] /api/attacks fetch failed:", e);
-    return [];
+    return cached.sort((a, b) => b.date.localeCompare(a.date)).map(toSheetAttack);
   }
 }
 
