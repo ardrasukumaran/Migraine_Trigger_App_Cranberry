@@ -8,6 +8,15 @@ export type RawAttack = {
   date: string;
   intensity: number;
   duration: string;
+  triggers: string[];
+};
+
+export type SheetAttack = {
+  date: string;       // raw date string from sheet
+  displayDate: string; // formatted e.g. "8 Jun 2026"
+  intensity: number;
+  duration: string;
+  triggers: string[];
 };
 
 export type SheetDayAttack = {
@@ -30,6 +39,29 @@ export async function fetchTopTriggers(phone: string): Promise<TriggerStat[]> {
     const res  = await fetch(`/api/triggers?phone=${encodeURIComponent(phone)}`);
     const data = await res.json() as { triggers?: TriggerStat[]; error?: string };
     return data.triggers ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// ── Format date for display ───────────────────────────────────────
+const DISPLAY_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function formatDisplayDate(raw: string): string {
+  const parsed = parseDate(raw);
+  if (!parsed) return raw;
+  return `${parsed.day} ${DISPLAY_MONTHS[parsed.month]} ${parsed.year}`;
+}
+
+// ── Fetch all attacks (for recent logs) ───────────────────────────
+export async function fetchRecentAttacks(phone: string): Promise<SheetAttack[]> {
+  try {
+    const res  = await fetch(`/api/attacks?phone=${encodeURIComponent(phone)}`);
+    const data = await res.json() as { attacks?: RawAttack[]; error?: string };
+    return (data.attacks ?? []).map(a => ({
+      ...a,
+      displayDate: formatDisplayDate(a.date),
+    }));
   } catch {
     return [];
   }

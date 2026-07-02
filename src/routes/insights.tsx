@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { RECENT_ATTACKS } from "@/lib/mock-data";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getAttacks } from "@/lib/storage";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { fetchTopTriggers, fetchMonthData, type TriggerStat, type SheetMonthData } from "@/lib/sheet-insights";
+import { fetchTopTriggers, fetchMonthData, fetchRecentAttacks, type TriggerStat, type SheetMonthData, type SheetAttack } from "@/lib/sheet-insights";
 
 export const Route = createFileRoute("/insights")({
   head: () => ({
@@ -49,6 +48,13 @@ function InsightsPage() {
   const [months, setMonths] = useState<SheetMonthData[]>([]);
   useEffect(() => {
     if (phone) fetchMonthData(phone).then(setMonths);
+  }, [phone]);
+
+  // ---------- Recent attacks (from Google Sheet) ----------
+  const [sheetAttacks, setSheetAttacks] = useState<SheetAttack[]>([]);
+  const [showAll, setShowAll] = useState(false);
+  useEffect(() => {
+    if (phone) fetchRecentAttacks(phone).then(setSheetAttacks);
   }, [phone]);
 
   // ---------- Attack stats (from localStorage) ----------
@@ -214,29 +220,44 @@ function InsightsPage() {
 
       {/* RECENT LOGS */}
       <section className="mt-6 mb-6">
-        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
-          Recent logs
-        </p>
-        <div className="rounded-3xl bg-card border border-border divide-y divide-border/60 overflow-hidden">
-          {RECENT_ATTACKS.slice(0, 5).map((a) => (
-            <div key={a.date} className="p-4 flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold">{a.date}</p>
-                <p className="text-[11px] text-warm-grey/70 truncate mt-0.5">{a.triggers.join(", ")}</p>
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/80">{a.duration}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/80">Pain {a.intensity}</span>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
+            Recent logs
+          </p>
+          {sheetAttacks.length > 3 && (
+            <button
+              type="button"
+              onClick={() => setShowAll(v => !v)}
+              className="text-xs font-semibold text-primary"
+            >
+              {showAll ? "Show less" : "View all"}
+            </button>
+          )}
+        </div>
+        {sheetAttacks.length === 0 ? (
+          <p className="text-[13px] text-warm-grey/50 py-2">No attacks logged yet.</p>
+        ) : (
+          <div className="rounded-3xl bg-card border border-border divide-y divide-border/60 overflow-hidden">
+            {(showAll ? sheetAttacks : sheetAttacks.slice(0, 3)).map((a, i) => (
+              <div key={`${a.date}-${i}`} className="p-4 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold">{a.displayDate}</p>
+                  <p className="text-[11px] text-warm-grey/70 truncate mt-0.5">{a.triggers.join(", ")}</p>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/80">{a.duration}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/80">Pain {a.intensity}</span>
+                  </div>
+                </div>
+                <div
+                  className="h-10 w-10 rounded-full grid place-items-center font-bold text-[14px] shrink-0"
+                  style={{ background: painColor(a.intensity), color: "var(--brand-ink)" }}
+                >
+                  {a.intensity}
                 </div>
               </div>
-              <div
-                className="h-10 w-10 rounded-full grid place-items-center font-bold text-[14px] shrink-0"
-                style={{ background: painColor(a.intensity), color: "var(--brand-ink)" }}
-              >
-                {a.intensity}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </AppShell>
   );
