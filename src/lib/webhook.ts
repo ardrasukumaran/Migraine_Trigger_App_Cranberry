@@ -17,8 +17,9 @@ export interface WebhookPayload {
 }
 
 export function sendAttackToWebhook(attack: AttackLog, phone: string): void {
+  const digits = phone.replace(/\D/g, "").slice(-10);
   const payload: WebhookPayload = {
-    phone,
+    phone: `+91${digits}`,
     date: attack.date,
     intensity: attack.intensity,
     status: attack.status,
