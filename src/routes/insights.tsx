@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { loadAttacks, fetchTopTriggers, buildMonthData, type TriggerStat, type SheetMonthData, type SheetAttack } from "@/lib/sheet-insights";
+import { loadAttacks, buildMonthData, type TriggerStat, type SheetMonthData, type SheetAttack } from "@/lib/sheet-insights";
 
 export const Route = createFileRoute("/insights")({
   head: () => ({
@@ -44,11 +44,24 @@ function InsightsPage() {
     if (phone) loadAttacks(phone).then(setAllAttacks);
   }, [phone]);
 
-  // ---------- Top triggers: cache-first ----------
-  const [topTriggers, setTopTriggers] = useState<TriggerStat[]>([]);
-  useEffect(() => {
-    if (phone) fetchTopTriggers(phone).then(setTopTriggers);
-  }, [phone]);
+  // ---------- Top triggers derived from allAttacks ----------
+  const topTriggers = useMemo<TriggerStat[]>(() => {
+    const counts: Record<string, number> = {};
+    for (const a of allAttacks) {
+      for (const t of a.triggers) {
+        if (t) counts[t] = (counts[t] ?? 0) + 1;
+      }
+    }
+    const total = allAttacks.length;
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({
+        name,
+        count,
+        correlation: Math.round((count / total) * 100),
+      }));
+  }, [allAttacks]);
 
   // ---------- Stats derived from allAttacks ----------
   const totalAttacks = allAttacks.length;
