@@ -75,6 +75,16 @@ async function getGoogleAccessToken(creds: { client_email: string; private_key: 
   return data.access_token;
 }
 
+async function readSheetRows(creds: any, spreadsheetId: string, sheetName: string): Promise<string[][]> {
+  const token = await getGoogleAccessToken(creds);
+  const r = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  const v = await r.json() as { values?: string[][] };
+  return v.values ? v.values.slice(1) : []; // skip header row
+}
+
 async function readAllSheetRows(creds: any, spreadsheetId: string): Promise<string[][]> {
   const token = await getGoogleAccessToken(creds);
 
@@ -185,6 +195,70 @@ Bun.serve({
       } catch (err) {
         console.error("[verify-user] error:", err);
         return new Response(JSON.stringify({ verified: false, message: "Verification failed. Please try again." }), {
+          status: 500, headers: { "content-type": "application/json" },
+        });
+      }
+    }
+
+    // ── /api/triggers ─────────────────────────────────────────
+    if (url.pathname === "/api/triggers" && req.method === "GET") {
+      const phone   = url.searchParams.get("phone") ?? "";
+      const saJson  = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+      const sheetId = process.env.GOOGLE_SHEET_ID;
+
+      if (!phone) {
+        return new Response(JSON.stringify({ error: "Missing phone" }), {
+          status: 400, headers: { "content-type": "application/json" },
+        });
+      }
+      if (!saJson || !sheetId) {
+        return new Response(JSON.stringify({ error: "Server configuration error" }), {
+          status: 500, headers: { "content-type": "application/json" },
+        });
+      }
+
+      try {
+        const creds = JSON.parse(saJson);
+        const rows  = await readSheetRows(creds, sheetId, "Sheet1");
+
+        // Col A = phone (index 0), F = food triggers (5), G = non-food (6)
+        const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
+        const userRows = rows.filter(row =>
+          String(row[0] ?? "").replace(/\D/g, "").slice(-10) === normalizedPhone
+        );
+
+        const totalLogs = userRows.length;
+        if (totalLogs === 0) {
+          return new Response(JSON.stringify({ triggers: [] }), {
+            headers: { "content-type": "application/json" },
+          });
+        }
+
+        const counts: Record<string, number> = {};
+        for (const row of userRows) {
+          const food    = String(row[5] ?? "").split(",").map(s => s.trim()).filter(Boolean);
+          const nonFood = String(row[6] ?? "").split(",").map(s => s.trim()).filter(Boolean);
+          for (const t of [...food, ...nonFood]) {
+            counts[t] = (counts[t] ?? 0) + 1;
+          }
+        }
+
+        const triggers = Object.entries(counts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([name, count]) => ({
+            name,
+            count,
+            correlation: Math.round((count / totalLogs) * 100),
+          }));
+
+        console.log(`[triggers] phone=${normalizedPhone} logs=${totalLogs} triggers=${triggers.length}`);
+        return new Response(JSON.stringify({ triggers }), {
+          headers: { "content-type": "application/json" },
+        });
+      } catch (err) {
+        console.error("[triggers] error:", err);
+        return new Response(JSON.stringify({ error: "Failed to fetch triggers" }), {
           status: 500, headers: { "content-type": "application/json" },
         });
       }

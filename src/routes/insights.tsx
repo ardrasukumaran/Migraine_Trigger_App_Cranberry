@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { RECENT_ATTACKS, TOP_TRIGGERS } from "@/lib/mock-data";
+import { RECENT_ATTACKS } from "@/lib/mock-data";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getAttacks } from "@/lib/storage";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { fetchTopTriggers, type TriggerStat } from "@/lib/sheet-insights";
 
 export const Route = createFileRoute("/insights")({
   head: () => ({
@@ -80,9 +82,16 @@ const MONTHS: MonthData[] = [
   },
 ];
 
-const TRIGGERS_WITH_COUNTS = TOP_TRIGGERS.slice(0, 5);
 
 function InsightsPage() {
+  const { phone } = useAuth();
+
+  // ---------- Top triggers (from Google Sheet) ----------
+  const [topTriggers, setTopTriggers] = useState<TriggerStat[]>([]);
+  useEffect(() => {
+    if (phone) fetchTopTriggers(phone).then(setTopTriggers);
+  }, [phone]);
+
   // ---------- Attack stats (from localStorage) ----------
   const [attacks] = useState(() => getAttacks());
 
@@ -178,7 +187,10 @@ function InsightsPage() {
             <span>100%</span>
           </div>
           <div className="space-y-3">
-            {TRIGGERS_WITH_COUNTS.map((t) => (
+            {topTriggers.length === 0 ? (
+              <p className="text-[13px] text-warm-grey/50 py-2">No trigger data yet.</p>
+            ) : null}
+            {topTriggers.map((t) => (
               <div key={t.name}>
                 <div className="flex items-center justify-between text-[13px] mb-1.5">
                   <span className="font-medium">{t.name}</span>
