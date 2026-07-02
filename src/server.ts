@@ -285,7 +285,7 @@ Bun.serve({
         const creds = JSON.parse(saJson);
         const rows  = await readSheetRows(creds, sheetId, "Sheet1");
 
-        // Col A=phone(0), B=date(1), C=intensity(2), E=duration(4)
+        // Col A=phone(0), B=date(1), C=intensity(2), E=duration(4), F=food(5), G=nonFood(6)
         const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
         const attacks = rows
           .filter(row => String(row[0] ?? "").replace(/\D/g, "").slice(-10) === normalizedPhone)
@@ -293,8 +293,13 @@ Bun.serve({
             date:      String(row[1] ?? "").trim(),
             intensity: parseInt(String(row[2] ?? "0"), 10) || 0,
             duration:  String(row[4] ?? "").trim(),
+            triggers:  [
+              ...String(row[5] ?? "").split(",").map(s => s.trim()).filter(Boolean),
+              ...String(row[6] ?? "").split(",").map(s => s.trim()).filter(Boolean),
+            ],
           }))
-          .filter(a => a.date);
+          .filter(a => a.date)
+          .sort((a, b) => b.date.localeCompare(a.date));
 
         console.log(`[attacks] phone=${normalizedPhone} rows=${attacks.length}`);
         return new Response(JSON.stringify({ attacks }), {
