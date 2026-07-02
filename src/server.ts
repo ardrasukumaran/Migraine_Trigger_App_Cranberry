@@ -299,7 +299,7 @@ Bun.serve({
           .filter(a => a.date)
           .sort((a, b) => b.date.localeCompare(a.date));
 
-        console.log(`[attacks] phone=${normalizedPhone} rows=${attacks.length}`);
+        console.log(`[attacks] sheet=Migraine_attack_log totalRows=${rows.length} phone=${normalizedPhone} matched=${attacks.length}`);
         return new Response(JSON.stringify({ attacks }), {
           headers: { "content-type": "application/json" },
         });
