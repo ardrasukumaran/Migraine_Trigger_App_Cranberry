@@ -110,9 +110,14 @@ export async function loadAttacks(phone: string): Promise<SheetAttack[]> {
     const sheetRaw = data.attacks ?? [];
     const sheetDates = new Set(sheetRaw.map(a => a.date));
 
-    // Keep locally-logged attacks not yet present in sheet (by date)
+    // Only merge locally-logged attacks that are very recent (< 2 h old) and
+    // not yet saved to the sheet by the Make webhook.
+    const TWO_HOURS = 2 * 60 * 60 * 1000;
     const pendingLocal = cached.filter(
-      a => !a.id.startsWith("sheet-") && !sheetDates.has(a.date),
+      a =>
+        !a.id.startsWith("sheet-") &&
+        !sheetDates.has(a.date) &&
+        Date.now() - a.createdAt < TWO_HOURS,
     );
 
     // Build merged AttackLog[] — sheet data + pending local
