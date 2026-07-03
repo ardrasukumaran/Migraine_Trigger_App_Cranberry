@@ -110,7 +110,7 @@ function InsightsPage() {
               avg / 10
             </span>
           </div>
-          <div className="relative h-10 flex items-center">
+          <div className="relative h-14 flex items-center">
             <div className="absolute inset-x-0 h-1.5 rounded-full bg-muted" />
             <div
               className="absolute h-3 rounded-full"
@@ -126,10 +126,10 @@ function InsightsPage() {
               style={{ left: `calc(${(minIntensity / 10) * 100}% - 1.5px)` }}
             />
             <span
-              className="absolute -translate-x-1/2 text-[10px] text-warm-grey/70"
+              className="absolute -translate-x-1/2 text-[10px] text-warm-grey/70 whitespace-nowrap"
               style={{ left: `${(minIntensity / 10) * 100}%`, top: "30px" }}
             >
-              {minIntensity}
+              Min {minIntensity}
             </span>
             {/* Avg marker */}
             <div
@@ -138,10 +138,10 @@ function InsightsPage() {
               aria-label={`Average ${avgIntensity}`}
             />
             <span
-              className="absolute -translate-x-1/2 text-[10px] font-semibold text-foreground"
+              className="absolute -translate-x-1/2 text-[10px] font-semibold text-foreground whitespace-nowrap"
               style={{ left: `${(avgIntensity / 10) * 100}%`, top: "30px" }}
             >
-              {avgIntensity}
+              Avg {avgIntensity}
             </span>
             {/* Max marker */}
             <div
@@ -149,16 +149,11 @@ function InsightsPage() {
               style={{ left: `calc(${(maxIntensity / 10) * 100}% - 1.5px)` }}
             />
             <span
-              className="absolute -translate-x-1/2 text-[10px] text-warm-grey/70"
+              className="absolute -translate-x-1/2 text-[10px] text-warm-grey/70 whitespace-nowrap"
               style={{ left: `${(maxIntensity / 10) * 100}%`, top: "30px" }}
             >
-              {maxIntensity}
+              Max {maxIntensity}
             </span>
-          </div>
-          <div className="mt-7 flex items-center justify-between text-[11px] text-warm-grey/50">
-            <span>Min</span>
-            <span>Avg</span>
-            <span>Max</span>
           </div>
         </div>
       </section>
