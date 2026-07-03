@@ -267,17 +267,17 @@ function InsightsPage() {
               <div key={`${a.date}-${i}`} className="p-4 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-semibold">{a.displayDate}</p>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md border border-border text-warm-grey/80 font-medium">{a.duration}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md border border-border text-warm-grey/80 font-medium">Intensity {a.intensity}</span>
+                  </div>
                   {a.triggers.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {a.triggers.map((t, i) => (
-                        <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/70">{t}</span>
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {a.triggers.map((t, idx) => (
+                        <span key={idx} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/70">{t}</span>
                       ))}
                     </div>
                   )}
-                  <div className="flex items-center gap-1.5 mt-1.5">
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/80">{a.duration}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/80">Intensity {a.intensity}</span>
-                  </div>
                 </div>
                 <div
                   className="h-10 w-10 rounded-full grid place-items-center font-bold text-[14px] shrink-0"
