@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { Berry } from "@/components/Berry";
 import { StreakPlant } from "@/components/StreakPlant";
-import { Pencil, Sun, Moon, ChevronRight, Check } from "lucide-react";
+import { Sun, Moon, ChevronRight, Check } from "lucide-react";
 import { isoDate, todayIso, useStreakState, type DayEntry } from "@/lib/streak-store";
 import { ALL_SUPPLEMENTS, DAY_COMBOS, NIGHT_COMBOS } from "@/lib/supplements";
 import { useAuth } from "@/context/AuthContext";
@@ -133,20 +133,11 @@ function TodayPage() {
                       {a.duration}{triggers.length > 0 ? ` · ${triggers.slice(0, 2).join(", ")}` : ""}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <div
-                      className="h-10 w-10 rounded-full grid place-items-center text-sm font-bold text-[var(--brand-ink)]"
-                      style={{ backgroundColor: `var(--pain-${Math.min(10, Math.max(1, a.intensity))})` }}
-                    >
-                      {a.intensity}
-                    </div>
-                    <Link
-                      to="/log"
-                      aria-label="Log new attack"
-                      className="h-10 w-10 rounded-full grid place-items-center bg-muted text-foreground hover:bg-accent transition"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Link>
+                  <div
+                    className="h-10 w-10 rounded-full grid place-items-center text-sm font-bold text-[var(--brand-ink)] shrink-0"
+                    style={{ backgroundColor: `var(--pain-${Math.min(10, Math.max(1, a.intensity))})` }}
+                  >
+                    {a.intensity}
                   </div>
                 </div>
               );

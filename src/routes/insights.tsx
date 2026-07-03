@@ -110,7 +110,7 @@ function InsightsPage() {
               avg / 10
             </span>
           </div>
-          <div className="relative h-8 flex items-center">
+          <div className="relative h-10 flex items-center">
             <div className="absolute inset-x-0 h-1.5 rounded-full bg-muted" />
             <div
               className="absolute h-3 rounded-full"
@@ -120,6 +120,18 @@ function InsightsPage() {
                 background: `linear-gradient(90deg, ${painColor(minIntensity)}, ${painColor(maxIntensity)})`,
               }}
             />
+            {/* Min marker */}
+            <div
+              className="absolute h-5 w-[3px] rounded-full bg-foreground/60"
+              style={{ left: `calc(${(minIntensity / 10) * 100}% - 1.5px)` }}
+            />
+            <span
+              className="absolute -translate-x-1/2 text-[10px] text-warm-grey/70"
+              style={{ left: `${(minIntensity / 10) * 100}%`, top: "30px" }}
+            >
+              {minIntensity}
+            </span>
+            {/* Avg marker */}
             <div
               className="absolute h-7 w-[3px] rounded-full bg-foreground shadow"
               style={{ left: `calc(${(avgIntensity / 10) * 100}% - 1.5px)` }}
@@ -127,15 +139,26 @@ function InsightsPage() {
             />
             <span
               className="absolute -translate-x-1/2 text-[10px] font-semibold text-foreground"
-              style={{ left: `${(avgIntensity / 10) * 100}%`, top: "28px" }}
+              style={{ left: `${(avgIntensity / 10) * 100}%`, top: "30px" }}
             >
               {avgIntensity}
             </span>
+            {/* Max marker */}
+            <div
+              className="absolute h-5 w-[3px] rounded-full bg-foreground/60"
+              style={{ left: `calc(${(maxIntensity / 10) * 100}% - 1.5px)` }}
+            />
+            <span
+              className="absolute -translate-x-1/2 text-[10px] text-warm-grey/70"
+              style={{ left: `${(maxIntensity / 10) * 100}%`, top: "30px" }}
+            >
+              {maxIntensity}
+            </span>
           </div>
-          <div className="mt-6 flex items-center justify-between text-[11px] text-warm-grey/70">
-            <span>Min <span className="text-foreground font-semibold">{minIntensity}</span></span>
-            <span>Avg <span className="text-primary font-semibold">{avgIntensity}</span></span>
-            <span>Max <span className="text-foreground font-semibold">{maxIntensity}</span></span>
+          <div className="mt-7 flex items-center justify-between text-[11px] text-warm-grey/50">
+            <span>Min</span>
+            <span>Avg</span>
+            <span>Max</span>
           </div>
         </div>
       </section>
@@ -244,10 +267,16 @@ function InsightsPage() {
               <div key={`${a.date}-${i}`} className="p-4 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-semibold">{a.displayDate}</p>
-                  <p className="text-[11px] text-warm-grey/70 truncate mt-0.5">{a.triggers.join(", ")}</p>
+                  {a.triggers.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {a.triggers.map((t, i) => (
+                        <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/70">{t}</span>
+                      ))}
+                    </div>
+                  )}
                   <div className="flex items-center gap-1.5 mt-1.5">
                     <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/80">{a.duration}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/80">Pain {a.intensity}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/80">Intensity {a.intensity}</span>
                   </div>
                 </div>
                 <div
@@ -295,24 +324,21 @@ const DURATION_LABEL: Record<string, string> = {
 };
 
 function MonthRow({ month }: { month: SheetMonthData }) {
+  // Last entry for a day = bottom-most sheet row (latest)
   const byDay = new Map<number, SheetMonthData["attacks"][number]>();
-  for (const a of month.attacks) {
-    const existing = byDay.get(a.day);
-    if (!existing) byDay.set(a.day, a);
-    else {
-      byDay.set(a.day, {
-        day: a.day,
-        intensity: Math.max(existing.intensity, a.intensity),
-        duration: DURATION_HEIGHT_PCT[a.duration] > DURATION_HEIGHT_PCT[existing.duration] ? a.duration : existing.duration,
-      });
-    }
-  }
+  for (const a of month.attacks) byDay.set(a.day, a);
 
   const days = Array.from({ length: month.days }, (_, i) => i + 1);
   const slotH = 72;
   const gap = 2;
   const monthName = MONTH_NAMES[month.monthIndex];
-  const migraineFreeDays = month.days - byDay.size;
+
+  // For ongoing months use today's date as the day cap
+  const today = new Date();
+  const isCurrentMonth =
+    month.year === today.getFullYear() && month.monthIndex === today.getMonth();
+  const effectiveDays = isCurrentMonth ? today.getDate() : month.days;
+  const migraineFreeDays = Math.max(0, effectiveDays - byDay.size);
 
   return (
     <div>
