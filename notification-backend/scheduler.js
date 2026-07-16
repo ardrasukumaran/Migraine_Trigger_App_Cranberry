@@ -8,7 +8,7 @@ import { getActiveTokens, batchLogNotifications } from "./sheet.js";
 const UTC_OFFSET_HOURS = parseFloat(process.env.UTC_OFFSET_HOURS ?? "5.5");
 
 // ─── Fixed time slots (IST) ───────────────────────────────────────────────────
-const DAY_SLOTS   = ["08:00", "09:00", "10:00", "13:00", "14:00", "15:00"];
+const DAY_SLOTS   = ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00"];
 const NIGHT_SLOTS = ["19:00", "20:00", "21:00", "22:00", "03:00"];
 
 // ─── Notification messages ────────────────────────────────────────────────────
@@ -145,7 +145,7 @@ export function startScheduler() {
   console.log("[Scheduler] Started — exact slot times only");
   console.log("[Scheduler] Day slots:  ", DAY_SLOTS.join(", "), "(IST)");
   console.log("[Scheduler] Night slots:", NIGHT_SLOTS.join(", "), "(IST)");
-  console.log("[Scheduler] Runs 11 times/day + batch logs to sheet");
+  console.log("[Scheduler] Runs 12 times/day + batch logs to sheet");
 
-  cron.schedule("30 2,3,4,7,8,9,13,14,15,16,21 * * *", runSchedule);
+  cron.schedule("30 2,3,4,5,7,8,9,13,14,15,16,21 * * *", runSchedule);
 }
