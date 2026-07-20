@@ -78,6 +78,12 @@ function toTimestamp(dateStr: string): number {
   return new Date(p.year, p.month, p.day).getTime();
 }
 
+function toISODate(dateStr: string): string {
+  const p = parseDate(dateStr);
+  if (!p) return dateStr;
+  return `${p.year}-${String(p.month + 1).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
+}
+
 function toSheetAttack(a: AttackLog): SheetAttack {
   return {
     date:        a.date,
@@ -117,16 +123,20 @@ export async function loadAttacks(phone: string): Promise<SheetAttack[]> {
     );
 
     // Build merged AttackLog[] — sheet data + pending local
-    const sheetLogs: AttackLog[] = sheetRaw.map((a, i) => ({
-      id:              `sheet-${a.date}-${i}`,
-      date:            a.date,
-      intensity:       a.intensity,
-      status:          "Done",
-      duration:        normalizeDuration(a.duration),
-      foods:           a.foods,
-      nonFoodTriggers: a.nonFoodTriggers,
-      createdAt:       toTimestamp(a.date),
-    }));
+    // Normalize date to ISO (YYYY-MM-DD) so formatAttackDate works everywhere
+    const sheetLogs: AttackLog[] = sheetRaw.map((a, i) => {
+      const isoDate = toISODate(a.date);
+      return {
+        id:              `sheet-${isoDate}-${i}`,
+        date:            isoDate,
+        intensity:       a.intensity,
+        status:          "Done",
+        duration:        normalizeDuration(a.duration),
+        foods:           a.foods,
+        nonFoodTriggers: a.nonFoodTriggers,
+        createdAt:       toTimestamp(a.date),
+      };
+    });
     const merged: AttackLog[] = [...pendingLocal, ...sheetLogs];
 
     if (typeof window !== "undefined") {
