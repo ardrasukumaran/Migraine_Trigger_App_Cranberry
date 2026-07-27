@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { Calendar as CalendarIcon, Plus, ChevronRight, Check, X } from "lucide-react";
@@ -17,6 +17,7 @@ import {
   PHASE,
   phaseForDay,
   usePeriodState,
+  loadPeriodBaseline,
   nextPeriodDate,
   daysUntilNext,
   dayInCurrentCycle,
@@ -24,6 +25,7 @@ import {
   buildCycleHistory,
   type PhaseKey,
 } from "@/lib/period-data";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/period")({
   head: () => ({
@@ -40,8 +42,22 @@ function PeriodPage() {
     select: (s) =>
       s.location.pathname !== "/period" && s.location.pathname !== "/period/",
   });
+  const { phone } = useAuth();
   const [state, update] = usePeriodState();
   const [selectedStart, setSelectedStart] = useState<Date | null>(null);
+
+  // Fetch baseline from Google Sheet when period data has never been loaded
+  useEffect(() => {
+    if (state.baselineLoaded || !phone) return;
+    loadPeriodBaseline(phone).then((baseline) => {
+      if (baseline) {
+        update((s) => ({ ...s, ...baseline }));
+      } else {
+        // Mark as loaded even if not found (avoid repeated fetches)
+        update((s) => ({ ...s, baselineLoaded: true }));
+      }
+    });
+  }, [phone, state.baselineLoaded, update]);
 
   const TODAY = useMemo(() => new Date(), []);
   const monthStart = useMemo(() => startOfMonth(TODAY), [TODAY]);
@@ -55,13 +71,28 @@ function PeriodPage() {
 
   const sorted = [...state.logs].sort((a, b) => b.startDate.localeCompare(a.startDate));
   const lastLog = sorted[0] ?? null;
-  const avgCycle = computeAvgCycleLength(state.logs);
-  const history = buildCycleHistory(state.logs, avgCycle);
 
-  const predictedStart = lastLog ? nextPeriodDate(lastLog.startDate, avgCycle) : null;
-  const predictedEnd = predictedStart ? addDays(predictedStart, state.periodDays - 1) : null;
-  const daysLeft = lastLog ? daysUntilNext(lastLog.startDate, avgCycle) : null;
+  // For cycle length: use logged history if available, else fall back to baseline
+  const avgCycle = state.logs.length >= 2
+    ? computeAvgCycleLength(state.logs)
+    : state.cycleLength;
+
+  const history = buildCycleHistory(state.logs, avgCycle);
   const currentDay = lastLog ? dayInCurrentCycle(lastLog.startDate) : null;
+
+  // Regular: single prediction
+  const predictedStart = lastLog ? nextPeriodDate(lastLog.startDate, avgCycle) : null;
+  const daysLeft = lastLog ? daysUntilNext(lastLog.startDate, avgCycle) : null;
+
+  // Irregular: range prediction using shortest/longest from baseline
+  const shortCycle = state.shortestCycle;
+  const longCycle  = state.longestCycle;
+  const irrLow  = lastLog ? daysUntilNext(lastLog.startDate, shortCycle) : null;
+  const irrHigh = lastLog ? daysUntilNext(lastLog.startDate, longCycle) : null;
+  const irrNextShort = lastLog ? nextPeriodDate(lastLog.startDate, shortCycle) : null;
+  const irrNextLong  = lastLog ? nextPeriodDate(lastLog.startDate, longCycle)  : null;
+
+  const isIrregular = state.mode === "irregular";
 
   const inLogged = (d: Date) =>
     state.logs.some((log) => {
@@ -70,11 +101,11 @@ function PeriodPage() {
       return d >= s && d <= e;
     });
 
-  const inPredicted = (d: Date) =>
-    predictedStart != null &&
-    predictedEnd != null &&
-    d >= predictedStart &&
-    d <= predictedEnd;
+  const inPredicted = (d: Date) => {
+    if (!predictedStart) return false;
+    const end = addDays(predictedStart, state.periodDays - 1);
+    return d >= predictedStart && d <= end;
+  };
 
   const inSelected = (d: Date) => {
     if (!selectedStart) return false;
@@ -91,14 +122,14 @@ function PeriodPage() {
         { id: `period-${startDate}`, startDate },
         ...s.logs,
       ].sort((a, b) => b.startDate.localeCompare(a.startDate));
-      const newCycle = computeAvgCycleLength(newLogs);
+      const newCycle = newLogs.length >= 2 ? computeAvgCycleLength(newLogs) : s.cycleLength;
       return { ...s, logs: newLogs, cycleLength: newCycle };
     });
     setSelectedStart(null);
   };
 
   return (
-    <AppShell>
+    <AppShell hideLogout>
       {/* Top toolbar */}
       <div className="mt-4 flex items-center justify-end gap-3">
         <Link
@@ -124,7 +155,7 @@ function PeriodPage() {
             const isToday = isSameDay(d, TODAY);
             const isFuture = d > TODAY;
             const logged = inLogged(d) || inSelected(d);
-            const predicted = inPredicted(d) && !logged;
+            const predicted = !isIrregular && inPredicted(d) && !logged;
             const disabled = !inMonth || isFuture;
             return (
               <button
@@ -173,27 +204,63 @@ function PeriodPage() {
         )}
       </section>
 
-      {/* Cycle status */}
+      {/* Cycle status — Regular vs Irregular */}
       <section className="mt-5 rounded-3xl bg-gradient-to-br from-[#F2B8BF]/20 to-[#FCB3C4]/10 border border-[#F2B8BF]/30 p-5 text-center">
-        <p className="text-xs uppercase tracking-[0.18em] text-[#F2B8BF] font-semibold">
-          {daysLeft === null ? "Start tracking" : "Period in"}
-        </p>
-        {daysLeft !== null && currentDay !== null ? (
+        {isIrregular ? (
+          /* ── Irregular ── */
           <>
-            <div className="mt-2 flex items-baseline justify-center gap-2">
-              <span className="text-[56px] leading-none text-foreground font-bold">
-                {daysLeft}
-              </span>
-              <span className="text-base text-warm-grey/80">days</span>
-            </div>
-            <div className="mt-3 flex justify-center">
-              <PhasePill dayInCycle={currentDay} cycleLength={avgCycle} />
-            </div>
+            <p className="text-xs uppercase tracking-[0.18em] text-[#F2B8BF] font-semibold">
+              {irrLow !== null ? "Period in" : "Start tracking"}
+            </p>
+            {irrLow !== null && irrHigh !== null ? (
+              <>
+                <div className="mt-2 flex items-baseline justify-center gap-2">
+                  <span className="text-[56px] leading-none text-foreground font-bold">
+                    <span className="text-[#F2B8BF]">{irrLow}</span>
+                    <span className="text-3xl text-foreground/60">–</span>
+                    <span className="text-[#F2B8BF]">{irrHigh}</span>
+                  </span>
+                  <span className="text-base text-warm-grey/80">days</span>
+                </div>
+                {irrNextShort && irrNextLong && (
+                  <p className="mt-3 text-xs text-warm-grey/70">
+                    Expected between {format(irrNextShort, "d MMM")} – {format(irrNextLong, "d MMM")}
+                  </p>
+                )}
+                <p className="mt-1 text-[11px] text-warm-grey/50">
+                  Your cycle length varies — this is your expected window.
+                </p>
+              </>
+            ) : (
+              <p className="mt-3 text-sm text-warm-grey/70">
+                Tap a day on the calendar above to log your period.
+              </p>
+            )}
           </>
         ) : (
-          <p className="mt-3 text-sm text-warm-grey/70">
-            Tap a day on the calendar above to log your period.
-          </p>
+          /* ── Regular ── */
+          <>
+            <p className="text-xs uppercase tracking-[0.18em] text-[#F2B8BF] font-semibold">
+              {daysLeft !== null ? "Period in" : "Start tracking"}
+            </p>
+            {daysLeft !== null && currentDay !== null ? (
+              <>
+                <div className="mt-2 flex items-baseline justify-center gap-2">
+                  <span className="text-[56px] leading-none text-foreground font-bold text-[#F2B8BF]">
+                    {daysLeft}
+                  </span>
+                  <span className="text-base text-warm-grey/80">days</span>
+                </div>
+                <div className="mt-3 flex justify-center">
+                  <PhasePill dayInCycle={currentDay} cycleLength={avgCycle} />
+                </div>
+              </>
+            ) : (
+              <p className="mt-3 text-sm text-warm-grey/70">
+                Tap a day on the calendar above to log your period.
+              </p>
+            )}
+          </>
         )}
       </section>
 
@@ -203,18 +270,38 @@ function PeriodPage() {
           <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-3">
             Previous period report
           </p>
-          <div className="grid grid-cols-3 gap-2.5">
-            <StatPill
-              label="Last period"
-              value={format(new Date(lastLog.startDate + "T00:00:00"), "d MMM")}
-            />
-            <StatPill label="Avg cycle" value={`${avgCycle} days`} />
-            <StatPill
-              label="Next period"
-              value={predictedStart ? format(predictedStart, "d MMM") : "—"}
-              highlight
-            />
-          </div>
+          {isIrregular ? (
+            <div className="grid grid-cols-3 gap-2.5">
+              <StatPill
+                label="Last period"
+                value={format(new Date(lastLog.startDate + "T00:00:00"), "d MMM")}
+              />
+              <StatPill
+                label="Cycle range"
+                value={`${shortCycle}–${longCycle}d`}
+              />
+              <StatPill
+                label="Next period"
+                value={irrNextShort && irrNextLong
+                  ? `${format(irrNextShort, "d")}–${format(irrNextLong, "d MMM")}`
+                  : "—"}
+                highlight
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2.5">
+              <StatPill
+                label="Last period"
+                value={format(new Date(lastLog.startDate + "T00:00:00"), "d MMM")}
+              />
+              <StatPill label="Avg cycle" value={`${avgCycle} days`} />
+              <StatPill
+                label="Next period"
+                value={predictedStart ? format(predictedStart, "d MMM") : "—"}
+                highlight
+              />
+            </div>
+          )}
         </section>
       )}
 
@@ -253,7 +340,6 @@ function PeriodPage() {
         </section>
       )}
 
-      {/* Spacer for fixed bottom button + bottom nav */}
       <div className="h-28" />
 
       {/* Fixed Log period CTA */}

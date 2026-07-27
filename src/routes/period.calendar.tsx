@@ -59,7 +59,7 @@ function CalendarPage() {
   };
 
   return (
-    <AppShell>
+    <AppShell hideLogout>
       {/* Top bar */}
       <div className="mt-3 flex items-center justify-between">
         <Link

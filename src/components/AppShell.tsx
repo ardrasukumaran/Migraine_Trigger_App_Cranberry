@@ -10,12 +10,14 @@ export function AppShell({
   subtitle,
   right,
   bg = "default",
+  hideLogout = false,
 }: {
   children: ReactNode;
   title?: ReactNode;
   subtitle?: string;
   right?: ReactNode;
   bg?: "default" | "lavender" | "white";
+  hideLogout?: boolean;
 }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -33,15 +35,17 @@ export function AppShell({
 
   return (
     <div className={`phone-frame ${bgClass}`}>
-      {/* Logout button — labeled pill in top-right corner */}
-      <button
-        onClick={handleLogout}
-        aria-label="Log out"
-        className="absolute top-3 right-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-muted text-warm-grey/70 hover:bg-accent hover:text-foreground transition active:scale-95"
-      >
-        <LogOut className="h-3.5 w-3.5" />
-        Log out
-      </button>
+      {/* Logout button — hidden on pages that pass hideLogout */}
+      {!hideLogout && (
+        <button
+          onClick={handleLogout}
+          aria-label="Log out"
+          className="absolute top-3 right-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-muted text-warm-grey/70 hover:bg-accent hover:text-foreground transition active:scale-95"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Log out
+        </button>
+      )}
 
       {(title || right) && (
         <header className="px-5 pt-7 pb-4 flex items-end justify-between gap-3">

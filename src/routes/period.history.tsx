@@ -25,7 +25,7 @@ function HistoryPage() {
   const currentDay = lastLog ? dayInCurrentCycle(lastLog.startDate) : 1;
 
   return (
-    <AppShell>
+    <AppShell hideLogout>
       <div className="mt-4 flex items-center gap-3">
         <Link
           to="/period"

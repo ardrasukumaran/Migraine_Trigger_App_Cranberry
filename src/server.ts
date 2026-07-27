@@ -200,6 +200,60 @@ Bun.serve({
       }
     }
 
+    // ── /api/period-baseline ──────────────────────────────────
+    if (url.pathname === "/api/period-baseline" && req.method === "GET") {
+      const phone   = url.searchParams.get("phone") ?? "";
+      const saJson  = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+      const sheetId = process.env.ATTACK_SHEET_ID;
+
+      if (!phone) {
+        return new Response(JSON.stringify({ error: "Missing phone" }), {
+          status: 400, headers: { "content-type": "application/json" },
+        });
+      }
+      if (!saJson || !sheetId) {
+        return new Response(JSON.stringify({ error: "Server configuration error" }), {
+          status: 500, headers: { "content-type": "application/json" },
+        });
+      }
+
+      try {
+        const creds = JSON.parse(saJson);
+        const rows  = await readSheetRows(creds, sheetId, "Baseline Period Data");
+
+        // Col A=phone(0), B=mode regular/irregular(1), C=periodDays(2),
+        //     D=cycleLength(3), E=shortestCycle(4), F=longestCycle(5)
+        const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
+        const row = rows.find(r =>
+          String(r[0] ?? "").replace(/\D/g, "").slice(-10) === normalizedPhone
+        );
+
+        if (!row) {
+          console.log(`[period-baseline] no row found for phone=${normalizedPhone}`);
+          return new Response(JSON.stringify({ found: false }), {
+            headers: { "content-type": "application/json" },
+          });
+        }
+
+        const modeRaw      = String(row[1] ?? "").trim().toLowerCase();
+        const mode         = modeRaw === "irregular" ? "irregular" : "regular";
+        const periodDays   = parseInt(String(row[2] ?? "5"), 10) || 5;
+        const cycleLength  = parseInt(String(row[3] ?? "28"), 10) || 28;
+        const shortestCycle = parseInt(String(row[4] ?? ""), 10) || cycleLength;
+        const longestCycle  = parseInt(String(row[5] ?? ""), 10) || cycleLength;
+
+        console.log(`[period-baseline] phone=${normalizedPhone} mode=${mode} cycle=${cycleLength} period=${periodDays}`);
+        return new Response(JSON.stringify({ found: true, mode, periodDays, cycleLength, shortestCycle, longestCycle }), {
+          headers: { "content-type": "application/json" },
+        });
+      } catch (err) {
+        console.error("[period-baseline] error:", err);
+        return new Response(JSON.stringify({ error: "Failed to fetch baseline" }), {
+          status: 500, headers: { "content-type": "application/json" },
+        });
+      }
+    }
+
     // ── /api/triggers ─────────────────────────────────────────
     if (url.pathname === "/api/triggers" && req.method === "GET") {
       const phone   = url.searchParams.get("phone") ?? "";

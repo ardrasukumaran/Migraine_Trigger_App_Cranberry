@@ -10,6 +10,7 @@ export const PHASE = {
 } as const;
 
 export type PhaseKey = keyof typeof PHASE;
+export type Mode = "regular" | "irregular";
 
 export function phaseForDay(dayInCycle: number, days: number, periodDays = 5): PhaseKey {
   if (dayInCycle <= periodDays) return "period";
@@ -27,12 +28,24 @@ export type PeriodLog = {
 };
 
 export type PeriodState = {
-  logs: PeriodLog[];   // newest first
-  cycleLength: number; // default 28
-  periodDays: number;  // default 5
+  logs: PeriodLog[];      // newest first
+  mode: Mode;             // from sheet baseline
+  cycleLength: number;    // regular cycle length (default 28)
+  periodDays: number;     // period duration (default 5)
+  shortestCycle: number;  // irregular: shortest cycle (default = cycleLength)
+  longestCycle: number;   // irregular: longest cycle (default = cycleLength)
+  baselineLoaded: boolean;
 };
 
-const DEFAULT_STATE: PeriodState = { logs: [], cycleLength: 28, periodDays: 5 };
+const DEFAULT_STATE: PeriodState = {
+  logs: [],
+  mode: "regular",
+  cycleLength: 28,
+  periodDays: 5,
+  shortestCycle: 28,
+  longestCycle: 28,
+  baselineLoaded: false,
+};
 
 export function getPeriodState(): PeriodState {
   if (typeof window === "undefined") return DEFAULT_STATE;
@@ -63,6 +76,37 @@ export function usePeriodState() {
   return [state, update] as const;
 }
 
+// Fetch baseline from server and merge into state (call once when baselineLoaded is false)
+export async function loadPeriodBaseline(phone: string): Promise<Partial<PeriodState> | null> {
+  try {
+    const res  = await fetch(`/api/period-baseline?phone=${encodeURIComponent(phone)}`);
+    const data = await res.json() as {
+      found?: boolean;
+      mode?: string;
+      periodDays?: number;
+      cycleLength?: number;
+      shortestCycle?: number;
+      longestCycle?: number;
+      error?: string;
+    };
+    if (!data.found) return null;
+    const mode: Mode = data.mode === "irregular" ? "irregular" : "regular";
+    const cycleLength  = data.cycleLength  ?? 28;
+    const shortestCycle = data.shortestCycle ?? cycleLength;
+    const longestCycle  = data.longestCycle  ?? cycleLength;
+    return {
+      mode,
+      periodDays:    data.periodDays ?? 5,
+      cycleLength,
+      shortestCycle,
+      longestCycle,
+      baselineLoaded: true,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ── Derived helpers ────────────────────────────────────────────────
 export function nextPeriodDate(lastStart: string, cycleLength: number): Date {
   return addDays(new Date(lastStart + "T00:00:00"), cycleLength);
@@ -82,7 +126,6 @@ export function dayInCurrentCycle(lastStart: string): number {
   return Math.max(1, Math.floor((today.getTime() - start.getTime()) / 86400000) + 1);
 }
 
-// Recalculate average cycle length from the last 3 logged periods
 export function computeAvgCycleLength(logs: PeriodLog[]): number {
   if (logs.length < 2) return 28;
   const sorted = [...logs].sort((a, b) => b.startDate.localeCompare(a.startDate));
@@ -118,14 +161,12 @@ export function buildCycleHistory(logs: PeriodLog[], cycleLength: number): Cycle
     let ongoing = false;
 
     if (isFirst) {
-      // Current cycle: from last period start to today
       days = dayInCurrentCycle(log.startDate);
       endDate = todayStr;
       ongoing = true;
     } else if (next) {
-      // Cycle = gap between this period start and the next one
       const start = new Date(log.startDate + "T00:00:00");
-      const end = new Date(next.startDate + "T00:00:00");
+      const end   = new Date(next.startDate + "T00:00:00");
       days = Math.round((end.getTime() - start.getTime()) / 86400000);
       endDate = next.startDate;
     } else {
