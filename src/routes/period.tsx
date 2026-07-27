@@ -344,7 +344,7 @@ function PeriodPage() {
       <div className="h-28" />
 
       {/* Fixed Log period CTA */}
-      <div className="fixed inset-x-0 bottom-[68px] z-30 pointer-events-none">
+      <div className="fixed inset-x-0 bottom-[88px] z-30 pointer-events-none">
         <div className="w-full max-w-[430px] mx-auto px-5 pointer-events-auto">
           <Link
             to="/period/calendar"

@@ -60,32 +60,32 @@ function CalendarPage() {
 
   return (
     <AppShell hideLogout>
-      {/* Top bar */}
-      <div className="mt-3 flex items-center justify-between">
-        <Link
-          to="/period"
-          aria-label="Back to period"
-          className="h-9 w-9 rounded-full grid place-items-center bg-[#F2B8BF]/20 text-[#F2B8BF] hover:bg-[#F2B8BF]/30 transition"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
-        <p className="text-sm font-semibold">Calendar</p>
-        <button
-          onClick={() => setSelectedStart(TODAY)}
-          className="text-sm font-semibold text-[#F2B8BF]"
-        >
-          Today
-        </button>
+      {/* Sticky header: top bar + weekday labels */}
+      <div className="sticky top-0 z-20 bg-[#1A0F1E] -mx-5 px-5 pb-2 pt-3">
+        <div className="flex items-center justify-between">
+          <Link
+            to="/period"
+            aria-label="Back to period"
+            className="h-9 w-9 rounded-full grid place-items-center bg-[#F2B8BF]/20 text-[#F2B8BF] hover:bg-[#F2B8BF]/30 transition"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <p className="text-sm font-semibold">Calendar</p>
+          <button
+            onClick={() => setSelectedStart(TODAY)}
+            className="text-sm font-semibold text-[#F2B8BF]"
+          >
+            Today
+          </button>
+        </div>
+        <div className="mt-3 grid grid-cols-7 gap-1 text-[11px] uppercase text-warm-grey/60 text-center">
+          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+            <span key={d}>{d}</span>
+          ))}
+        </div>
       </div>
 
-      {/* Weekday labels */}
-      <div className="mt-4 grid grid-cols-7 gap-1 text-[11px] uppercase text-warm-grey/60 text-center">
-        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-          <span key={d}>{d}</span>
-        ))}
-      </div>
-
-      <div className="mt-3 space-y-6">
+      <div className="mt-1 space-y-6">
         {months.map((m) => (
           <MonthGrid
             key={m.toISOString()}
@@ -110,7 +110,7 @@ function CalendarPage() {
       <div className="h-28" />
 
       {/* Bottom action */}
-      <div className="fixed inset-x-0 bottom-[68px] z-30 pointer-events-none">
+      <div className="fixed inset-x-0 bottom-[88px] z-30 pointer-events-none">
         <div className="w-full max-w-[430px] mx-auto px-5 pointer-events-auto">
           <button
             onClick={saveSelectedPeriod}
