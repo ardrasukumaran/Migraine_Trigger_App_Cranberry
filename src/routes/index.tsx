@@ -38,9 +38,18 @@ function TodayPage() {
   const periodState = getPeriodState();
   const periodSorted = [...periodState.logs].sort((a, b) => b.startDate.localeCompare(a.startDate));
   const lastPeriodLog = periodSorted[0] ?? null;
-  const avgCycle = computeAvgCycleLength(periodState.logs);
+  const isIrregularCycle = periodState.mode === "irregular";
+  const avgCycle = periodState.logs.length >= 2
+    ? computeAvgCycleLength(periodState.logs)
+    : periodState.cycleLength;
+  // Regular
   const periodDaysLeft = lastPeriodLog ? daysUntilNext(lastPeriodLog.startDate, avgCycle) : null;
-  const predictedNext = lastPeriodLog ? nextPeriodDate(lastPeriodLog.startDate, avgCycle) : null;
+  const predictedNext  = lastPeriodLog ? nextPeriodDate(lastPeriodLog.startDate, avgCycle) : null;
+  // Irregular window
+  const irrLow       = lastPeriodLog ? daysUntilNext(lastPeriodLog.startDate, periodState.shortestCycle) : null;
+  const irrHigh      = lastPeriodLog ? daysUntilNext(lastPeriodLog.startDate, periodState.longestCycle)  : null;
+  const irrNextShort = lastPeriodLog ? nextPeriodDate(lastPeriodLog.startDate, periodState.shortestCycle) : null;
+  const irrNextLong  = lastPeriodLog ? nextPeriodDate(lastPeriodLog.startDate, periodState.longestCycle)  : null;
 
   const dayStreak = slotStreak(state.entries, "morning");
   const nightStreak = slotStreak(state.entries, "evening");
@@ -130,18 +139,38 @@ function TodayPage() {
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
               <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[#F2B8BF]/80">
-                {periodDaysLeft !== null ? "Next period" : "Track your cycle"}
+                {lastPeriodLog ? "Next period" : "Track your cycle"}
               </p>
-              {periodDaysLeft !== null && predictedNext ? (
-                <>
-                  <p className="mt-1 text-4xl font-bold text-foreground leading-none">
-                    <span className="text-[#F2B8BF]">{periodDaysLeft}</span>{" "}
-                    <span className="text-2xl font-bold text-foreground/90">days</span>
-                  </p>
-                  <p className="mt-2 text-[11px] text-[#F2B8BF]/80">
-                    Expected {format(predictedNext, "EEE, d MMM")}
-                  </p>
-                </>
+              {lastPeriodLog ? (
+                isIrregularCycle ? (
+                  /* Irregular: show range */
+                  <>
+                    <p className="mt-1 text-4xl font-bold text-foreground leading-none">
+                      <span className="text-[#F2B8BF]">{irrLow}</span>
+                      <span className="text-2xl text-foreground/50">–</span>
+                      <span className="text-[#F2B8BF]">{irrHigh}</span>{" "}
+                      <span className="text-2xl font-bold text-foreground/90">days</span>
+                    </p>
+                    {irrNextShort && irrNextLong && (
+                      <p className="mt-2 text-[11px] text-[#F2B8BF]/80">
+                        {format(irrNextShort, "d MMM")} – {format(irrNextLong, "d MMM")}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  /* Regular: single value */
+                  <>
+                    <p className="mt-1 text-4xl font-bold text-foreground leading-none">
+                      <span className="text-[#F2B8BF]">{periodDaysLeft}</span>{" "}
+                      <span className="text-2xl font-bold text-foreground/90">days</span>
+                    </p>
+                    {predictedNext && (
+                      <p className="mt-2 text-[11px] text-[#F2B8BF]/80">
+                        Expected {format(predictedNext, "EEE, d MMM")}
+                      </p>
+                    )}
+                  </>
+                )
               ) : (
                 <p className="mt-2 text-sm text-[#F2B8BF]/70">
                   Log your first period to get predictions

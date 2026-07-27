@@ -65,7 +65,7 @@ function CalendarPage() {
         <Link
           to="/period"
           aria-label="Back to period"
-          className="h-9 w-9 rounded-full grid place-items-center bg-muted hover:bg-accent transition"
+          className="h-9 w-9 rounded-full grid place-items-center bg-[#F2B8BF]/20 text-[#F2B8BF] hover:bg-[#F2B8BF]/30 transition"
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
@@ -246,7 +246,7 @@ function MonthGrid({
 function DropletIcon({ filled }: { filled?: boolean }) {
   const color = PHASE.period.color;
   return (
-    <svg viewBox="0 0 24 32" className="absolute inset-0 m-auto h-[60%] w-[60%]" aria-hidden>
+    <svg viewBox="0 0 24 32" className="absolute inset-0 m-auto h-[82%] w-[82%]" aria-hidden>
       <path
         d="M12 2 C12 2, 22 14, 22 22 A10 10 0 0 1 2 22 C2 14, 12 2, 12 2 Z"
         fill={filled ? color : "none"}
