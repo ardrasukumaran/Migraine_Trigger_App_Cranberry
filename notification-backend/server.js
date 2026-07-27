@@ -1,17 +1,17 @@
 // server.js — Migraine Minder notification backend
+// Uses Google Sheets API directly (no Apps Script middleman)
 
 import "dotenv/config";
 import express from "express";
 import cron    from "node-cron";
 import { sendViaOneSignal, sendToMany } from "./onesignal.js";
-import { upsertToken, getActiveTokens } from "./sheet.js";
+import { upsertToken, getActiveTokens, updateCombo, upsertStreak, batchUpsertStreak, batchUpdateCombo, getUserByMobile } from "./sheet.js";
 import { startScheduler } from "./scheduler.js";
 
 const app        = express();
 const PORT       = process.env.PORT ?? 3000;
 const SECRET     = process.env.API_SECRET;
 const RENDER_URL = process.env.RENDER_EXTERNAL_URL ?? "";
-const WEBHOOK    = process.env.SHEET_WEBHOOK_URL;
 
 app.use(express.json());
 
@@ -32,6 +32,56 @@ function requireSecret(req, res, next) {
   next();
 }
 
+// ─── Batch queue system — collects requests for 2 sec, then flushes as ONE call ─
+// This handles the case where many users (e.g. 200+) save streak/combo at the
+// same moment (e.g. right after a notification reminder fires)
+
+const streakQueue = [];
+let streakFlushTimer = null;
+
+function queueStreak(entry) {
+  streakQueue.push(entry);
+  if (!streakFlushTimer) {
+    streakFlushTimer = setTimeout(flushStreakQueue, 2000); // flush every 2 sec
+  }
+}
+
+async function flushStreakQueue() {
+  const batch = streakQueue.splice(0, streakQueue.length); // take all, clear queue
+  streakFlushTimer = null;
+  if (!batch.length) return;
+
+  try {
+    const result = await batchUpsertStreak(batch);
+    console.log(`[save-streak] Batch flushed: ${result} (${batch.length} requests)`);
+  } catch (err) {
+    console.error("[save-streak] Batch flush failed:", err.message);
+  }
+}
+
+const comboQueue = [];
+let comboFlushTimer = null;
+
+function queueCombo(entry) {
+  comboQueue.push(entry);
+  if (!comboFlushTimer) {
+    comboFlushTimer = setTimeout(flushComboQueue, 2000);
+  }
+}
+
+async function flushComboQueue() {
+  const batch = comboQueue.splice(0, comboQueue.length);
+  comboFlushTimer = null;
+  if (!batch.length) return;
+
+  try {
+    const result = await batchUpdateCombo(batch);
+    console.log(`[save-combo] Batch flushed: ${result} (${batch.length} requests)`);
+  } catch (err) {
+    console.error("[save-combo] Batch flush failed:", err.message);
+  }
+}
+
 // ─── POST /register-token ─────────────────────────────────────────────────────
 app.post("/register-token", async (req, res) => {
   const { mobile_number, fcm_token, day_combo, night_combo } = req.body ?? {};
@@ -39,13 +89,19 @@ app.post("/register-token", async (req, res) => {
     return res.status(400).json({ error: "Invalid token" });
 
   console.log(`[register-token] mobile=${mobile_number}`);
-  const result = await upsertToken({
-    token:      fcm_token,
-    mobile:     mobile_number ?? "",
-    dayCombo:   day_combo     ?? "",
-    nightCombo: night_combo   ?? "",
-  });
-  res.json({ ok: true, sheet: result });
+
+  try {
+    const result = await upsertToken({
+      token:      fcm_token,
+      mobile:     mobile_number ?? "",
+      dayCombo:   day_combo     ?? "",
+      nightCombo: night_combo   ?? "",
+    });
+    res.json({ ok: true, sheet: result });
+  } catch (err) {
+    console.error("[register-token] Failed:", err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // ─── GET /user-info ───────────────────────────────────────────────────────────
@@ -54,63 +110,36 @@ app.get("/user-info", async (req, res) => {
   if (!mobile) return res.status(400).json({ error: "mobile is required" });
 
   try {
-    const response = await fetch(`${WEBHOOK}?action=getUser&mobile=${mobile}`);
-    const data = await response.json();
+    const data = await getUserByMobile(mobile);
     res.json({ ok: true, name: data.name ?? "", dayTime: data.dayTime ?? "", nightTime: data.nightTime ?? "" });
   } catch (err) {
-    console.error("[user-info] Error:", err);
+    console.error("[user-info] Error:", err.message);
     res.json({ ok: false, name: "" });
   }
 });
 
 // ─── POST /save-combo ────────────────────────────────────────────────────────
+// Queued and batched — handles many simultaneous saves reliably
 app.post("/save-combo", async (req, res) => {
   const { phone, dayCombo, nightCombo } = req.body ?? {};
   if (!phone) return res.status(400).json({ error: "phone is required" });
 
-  console.log(`[save-combo] phone=${phone} day=${dayCombo} night=${nightCombo}`);
+  console.log(`[save-combo] queued phone=${phone} day=${dayCombo} night=${nightCombo}`);
 
-  if (WEBHOOK) {
-    fetch(WEBHOOK, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({
-        action: "updateCombo",
-        record: {
-          mobile:     phone,
-          dayCombo:   dayCombo   ?? "",
-          nightCombo: nightCombo ?? "",
-        },
-      }),
-    }).catch((err) => console.error("[save-combo] Sheet sync failed:", err));
-  }
-
-  res.json({ ok: true });
+  queueCombo({ mobile: phone, dayCombo, nightCombo });
+  res.json({ ok: true, queued: true });
 });
 
 // ─── POST /save-streak ────────────────────────────────────────────────────────
-// Called when user saves supplement log in the app
-// Body: { phone, date, type, supplements, score }
+// Queued and batched — handles 200+ simultaneous saves reliably
 app.post("/save-streak", async (req, res) => {
   const { phone, date, type, supplements, score } = req.body ?? {};
-
   if (!phone) return res.status(400).json({ error: "phone is required" });
 
-  console.log(`[save-streak] phone=${phone} type=${type} supplements=${supplements} score=${score}`);
+  console.log(`[save-streak] queued phone=${phone} type=${type} supplements=${supplements} score=${score}`);
 
-  // Fire and forget to Google Sheet
-  if (WEBHOOK) {
-    fetch(WEBHOOK, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({
-        action: "logStreak",
-        record: { phone, date, type, supplements, score },
-      }),
-    }).catch((err) => console.error("[save-streak] Sheet sync failed:", err));
-  }
-
-  res.json({ ok: true });
+  queueStreak({ phone, date, type, supplements, score });
+  res.json({ ok: true, queued: true });
 });
 
 // ─── POST /send ───────────────────────────────────────────────────────────────
@@ -144,7 +173,7 @@ app.get("/health", (req, res) => {
     service:   "migraine-notification-backend",
     timestamp: new Date().toISOString(),
     platform:  "onesignal",
-    sheet:     process.env.SHEET_WEBHOOK_URL ? "configured" : "not set",
+    sheet:     "google-sheets-api-direct",
   });
 });
 
@@ -155,7 +184,7 @@ function startSmartKeepAlive() {
     return;
   }
   console.log("[Keep-alive] Smart ping — 5 min before each slot");
-  cron.schedule("25 2,3,4,7,8,9,13,14,15,16 * * *", async () => {
+  cron.schedule("25 2,3,4,7,8,9,13,14,15,16,21 * * *", async () => {
     try {
       const r = await fetch(`${RENDER_URL}/health`);
       console.log(`[Keep-alive] ✓ Ping → ${r.status}`);

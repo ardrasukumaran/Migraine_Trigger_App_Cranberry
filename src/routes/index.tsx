@@ -30,7 +30,9 @@ function slotStreak(
 function TodayPage() {
   const { userName, phone } = useAuth();
   const [state, update] = useStreakState();
-  const [attacks] = useState<AttackLog[]>(() => getAttacks());
+  const [attacks] = useState<AttackLog[]>(() =>
+    getAttacks().sort((a, b) => b.createdAt - a.createdAt)
+  );
 
   const dayStreak = slotStreak(state.entries, "morning");
   const nightStreak = slotStreak(state.entries, "evening");
