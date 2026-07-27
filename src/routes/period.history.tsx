@@ -63,7 +63,7 @@ function HistoryPage() {
                     {h.ongoing ? "today" : format(new Date(h.endDate + "T00:00:00"), "d MMM yyyy")}
                   </p>
                 </div>
-                <CyclePhaseBar days={h.days} elapsed={h.ongoing ? currentDay : h.days} />
+                <CyclePhaseBar days={h.days} elapsed={h.ongoing ? currentDay : h.days} periodDays={state.periodDays} />
               </div>
             ))}
           </section>

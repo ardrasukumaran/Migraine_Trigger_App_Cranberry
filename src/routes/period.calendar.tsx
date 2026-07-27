@@ -246,13 +246,8 @@ function MonthGrid({
 function DropletIcon({ filled }: { filled?: boolean }) {
   const color = PHASE.period.color;
   return (
-    <svg viewBox="0 0 24 32" className="absolute inset-0 m-auto h-[82%] w-[82%]" aria-hidden>
-      <path
-        d="M12 2 C12 2, 22 14, 22 22 A10 10 0 0 1 2 22 C2 14, 12 2, 12 2 Z"
-        fill={filled ? color : "none"}
-        stroke={color}
-        strokeWidth={filled ? 0 : 1.5}
-      />
+    <svg viewBox="0 0 24 24" className="absolute inset-0 m-auto h-[80%] w-[80%]" aria-hidden>
+      <circle cx="12" cy="12" r="9" fill={filled ? color : "none"} stroke={color} strokeWidth={filled ? 0 : 1.5} />
     </svg>
   );
 }

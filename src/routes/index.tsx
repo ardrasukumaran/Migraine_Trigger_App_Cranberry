@@ -139,7 +139,7 @@ function TodayPage() {
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
               <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[#F2B8BF]/80">
-                {lastPeriodLog ? "Next period" : "Track your cycle"}
+                {lastPeriodLog ? "Next Period In" : "Track your cycle"}
               </p>
               {lastPeriodLog ? (
                 isIrregularCycle ? (

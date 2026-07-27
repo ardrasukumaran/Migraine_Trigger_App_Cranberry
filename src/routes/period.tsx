@@ -334,7 +334,7 @@ function PeriodPage() {
                     {h.ongoing ? "today" : format(new Date(h.endDate + "T00:00:00"), "d MMM")}
                   </p>
                 </div>
-                <CyclePhaseBar days={h.days} elapsed={h.ongoing ? currentDay ?? h.days : h.days} />
+                <CyclePhaseBar days={h.days} elapsed={h.ongoing ? currentDay ?? h.days : h.days} periodDays={state.periodDays} />
               </div>
             ))}
           </div>
@@ -385,7 +385,7 @@ function PhasePill({ dayInCycle, cycleLength }: { dayInCycle: number; cycleLengt
 }
 
 /** Segmented phase bar, scrollable horizontally */
-export function CyclePhaseBar({ days, elapsed }: { days: number; elapsed: number }) {
+export function CyclePhaseBar({ days, elapsed, periodDays = 5 }: { days: number; elapsed: number; periodDays?: number }) {
   const DAY_W = 12;
   return (
     <div className="mt-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -393,7 +393,7 @@ export function CyclePhaseBar({ days, elapsed }: { days: number; elapsed: number
         <div className="flex h-2 overflow-hidden rounded-full">
           {Array.from({ length: days }, (_, i) => {
             const d = i + 1;
-            const phase = PHASE[phaseForDay(d, days)];
+            const phase = PHASE[phaseForDay(d, days, periodDays)];
             const faded = d > elapsed;
             return (
               <span
@@ -440,13 +440,8 @@ export function PhaseLegend({ inline = false }: { inline?: boolean } = {}) {
 function DropletIcon({ filled }: { filled?: boolean }) {
   const color = PHASE.period.color;
   return (
-    <svg viewBox="0 0 24 32" className="absolute inset-0 m-auto h-[82%] w-[82%]" aria-hidden>
-      <path
-        d="M12 2 C12 2, 22 14, 22 22 A10 10 0 0 1 2 22 C2 14, 12 2, 12 2 Z"
-        fill={filled ? color : "none"}
-        stroke={color}
-        strokeWidth={filled ? 0 : 1.5}
-      />
+    <svg viewBox="0 0 24 24" className="absolute inset-0 m-auto h-[80%] w-[80%]" aria-hidden>
+      <circle cx="12" cy="12" r="9" fill={filled ? color : "none"} stroke={color} strokeWidth={filled ? 0 : 1.5} />
     </svg>
   );
 }
