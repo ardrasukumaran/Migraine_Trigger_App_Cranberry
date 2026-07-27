@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import {
   addDays,
   eachDayOfInterval,
@@ -64,10 +64,10 @@ function CalendarPage() {
       <div className="mt-3 flex items-center justify-between">
         <Link
           to="/period"
-          aria-label="Close"
+          aria-label="Back to period"
           className="h-9 w-9 rounded-full grid place-items-center bg-muted hover:bg-accent transition"
         >
-          <X className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" />
         </Link>
         <p className="text-sm font-semibold">Calendar</p>
         <button
@@ -202,8 +202,8 @@ function MonthGrid({
           const inMonth = isSameMonth(d, month);
           const isToday = isSameDay(d, today);
           const isFuture = d > today;
-          const logged = inLogged(d) || inSelected(d);
-          const predicted = inPredicted(d) && !logged;
+          const logged = inMonth && (inLogged(d) || inSelected(d));
+          const predicted = inMonth && inPredicted(d) && !logged;
           const disabled = !inMonth || isFuture;
           return (
             <button

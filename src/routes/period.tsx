@@ -283,9 +283,10 @@ function PeriodPage() {
               <StatPill
                 label="Next period"
                 value={irrNextShort && irrNextLong
-                  ? `${format(irrNextShort, "d")}–${format(irrNextLong, "d MMM")}`
+                  ? `${format(irrNextShort, "d MMM")}–${format(irrNextLong, "d MMM")}`
                   : "—"}
                 highlight
+                compact
               />
             </div>
           ) : (
@@ -358,13 +359,13 @@ function PeriodPage() {
   );
 }
 
-function StatPill({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function StatPill({ label, value, highlight, compact }: { label: string; value: string; highlight?: boolean; compact?: boolean }) {
   return (
     <div className="rounded-2xl bg-card border border-border px-3 py-3 text-center">
       <p className="text-[9px] uppercase tracking-[0.14em] text-warm-grey/60 font-semibold">
         {label}
       </p>
-      <p className={`mt-1 text-sm font-semibold ${highlight ? "text-[#F2B8BF]" : "text-foreground"}`}>
+      <p className={`mt-1 font-semibold leading-tight ${compact ? "text-xs" : "text-sm"} ${highlight ? "text-[#F2B8BF]" : "text-foreground"}`}>
         {value}
       </p>
     </div>
