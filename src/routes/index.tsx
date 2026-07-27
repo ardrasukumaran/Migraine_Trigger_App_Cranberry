@@ -2,13 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { Berry } from "@/components/Berry";
 import { StreakPlant } from "@/components/StreakPlant";
-import { Sun, Moon, ChevronRight, Check } from "lucide-react";
+import { Sun, Moon, ChevronRight, Check, Droplet, Plus } from "lucide-react";
 import { isoDate, todayIso, useStreakState, type DayEntry } from "@/lib/streak-store";
 import { ALL_SUPPLEMENTS, DAY_COMBOS, NIGHT_COMBOS } from "@/lib/supplements";
 import { useAuth } from "@/context/AuthContext";
 import { useRef, useState } from "react";
 import { saveStreakToSheet } from "@/lib/saveStreak";
 import { getAttacks, formatAttackDate, type AttackLog } from "@/lib/storage";
+import { getPeriodState, daysUntilNext, nextPeriodDate, computeAvgCycleLength } from "@/lib/period-data";
+import { format } from "date-fns";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -33,6 +35,12 @@ function TodayPage() {
   const [attacks] = useState<AttackLog[]>(() =>
     getAttacks().sort((a, b) => b.createdAt - a.createdAt)
   );
+  const periodState = getPeriodState();
+  const periodSorted = [...periodState.logs].sort((a, b) => b.startDate.localeCompare(a.startDate));
+  const lastPeriodLog = periodSorted[0] ?? null;
+  const avgCycle = computeAvgCycleLength(periodState.logs);
+  const periodDaysLeft = lastPeriodLog ? daysUntilNext(lastPeriodLog.startDate, avgCycle) : null;
+  const predictedNext = lastPeriodLog ? nextPeriodDate(lastPeriodLog.startDate, avgCycle) : null;
 
   const dayStreak = slotStreak(state.entries, "morning");
   const nightStreak = slotStreak(state.entries, "evening");
@@ -108,6 +116,49 @@ function TodayPage() {
             onToggle={(id) => toggle("evening", id)}
           />
         </div>
+      </section>
+
+      {/* Cycle card */}
+      <section className="mt-6">
+        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-3">
+          Cycle
+        </p>
+        <Link
+          to="/period"
+          className="relative block rounded-3xl border border-[#F2B8BF]/30 bg-gradient-to-br from-[#2A1520] via-[#1F1220] to-[#1A0F1E] px-5 py-5 active:scale-[0.99] transition overflow-hidden"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[#F2B8BF]/80">
+                {periodDaysLeft !== null ? "Next period" : "Track your cycle"}
+              </p>
+              {periodDaysLeft !== null && predictedNext ? (
+                <>
+                  <p className="mt-1 text-4xl font-bold text-foreground leading-none">
+                    <span className="text-[#F2B8BF]">{periodDaysLeft}</span>{" "}
+                    <span className="text-2xl font-bold text-foreground/90">days</span>
+                  </p>
+                  <p className="mt-2 text-[11px] text-[#F2B8BF]/80">
+                    Expected {format(predictedNext, "EEE, d MMM")}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-2 text-sm text-[#F2B8BF]/70">
+                  Log your first period to get predictions
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col items-center gap-1.5 shrink-0">
+              <span className="relative h-14 w-14 rounded-full grid place-items-center bg-gradient-to-br from-[#FF6B7A] to-[#E94560] shadow-lg shadow-[#E94560]/30">
+                <Droplet className="h-6 w-6 text-white" fill="currentColor" strokeWidth={0} />
+                <span className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-white grid place-items-center border-2 border-[#1A0F1E]">
+                  <Plus className="h-3 w-3 text-[#E94560]" strokeWidth={3} />
+                </span>
+              </span>
+              <span className="text-[11px] font-semibold text-foreground/90">Log Period</span>
+            </div>
+          </div>
+        </Link>
       </section>
 
       {/* Recent attacks */}

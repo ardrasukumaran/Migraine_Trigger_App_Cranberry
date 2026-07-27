@@ -10,16 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ReportRouteImport } from './routes/report'
+import { Route as PeriodRouteImport } from './routes/period'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LogRouteImport } from './routes/log'
 import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as CoachRouteImport } from './routes/coach'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PeriodHistoryRouteImport } from './routes/period.history'
+import { Route as PeriodCalendarRouteImport } from './routes/period.calendar'
 
 const ReportRoute = ReportRouteImport.update({
   id: '/report',
   path: '/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PeriodRoute = PeriodRouteImport.update({
+  id: '/period',
+  path: '/period',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -52,6 +60,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PeriodHistoryRoute = PeriodHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => PeriodRoute,
+} as any)
+const PeriodCalendarRoute = PeriodCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => PeriodRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -60,7 +78,10 @@ export interface FileRoutesByFullPath {
   '/insights': typeof InsightsRoute
   '/log': typeof LogRoute
   '/login': typeof LoginRoute
+  '/period': typeof PeriodRouteWithChildren
   '/report': typeof ReportRoute
+  '/period/calendar': typeof PeriodCalendarRoute
+  '/period/history': typeof PeriodHistoryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -69,7 +90,10 @@ export interface FileRoutesByTo {
   '/insights': typeof InsightsRoute
   '/log': typeof LogRoute
   '/login': typeof LoginRoute
+  '/period': typeof PeriodRouteWithChildren
   '/report': typeof ReportRoute
+  '/period/calendar': typeof PeriodCalendarRoute
+  '/period/history': typeof PeriodHistoryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -79,7 +103,10 @@ export interface FileRoutesById {
   '/insights': typeof InsightsRoute
   '/log': typeof LogRoute
   '/login': typeof LoginRoute
+  '/period': typeof PeriodRouteWithChildren
   '/report': typeof ReportRoute
+  '/period/calendar': typeof PeriodCalendarRoute
+  '/period/history': typeof PeriodHistoryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,9 +117,22 @@ export interface FileRouteTypes {
     | '/insights'
     | '/log'
     | '/login'
+    | '/period'
     | '/report'
+    | '/period/calendar'
+    | '/period/history'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/calendar' | '/coach' | '/insights' | '/log' | '/login' | '/report'
+  to:
+    | '/'
+    | '/calendar'
+    | '/coach'
+    | '/insights'
+    | '/log'
+    | '/login'
+    | '/period'
+    | '/report'
+    | '/period/calendar'
+    | '/period/history'
   id:
     | '__root__'
     | '/'
@@ -101,7 +141,10 @@ export interface FileRouteTypes {
     | '/insights'
     | '/log'
     | '/login'
+    | '/period'
     | '/report'
+    | '/period/calendar'
+    | '/period/history'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -111,6 +154,7 @@ export interface RootRouteChildren {
   InsightsRoute: typeof InsightsRoute
   LogRoute: typeof LogRoute
   LoginRoute: typeof LoginRoute
+  PeriodRoute: typeof PeriodRouteWithChildren
   ReportRoute: typeof ReportRoute
 }
 
@@ -121,6 +165,13 @@ declare module '@tanstack/react-router' {
       path: '/report'
       fullPath: '/report'
       preLoaderRoute: typeof ReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/period': {
+      id: '/period'
+      path: '/period'
+      fullPath: '/period'
+      preLoaderRoute: typeof PeriodRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -165,8 +216,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/period/history': {
+      id: '/period/history'
+      path: '/history'
+      fullPath: '/period/history'
+      preLoaderRoute: typeof PeriodHistoryRouteImport
+      parentRoute: typeof PeriodRoute
+    }
+    '/period/calendar': {
+      id: '/period/calendar'
+      path: '/calendar'
+      fullPath: '/period/calendar'
+      preLoaderRoute: typeof PeriodCalendarRouteImport
+      parentRoute: typeof PeriodRoute
+    }
   }
 }
+
+interface PeriodRouteChildren {
+  PeriodCalendarRoute: typeof PeriodCalendarRoute
+  PeriodHistoryRoute: typeof PeriodHistoryRoute
+}
+
+const PeriodRouteChildren: PeriodRouteChildren = {
+  PeriodCalendarRoute: PeriodCalendarRoute,
+  PeriodHistoryRoute: PeriodHistoryRoute,
+}
+
+const PeriodRouteWithChildren =
+  PeriodRoute._addFileChildren(PeriodRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -175,6 +253,7 @@ const rootRouteChildren: RootRouteChildren = {
   InsightsRoute: InsightsRoute,
   LogRoute: LogRoute,
   LoginRoute: LoginRoute,
+  PeriodRoute: PeriodRouteWithChildren,
   ReportRoute: ReportRoute,
 }
 export const routeTree = rootRouteImport
