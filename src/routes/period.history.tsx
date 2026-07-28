@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
-import { usePeriodState, buildCycleHistory, dayInCurrentCycle } from "@/lib/period-data";
+import { usePeriodState, buildCycleHistory } from "@/lib/period-data";
 import { CyclePhaseBar, PhaseLegend } from "./period";
 
 export const Route = createFileRoute("/period/history")({
@@ -22,10 +22,6 @@ function HistoryPage() {
     () => buildCycleHistory(state.logs, state.baselineCycleLength, state.baselinePrevPeriodDate ?? "1900-01-01"),
     [state.logs, state.baselineCycleLength, state.baselinePrevPeriodDate],
   );
-  const sorted = [...state.logs].sort((a, b) => b.startDate.localeCompare(a.startDate));
-  const lastLog = sorted[0] ?? null;
-  const currentDay = lastLog ? dayInCurrentCycle(lastLog.startDate) : 1;
-
   return (
     <AppShell hideLogout>
       <div className="mt-4 flex items-center gap-3">
@@ -65,7 +61,7 @@ function HistoryPage() {
                     {h.ongoing ? "today" : format(new Date(h.endDate + "T00:00:00"), "d MMM yyyy")}
                   </p>
                 </div>
-                <CyclePhaseBar days={h.days} elapsed={h.ongoing ? currentDay : h.days} periodDays={state.periodLength} pmsLength={state.pmsLength} />
+                <CyclePhaseBar days={h.days} cycleDays={h.avgCycleLength} periodDays={state.periodLength} pmsLength={state.pmsLength} />
               </div>
             ))}
           </section>

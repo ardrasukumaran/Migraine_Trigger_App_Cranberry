@@ -350,7 +350,7 @@ function PeriodPage() {
                     {h.ongoing ? "today" : format(new Date(h.endDate + "T00:00:00"), "d MMM")}
                   </p>
                 </div>
-                <CyclePhaseBar days={h.days} elapsed={h.ongoing ? currentDay ?? h.days : h.days} periodDays={state.periodLength} pmsLength={state.pmsLength} />
+                <CyclePhaseBar days={h.days} cycleDays={h.avgCycleLength} periodDays={state.periodLength} pmsLength={state.pmsLength} />
               </div>
             ))}
           </div>
@@ -400,8 +400,11 @@ function PhasePill({ dayInCycle, cycleLength }: { dayInCycle: number; cycleLengt
   );
 }
 
-/** Segmented phase bar, scrollable horizontally */
-export function CyclePhaseBar({ days, elapsed, periodDays = 5, pmsLength = 5 }: { days: number; elapsed: number; periodDays?: number; pmsLength?: number }) {
+/** Segmented phase bar, scrollable horizontally.
+ *  days      = bar width (actual span between period starts)
+ *  cycleDays = avgCycleLength used for phase-boundary math (PMS starts at cycleDays - pmsLength)
+ */
+export function CyclePhaseBar({ days, cycleDays, periodDays = 5, pmsLength = 5 }: { days: number; cycleDays: number; periodDays?: number; pmsLength?: number }) {
   const DAY_W = 12;
   return (
     <div className="mt-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -409,13 +412,12 @@ export function CyclePhaseBar({ days, elapsed, periodDays = 5, pmsLength = 5 }: 
         <div className="flex h-2 overflow-hidden rounded-full">
           {Array.from({ length: days }, (_, i) => {
             const d = i + 1;
-            const phase = PHASE[phaseForDay(d, days, periodDays, pmsLength)];
-            const faded = d > elapsed;
+            const phase = PHASE[phaseForDay(d, cycleDays, periodDays, pmsLength)];
             return (
               <span
                 key={i}
                 className="h-full"
-                style={{ width: DAY_W, backgroundColor: phase.color, opacity: faded ? 0.3 : 1 }}
+                style={{ width: DAY_W, backgroundColor: phase.color }}
               />
             );
           })}
