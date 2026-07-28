@@ -268,23 +268,27 @@ export function buildCycleHistory(
   );
 
   return sorted.map((log, i) => {
-    const isFirst = i === 0;
+    const isOngoing = i === 0; // highest cycleId = current cycle (sorted descending)
     const metric = metricsMap.get(log.startDate)!;
-    let days: number;
+    let days: number;  // bar length = actual span from this cycle start to next period - 1
     let endDate: string;
     let ongoing = false;
 
-    if (isFirst) {
+    if (isOngoing) {
       days = dayInCurrentCycle(log.startDate);
       endDate = todayStr;
       ongoing = true;
     } else {
-      days = metric.cycleLength;
-      endDate = sorted[i - 1].startDate;
+      // sorted[i-1] is the NEXT cycle chronologically (higher cycleId, since array is descending)
+      const nextLog = sorted[i - 1];
+      const startMs = new Date(log.startDate + "T00:00:00").getTime();
+      const nextMs  = new Date(nextLog.startDate + "T00:00:00").getTime();
+      days = Math.round((nextMs - startMs) / 86400000);
+      endDate = addDays(new Date(nextLog.startDate + "T00:00:00"), -1).toISOString().slice(0, 10);
     }
 
     return {
-      label: ongoing ? "Current cycle" : `${metric.cycleLength} days`,
+      label: ongoing ? "Current cycle" : `${days} days`,
       days,
       cycleLength: metric.cycleLength,
       avgCycleLength: metric.avgCycleLength,
