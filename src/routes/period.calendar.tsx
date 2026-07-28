@@ -35,9 +35,10 @@ function CalendarPage() {
   const baselinePrev = state.baselinePrevPeriodDate ?? "1900-01-01";
   const avgCycle = getAvgCycleLength(state.logs, state.baselineCycleLength, baselinePrev);
 
-  // 12 months back → month of predicted next period (or next month if no data)
   const predictedNext = lastLog ? nextPeriodDate(lastLog.startDate, avgCycle) : addDays(TODAY, 28);
-  const anchor = startOfMonth(predictedNext);
+  // End the calendar at the later of: 3 months from today OR the predicted next period month
+  const threeAhead = startOfMonth(new Date(TODAY.getFullYear(), TODAY.getMonth() + 3, 1));
+  const anchor = startOfMonth(predictedNext) > threeAhead ? startOfMonth(predictedNext) : threeAhead;
   const months: Date[] = [];
   for (let i = 12; i >= 0; i--) {
     months.push(startOfMonth(new Date(anchor.getFullYear(), anchor.getMonth() - i, 1)));
