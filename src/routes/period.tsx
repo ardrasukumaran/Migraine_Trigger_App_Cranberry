@@ -24,6 +24,7 @@ import {
   getAvgCycleLength,
   buildCycleHistory,
   assignCycleIds,
+  computeCycleMetrics,
   type PhaseKey,
 } from "@/lib/period-data";
 import { useAuth } from "@/context/AuthContext";
@@ -113,15 +114,32 @@ function PeriodPage() {
   const saveSelectedPeriod = () => {
     if (!selectedStart) return;
     const startDate = selectedStart.toISOString().slice(0, 10);
-    update((s) => {
-      const alreadyLogged = s.logs.some((l) => l.startDate === startDate);
-      if (alreadyLogged) return s;
-      const raw = [{ id: `period-${startDate}`, startDate, cycleId: 0 }, ...s.logs];
-      const newLogs = assignCycleIds(raw);
-      const bp = s.baselinePrevPeriodDate ?? "1900-01-01";
-      const newCycle = getAvgCycleLength(newLogs, s.baselineCycleLength, bp);
-      return { ...s, logs: newLogs, cycleLength: newCycle, cycleId: newLogs.length };
-    });
+    if (state.logs.some((l) => l.startDate === startDate)) { setSelectedStart(null); return; }
+
+    const bp = state.baselinePrevPeriodDate ?? "1900-01-01";
+    const raw = [{ id: `period-${startDate}`, startDate, cycleId: 0 }, ...state.logs];
+    const newLogs = assignCycleIds(raw);
+    const metrics = computeCycleMetrics(newLogs, state.baselineCycleLength, bp);
+    const thisMetric = metrics.find((m) => m.startDate === startDate)!;
+    const thisLog = newLogs.find((l) => l.startDate === startDate)!;
+    const newAvgCycle = thisMetric.avgCycleLength;
+    const predicted = nextPeriodDate(startDate, newAvgCycle);
+
+    update((s) => ({ ...s, logs: newLogs, cycleLength: newAvgCycle, cycleId: newLogs.length }));
+
+    fetch("https://hook.us1.make.com/bi71vzkpuxaoqj8u1xewo5l3ksetdyiw", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        currentPeriodDate: startDate,
+        periodLength: state.periodLength,
+        cycleLength: thisMetric.cycleLength,
+        avgCycleLength: newAvgCycle,
+        cycleId: thisLog.cycleId,
+        predictedPeriod: predicted.toISOString().slice(0, 10),
+      }),
+    }).catch(console.error);
+
     setSelectedStart(null);
   };
 
