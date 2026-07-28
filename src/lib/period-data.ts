@@ -181,18 +181,6 @@ export function dayInCurrentCycle(lastStart: string): number {
   return Math.max(1, Math.floor((today.getTime() - start.getTime()) / 86400000) + 1);
 }
 
-export function computeAvgCycleLength(logs: PeriodLog[]): number {
-  if (logs.length < 2) return 28;
-  const sorted = [...logs].sort((a, b) => b.startDate.localeCompare(a.startDate));
-  const gaps: number[] = [];
-  for (let i = 0; i < Math.min(sorted.length - 1, 3); i++) {
-    const a = new Date(sorted[i].startDate + "T00:00:00");
-    const b = new Date(sorted[i + 1].startDate + "T00:00:00");
-    gaps.push(Math.round((b.getTime() - a.getTime()) / -86400000));
-  }
-  return Math.round(gaps.reduce((s, n) => s + n, 0) / gaps.length);
-}
-
 // ── Cycle length computation ───────────────────────────────────────
 // Returns per-cycle metrics in ascending (oldest-first) order.
 // Rules:
