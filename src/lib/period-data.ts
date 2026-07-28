@@ -184,9 +184,10 @@ export function dayInCurrentCycle(lastStart: string): number {
 // ── Cycle length computation ───────────────────────────────────────
 // Returns per-cycle metrics in ascending (oldest-first) order.
 // Rules:
-//   Cycle 1             → cycleLength = baselineCycleLength (rule 6)
-//   date < baseline     → cycleLength = gap, avg resets to baselineCycleLength (rule 4)
-//   date ≥ baseline     → cycleLength = gap, avg = round((gap + prevAvg) / 2) (rule 5)
+//   Cycle 1                         → cycleLength = baselineCycleLength (rule 6)
+//   N < baseline                    → avg resets to baselineCycleLength (rule 4)
+//   N ≥ baseline AND N-1 ≥ baseline → avg = round((gap + prevAvg) / 2) (rule 5)
+//   N ≥ baseline AND N-1 < baseline → avg unchanged (gap spans baseline; not used)
 export type CycleMetric = {
   startDate: string;
   cycleLength: number;    // actual length of this cycle (days)
@@ -216,10 +217,11 @@ export function computeCycleMetrics(
       );
       cycleLength = gap;
       if (log.startDate < baselinePrevPeriodDate) {
-        avg = baselineCycleLength; // Rule 4: before baseline → reset
-      } else {
-        avg = Math.round((cycleLength + avg) / 2); // Rule 5: iterative average
+        avg = baselineCycleLength; // Rule 4: N before baseline → reset
+      } else if (prev.startDate >= baselinePrevPeriodDate) {
+        avg = Math.round((cycleLength + avg) / 2); // Rule 5: both N and N-1 after baseline
       }
+      // else: N after baseline but N-1 before → gap spans baseline; avg unchanged
     }
     return { startDate: log.startDate, cycleLength, avgCycleLength: avg };
   });
