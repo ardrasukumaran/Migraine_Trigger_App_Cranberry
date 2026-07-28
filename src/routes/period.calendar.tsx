@@ -13,7 +13,7 @@ import {
   startOfMonth,
   startOfWeek,
 } from "date-fns";
-import { PHASE, usePeriodState, nextPeriodDate, computeAvgCycleLength, assignCycleIds } from "@/lib/period-data";
+import { PHASE, usePeriodState, nextPeriodDate, getAvgCycleLength, assignCycleIds } from "@/lib/period-data";
 
 export const Route = createFileRoute("/period/calendar")({
   head: () => ({
@@ -32,7 +32,8 @@ function CalendarPage() {
   const TODAY = useMemo(() => new Date(), []);
   const sorted = [...state.logs].sort((a, b) => b.startDate.localeCompare(a.startDate));
   const lastLog = sorted[0] ?? null;
-  const avgCycle = computeAvgCycleLength(state.logs);
+  const baselinePrev = state.baselinePrevPeriodDate ?? "1900-01-01";
+  const avgCycle = getAvgCycleLength(state.logs, state.baselineCycleLength, baselinePrev);
 
   // 12 months back → month of predicted next period (or next month if no data)
   const predictedNext = lastLog ? nextPeriodDate(lastLog.startDate, avgCycle) : addDays(TODAY, 28);
@@ -50,7 +51,8 @@ function CalendarPage() {
       if (alreadyLogged) return s;
       const raw = [{ id: `period-${startDate}`, startDate, cycleId: 0 }, ...s.logs];
       const newLogs = assignCycleIds(raw);
-      const newCycle = newLogs.length >= 2 ? computeAvgCycleLength(newLogs) : s.cycleLength;
+      const bp = s.baselinePrevPeriodDate ?? "1900-01-01";
+      const newCycle = getAvgCycleLength(newLogs, s.baselineCycleLength, bp);
       return { ...s, logs: newLogs, cycleLength: newCycle, cycleId: newLogs.length };
     });
     setSelectedStart(null);

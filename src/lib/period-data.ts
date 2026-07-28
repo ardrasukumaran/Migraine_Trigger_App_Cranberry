@@ -193,25 +193,93 @@ export function computeAvgCycleLength(logs: PeriodLog[]): number {
   return Math.round(gaps.reduce((s, n) => s + n, 0) / gaps.length);
 }
 
+// ── Cycle length computation ───────────────────────────────────────
+// Returns per-cycle metrics in ascending (oldest-first) order.
+// Rules:
+//   Cycle 1             → cycleLength = baselineCycleLength (rule 6)
+//   date < baseline     → cycleLength = gap, avg resets to baselineCycleLength (rule 4)
+//   date ≥ baseline     → cycleLength = gap, avg = round((gap + prevAvg) / 2) (rule 5)
+export type CycleMetric = {
+  startDate: string;
+  cycleLength: number;    // actual length of this cycle (days)
+  avgCycleLength: number; // running average after this cycle (for prediction)
+};
+
+export function computeCycleMetrics(
+  logs: PeriodLog[],
+  baselineCycleLength: number,
+  baselinePrevPeriodDate: string,
+): CycleMetric[] {
+  if (logs.length === 0) return [];
+  const sorted = [...logs].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  let avg = baselineCycleLength;
+
+  return sorted.map((log, i) => {
+    let cycleLength: number;
+    if (i === 0) {
+      // Rule 6: only one reference → use baseline
+      cycleLength = baselineCycleLength;
+      avg = baselineCycleLength;
+    } else {
+      const prev = sorted[i - 1];
+      const gap = Math.round(
+        (new Date(log.startDate + "T00:00:00").getTime() -
+         new Date(prev.startDate + "T00:00:00").getTime()) / 86400000,
+      );
+      cycleLength = gap;
+      if (log.startDate < baselinePrevPeriodDate) {
+        avg = baselineCycleLength; // Rule 4: before baseline → reset
+      } else {
+        avg = Math.round((cycleLength + avg) / 2); // Rule 5: iterative average
+      }
+    }
+    return { startDate: log.startDate, cycleLength, avgCycleLength: avg };
+  });
+}
+
+// Returns the average cycle length to use for next-period prediction.
+export function getAvgCycleLength(
+  logs: PeriodLog[],
+  baselineCycleLength: number,
+  baselinePrevPeriodDate: string,
+): number {
+  if (logs.length === 0) return baselineCycleLength;
+  const metrics = computeCycleMetrics(logs, baselineCycleLength, baselinePrevPeriodDate);
+  return metrics[metrics.length - 1].avgCycleLength;
+}
+
 export type CycleRecord = {
   label: string;
-  days: number;
+  days: number;           // display days (cycleLength for completed, elapsed for ongoing)
+  cycleLength: number;    // official cycle length per the rules above
+  avgCycleLength: number; // running average at this cycle
   startDate: string;
   endDate: string;
   cycleId: number;
   ongoing?: boolean;
 };
 
-export function buildCycleHistory(logs: PeriodLog[], cycleLength: number): CycleRecord[] {
+export function buildCycleHistory(
+  logs: PeriodLog[],
+  baselineCycleLength: number,
+  baselinePrevPeriodDate: string,
+): CycleRecord[] {
   if (logs.length === 0) return [];
   const sorted = [...logs].sort((a, b) => b.startDate.localeCompare(a.startDate));
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = today.toISOString().slice(0, 10);
 
+  const metricsMap = new Map(
+    computeCycleMetrics(logs, baselineCycleLength, baselinePrevPeriodDate).map((m) => [
+      m.startDate,
+      m,
+    ]),
+  );
+
   return sorted.map((log, i) => {
     const isFirst = i === 0;
-    const next = sorted[i - 1];
+    const metric = metricsMap.get(log.startDate)!;
     let days: number;
     let endDate: string;
     let ongoing = false;
@@ -220,24 +288,33 @@ export function buildCycleHistory(logs: PeriodLog[], cycleLength: number): Cycle
       days = dayInCurrentCycle(log.startDate);
       endDate = todayStr;
       ongoing = true;
-    } else if (next) {
-      const start = new Date(log.startDate + "T00:00:00");
-      const end   = new Date(next.startDate + "T00:00:00");
-      days = Math.round((end.getTime() - start.getTime()) / 86400000);
-      endDate = next.startDate;
     } else {
-      days = cycleLength;
-      endDate = addDays(new Date(log.startDate + "T00:00:00"), cycleLength)
-        .toISOString().slice(0, 10);
+      days = metric.cycleLength;
+      endDate = sorted[i - 1].startDate;
     }
 
     return {
-      label: ongoing ? "Current cycle" : `${days} days`,
+      label: ongoing ? "Current cycle" : `${metric.cycleLength} days`,
       days,
+      cycleLength: metric.cycleLength,
+      avgCycleLength: metric.avgCycleLength,
       startDate: log.startDate,
       endDate,
       cycleId: log.cycleId,
       ongoing,
     };
   });
+}
+
+// Kept for any legacy callers — prefer getAvgCycleLength for new code.
+export function computeAvgCycleLength(logs: PeriodLog[]): number {
+  if (logs.length < 2) return 28;
+  const sorted = [...logs].sort((a, b) => b.startDate.localeCompare(a.startDate));
+  const gaps: number[] = [];
+  for (let i = 0; i < Math.min(sorted.length - 1, 3); i++) {
+    const a = new Date(sorted[i].startDate + "T00:00:00");
+    const b = new Date(sorted[i + 1].startDate + "T00:00:00");
+    gaps.push(Math.round((b.getTime() - a.getTime()) / -86400000));
+  }
+  return Math.round(gaps.reduce((s, n) => s + n, 0) / gaps.length);
 }

@@ -9,7 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRef, useState } from "react";
 import { saveStreakToSheet } from "@/lib/saveStreak";
 import { getAttacks, formatAttackDate, type AttackLog } from "@/lib/storage";
-import { getPeriodState, daysUntilNext, nextPeriodDate, computeAvgCycleLength } from "@/lib/period-data";
+import { getPeriodState, daysUntilNext, nextPeriodDate, getAvgCycleLength } from "@/lib/period-data";
 import { format } from "date-fns";
 
 export const Route = createFileRoute("/")({
@@ -39,9 +39,11 @@ function TodayPage() {
   const periodSorted = [...periodState.logs].sort((a, b) => b.startDate.localeCompare(a.startDate));
   const lastPeriodLog = periodSorted[0] ?? null;
   const isIrregularCycle = periodState.mode === "irregular";
-  const avgCycle = periodState.logs.length >= 2
-    ? computeAvgCycleLength(periodState.logs)
-    : periodState.cycleLength;
+  const avgCycle = getAvgCycleLength(
+    periodState.logs,
+    periodState.baselineCycleLength,
+    periodState.baselinePrevPeriodDate ?? "1900-01-01",
+  );
   // Regular
   const periodDaysLeft = lastPeriodLog ? daysUntilNext(lastPeriodLog.startDate, avgCycle) : null;
   const predictedNext  = lastPeriodLog ? nextPeriodDate(lastPeriodLog.startDate, avgCycle) : null;

@@ -21,7 +21,7 @@ import {
   nextPeriodDate,
   daysUntilNext,
   dayInCurrentCycle,
-  computeAvgCycleLength,
+  getAvgCycleLength,
   buildCycleHistory,
   assignCycleIds,
   type PhaseKey,
@@ -73,12 +73,9 @@ function PeriodPage() {
   const sorted = [...state.logs].sort((a, b) => b.startDate.localeCompare(a.startDate));
   const lastLog = sorted[0] ?? null;
 
-  // For cycle length: use logged history if available, else fall back to baseline
-  const avgCycle = state.logs.length >= 2
-    ? computeAvgCycleLength(state.logs)
-    : state.cycleLength;
-
-  const history = buildCycleHistory(state.logs, avgCycle);
+  const baselinePrev = state.baselinePrevPeriodDate ?? "1900-01-01";
+  const avgCycle = getAvgCycleLength(state.logs, state.baselineCycleLength, baselinePrev);
+  const history = buildCycleHistory(state.logs, state.baselineCycleLength, baselinePrev);
   const currentDay = lastLog ? dayInCurrentCycle(lastLog.startDate) : null;
 
   // Regular: single prediction
@@ -120,8 +117,9 @@ function PeriodPage() {
       const alreadyLogged = s.logs.some((l) => l.startDate === startDate);
       if (alreadyLogged) return s;
       const raw = [{ id: `period-${startDate}`, startDate, cycleId: 0 }, ...s.logs];
-      const newLogs = assignCycleIds(raw); // re-sorts chronologically, assigns IDs 1…n
-      const newCycle = newLogs.length >= 2 ? computeAvgCycleLength(newLogs) : s.cycleLength;
+      const newLogs = assignCycleIds(raw);
+      const bp = s.baselinePrevPeriodDate ?? "1900-01-01";
+      const newCycle = getAvgCycleLength(newLogs, s.baselineCycleLength, bp);
       return { ...s, logs: newLogs, cycleLength: newCycle, cycleId: newLogs.length };
     });
     setSelectedStart(null);
