@@ -14,6 +14,7 @@ import {
   startOfWeek,
 } from "date-fns";
 import { PHASE, usePeriodState, nextPeriodDate, getAvgCycleLength, assignCycleIds, computeCycleMetrics } from "@/lib/period-data";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/period/calendar")({
   head: () => ({
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/period/calendar")({
 });
 
 function CalendarPage() {
+  const { phone } = useAuth();
   const [state, update] = usePeriodState();
   const [selectedStart, setSelectedStart] = useState<Date | null>(null);
 
@@ -64,6 +66,7 @@ function CalendarPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        phone,
         currentPeriodDate: startDate,
         periodLength: state.periodLength,
         cycleLength: thisMetric.cycleLength,
