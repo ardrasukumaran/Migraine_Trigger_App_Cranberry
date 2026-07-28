@@ -221,8 +221,9 @@ Bun.serve({
         const creds = JSON.parse(saJson);
         const rows  = await readSheetRows(creds, sheetId, "Baseline Period Data");
 
-        // Col A=phone(0), B=mode regular/irregular(1), C=periodDays(2),
-        //     D=cycleLength(3), E=shortestCycle(4), F=longestCycle(5)
+        // Col A=phone(0), B=mode regular/irregular(1), C=periodLength(2),
+        //     D=cycleLength(3), E=shortestCycle(4), F=longestCycle(5),
+        //     G=baselinePrevPeriodDate YYYY-MM-DD(6)
         const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
         const row = rows.find(r =>
           String(r[0] ?? "").replace(/\D/g, "").slice(-10) === normalizedPhone
@@ -237,13 +238,15 @@ Bun.serve({
 
         const modeRaw      = String(row[1] ?? "").trim().toLowerCase();
         const mode         = modeRaw === "irregular" ? "irregular" : "regular";
-        const periodDays   = parseInt(String(row[2] ?? "5"), 10) || 5;
-        const cycleLength  = parseInt(String(row[3] ?? "28"), 10) || 28;
+        const periodLength  = parseInt(String(row[2] ?? "5"), 10) || 5;
+        const cycleLength   = parseInt(String(row[3] ?? "28"), 10) || 28;
         const shortestCycle = parseInt(String(row[4] ?? ""), 10) || cycleLength;
         const longestCycle  = parseInt(String(row[5] ?? ""), 10) || cycleLength;
+        const rawDate       = String(row[6] ?? "").trim();
+        const baselinePrevPeriodDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : null;
 
-        console.log(`[period-baseline] phone=${normalizedPhone} mode=${mode} cycle=${cycleLength} period=${periodDays}`);
-        return new Response(JSON.stringify({ found: true, mode, periodDays, cycleLength, shortestCycle, longestCycle }), {
+        console.log(`[period-baseline] phone=${normalizedPhone} mode=${mode} cycle=${cycleLength} period=${periodLength} baseline=${baselinePrevPeriodDate}`);
+        return new Response(JSON.stringify({ found: true, mode, periodLength, cycleLength, shortestCycle, longestCycle, baselinePrevPeriodDate }), {
           headers: { "content-type": "application/json" },
         });
       } catch (err) {

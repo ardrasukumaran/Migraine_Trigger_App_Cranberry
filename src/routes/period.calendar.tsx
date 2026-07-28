@@ -13,7 +13,7 @@ import {
   startOfMonth,
   startOfWeek,
 } from "date-fns";
-import { PHASE, usePeriodState, nextPeriodDate, computeAvgCycleLength } from "@/lib/period-data";
+import { PHASE, usePeriodState, nextPeriodDate, computeAvgCycleLength, assignCycleIds } from "@/lib/period-data";
 
 export const Route = createFileRoute("/period/calendar")({
   head: () => ({
@@ -48,12 +48,10 @@ function CalendarPage() {
     update((s) => {
       const alreadyLogged = s.logs.some((l) => l.startDate === startDate);
       if (alreadyLogged) return s;
-      const newLogs = [
-        { id: `period-${startDate}`, startDate },
-        ...s.logs,
-      ].sort((a, b) => b.startDate.localeCompare(a.startDate));
-      const newCycle = computeAvgCycleLength(newLogs);
-      return { ...s, logs: newLogs, cycleLength: newCycle };
+      const raw = [{ id: `period-${startDate}`, startDate, cycleId: 0 }, ...s.logs];
+      const newLogs = assignCycleIds(raw);
+      const newCycle = newLogs.length >= 2 ? computeAvgCycleLength(newLogs) : s.cycleLength;
+      return { ...s, logs: newLogs, cycleLength: newCycle, cycleId: newLogs.length };
     });
     setSelectedStart(null);
   };
@@ -92,7 +90,7 @@ function CalendarPage() {
             month={m}
             today={TODAY}
             periodLogs={state.logs}
-            periodDays={state.periodDays}
+            periodDays={state.periodLength}
             predictedStart={lastLog ? nextPeriodDate(lastLog.startDate, avgCycle) : null}
             selectedStart={selectedStart}
             onSelect={setSelectedStart}

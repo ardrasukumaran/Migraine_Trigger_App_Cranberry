@@ -23,6 +23,7 @@ import {
   dayInCurrentCycle,
   computeAvgCycleLength,
   buildCycleHistory,
+  assignCycleIds,
   type PhaseKey,
 } from "@/lib/period-data";
 import { useAuth } from "@/context/AuthContext";
@@ -97,19 +98,19 @@ function PeriodPage() {
   const inLogged = (d: Date) =>
     state.logs.some((log) => {
       const s = new Date(log.startDate + "T00:00:00");
-      const e = addDays(s, state.periodDays - 1);
+      const e = addDays(s, state.periodLength - 1);
       return d >= s && d <= e;
     });
 
   const inPredicted = (d: Date) => {
     if (!predictedStart) return false;
-    const end = addDays(predictedStart, state.periodDays - 1);
+    const end = addDays(predictedStart, state.periodLength - 1);
     return d >= predictedStart && d <= end;
   };
 
   const inSelected = (d: Date) => {
     if (!selectedStart) return false;
-    return d >= selectedStart && d <= addDays(selectedStart, state.periodDays - 1);
+    return d >= selectedStart && d <= addDays(selectedStart, state.periodLength - 1);
   };
 
   const saveSelectedPeriod = () => {
@@ -118,12 +119,10 @@ function PeriodPage() {
     update((s) => {
       const alreadyLogged = s.logs.some((l) => l.startDate === startDate);
       if (alreadyLogged) return s;
-      const newLogs = [
-        { id: `period-${startDate}`, startDate },
-        ...s.logs,
-      ].sort((a, b) => b.startDate.localeCompare(a.startDate));
+      const raw = [{ id: `period-${startDate}`, startDate, cycleId: 0 }, ...s.logs];
+      const newLogs = assignCycleIds(raw); // re-sorts chronologically, assigns IDs 1…n
       const newCycle = newLogs.length >= 2 ? computeAvgCycleLength(newLogs) : s.cycleLength;
-      return { ...s, logs: newLogs, cycleLength: newCycle };
+      return { ...s, logs: newLogs, cycleLength: newCycle, cycleId: newLogs.length };
     });
     setSelectedStart(null);
   };
@@ -334,7 +333,7 @@ function PeriodPage() {
                     {h.ongoing ? "today" : format(new Date(h.endDate + "T00:00:00"), "d MMM")}
                   </p>
                 </div>
-                <CyclePhaseBar days={h.days} elapsed={h.ongoing ? currentDay ?? h.days : h.days} periodDays={state.periodDays} />
+                <CyclePhaseBar days={h.days} elapsed={h.ongoing ? currentDay ?? h.days : h.days} periodDays={state.periodLength} pmsLength={state.pmsLength} />
               </div>
             ))}
           </div>
@@ -385,7 +384,7 @@ function PhasePill({ dayInCycle, cycleLength }: { dayInCycle: number; cycleLengt
 }
 
 /** Segmented phase bar, scrollable horizontally */
-export function CyclePhaseBar({ days, elapsed, periodDays = 5 }: { days: number; elapsed: number; periodDays?: number }) {
+export function CyclePhaseBar({ days, elapsed, periodDays = 5, pmsLength = 5 }: { days: number; elapsed: number; periodDays?: number; pmsLength?: number }) {
   const DAY_W = 12;
   return (
     <div className="mt-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -393,7 +392,7 @@ export function CyclePhaseBar({ days, elapsed, periodDays = 5 }: { days: number;
         <div className="flex h-2 overflow-hidden rounded-full">
           {Array.from({ length: days }, (_, i) => {
             const d = i + 1;
-            const phase = PHASE[phaseForDay(d, days, periodDays)];
+            const phase = PHASE[phaseForDay(d, days, periodDays, pmsLength)];
             const faded = d > elapsed;
             return (
               <span

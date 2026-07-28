@@ -12,10 +12,15 @@ export const PHASE = {
 export type PhaseKey = keyof typeof PHASE;
 export type Mode = "regular" | "irregular";
 
-export function phaseForDay(dayInCycle: number, days: number, periodDays = 5): PhaseKey {
-  if (dayInCycle <= periodDays) return "period";
+export function phaseForDay(
+  dayInCycle: number,
+  cycleDays: number,
+  periodLength = 5,
+  pmsLength = 5,
+): PhaseKey {
+  if (dayInCycle <= periodLength) return "period";
   if (dayInCycle <= 14) return "follicular";
-  if (dayInCycle > days - 5) return "pms";
+  if (dayInCycle > cycleDays - pmsLength) return "pms";
   return "luteal";
 }
 
@@ -25,25 +30,45 @@ export const PERIOD_STORAGE_KEY = "cranberry_periods_v1";
 export type PeriodLog = {
   id: string;
   startDate: string; // YYYY-MM-DD
+  cycleId: number;   // 1 = earliest tracked, n = latest; re-assigned chronologically on every add
 };
 
 export type PeriodState = {
-  logs: PeriodLog[];      // newest first
-  mode: Mode;             // from sheet baseline
-  cycleLength: number;    // regular cycle length (default 28)
-  periodDays: number;     // period duration (default 5)
-  shortestCycle: number;  // irregular: shortest cycle (default = cycleLength)
-  longestCycle: number;   // irregular: longest cycle (default = cycleLength)
+  logs: PeriodLog[];                      // stored newest-first
+
+  mode: Mode;                             // from sheet baseline
+
+  // ── Fixed baseline values (from sheet — never mutated by user actions) ──
+  periodLength: number;                   // how many days the period lasts
+  baselineCycleLength: number;            // cycle length as recorded in the sheet
+  baselinePrevPeriodDate: string | null;  // last period before app tracking (YYYY-MM-DD)
+  pmsLength: number;                      // PMS phase duration (fixed at 5)
+
+  // ── Irregular-mode range ──
+  shortestCycle: number;
+  longestCycle: number;
+
+  // ── Display counter ──
+  // Equals logs.length after any add; 0 when no periods tracked.
+  cycleId: number;
+
+  // ── Computed prediction anchor (updated when periods are added) ──
+  cycleLength: number;
+
   baselineLoaded: boolean;
 };
 
 const DEFAULT_STATE: PeriodState = {
   logs: [],
   mode: "regular",
-  cycleLength: 28,
-  periodDays: 5,
+  periodLength: 5,
+  baselineCycleLength: 28,
+  baselinePrevPeriodDate: null,
+  pmsLength: 5,
   shortestCycle: 28,
   longestCycle: 28,
+  cycleId: 0,
+  cycleLength: 28,
   baselineLoaded: false,
 };
 
@@ -52,7 +77,19 @@ export function getPeriodState(): PeriodState {
   try {
     const raw = localStorage.getItem(PERIOD_STORAGE_KEY);
     if (!raw) return DEFAULT_STATE;
-    return { ...DEFAULT_STATE, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    // Migration: old storage used `periodDays`; map to `periodLength`
+    if ("periodDays" in parsed && !("periodLength" in parsed)) {
+      parsed.periodLength = parsed.periodDays;
+    }
+    // Migration: old logs had no cycleId field — add it
+    if (Array.isArray(parsed.logs)) {
+      const hasIds = (parsed.logs as PeriodLog[]).every((l) => typeof l.cycleId === "number");
+      if (!hasIds) {
+        parsed.logs = assignCycleIds(parsed.logs as Omit<PeriodLog, "cycleId">[]);
+      }
+    }
+    return { ...DEFAULT_STATE, ...parsed };
   } catch {
     return DEFAULT_STATE;
   }
@@ -76,6 +113,18 @@ export function usePeriodState() {
   return [state, update] as const;
 }
 
+// ── Cycle ID assignment ────────────────────────────────────────────
+// Sorts logs by startDate ascending and assigns cycleId = 1, 2, 3 ...
+// Returns newest-first for storage (matches existing convention).
+export function assignCycleIds(
+  logs: Array<Omit<PeriodLog, "cycleId"> | PeriodLog>,
+): PeriodLog[] {
+  const ascending = [...logs].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const withIds: PeriodLog[] = ascending.map((log, i) => ({ ...log, cycleId: i + 1 } as PeriodLog));
+  // Return newest-first to match storage convention
+  return withIds.reverse();
+}
+
 // Fetch baseline from server and merge into state (call once when baselineLoaded is false)
 export async function loadPeriodBaseline(phone: string): Promise<Partial<PeriodState> | null> {
   try {
@@ -83,23 +132,29 @@ export async function loadPeriodBaseline(phone: string): Promise<Partial<PeriodS
     const data = await res.json() as {
       found?: boolean;
       mode?: string;
-      periodDays?: number;
+      periodLength?: number;
       cycleLength?: number;
       shortestCycle?: number;
       longestCycle?: number;
+      baselinePrevPeriodDate?: string | null;
       error?: string;
     };
     if (!data.found) return null;
     const mode: Mode = data.mode === "irregular" ? "irregular" : "regular";
-    const cycleLength  = data.cycleLength  ?? 28;
-    const shortestCycle = data.shortestCycle ?? cycleLength;
-    const longestCycle  = data.longestCycle  ?? cycleLength;
+    const periodLength   = data.periodLength   ?? 5;
+    const cycleLength    = data.cycleLength    ?? 28;
+    const shortestCycle  = data.shortestCycle  ?? cycleLength;
+    const longestCycle   = data.longestCycle   ?? cycleLength;
+    const baselinePrevPeriodDate = data.baselinePrevPeriodDate ?? null;
     return {
       mode,
-      periodDays:    data.periodDays ?? 5,
+      periodLength,
+      baselineCycleLength: cycleLength,
+      baselinePrevPeriodDate,
       cycleLength,
       shortestCycle,
       longestCycle,
+      pmsLength: 5, // fixed — not from sheet
       baselineLoaded: true,
     };
   } catch {
@@ -143,6 +198,7 @@ export type CycleRecord = {
   days: number;
   startDate: string;
   endDate: string;
+  cycleId: number;
   ongoing?: boolean;
 };
 
@@ -180,6 +236,7 @@ export function buildCycleHistory(logs: PeriodLog[], cycleLength: number): Cycle
       days,
       startDate: log.startDate,
       endDate,
+      cycleId: log.cycleId,
       ongoing,
     };
   });
