@@ -95,6 +95,17 @@ export function getPeriodState(): PeriodState {
         parsed.logs = assignCycleIds(parsed.logs as Omit<PeriodLog, "cycleId">[]);
       }
     }
+    // Migration: Sheets API may have stored numeric fields as strings — coerce them.
+    const numericFields = [
+      "periodLength", "baselineCycleLength", "pmsLength",
+      "shortestCycle", "longestCycle", "baselineShortestCycle", "baselineLongestCycle",
+      "cycleId", "cycleLength",
+    ] as const;
+    for (const field of numericFields) {
+      if (typeof parsed[field] === "string") {
+        (parsed as Record<string, unknown>)[field] = Number(parsed[field]);
+      }
+    }
     return { ...DEFAULT_STATE, ...parsed };
   } catch {
     return DEFAULT_STATE;
@@ -147,10 +158,11 @@ export async function loadPeriodBaseline(phone: string): Promise<Partial<PeriodS
     };
     if (!data.found) return null;
     const mode: Mode = data.mode === "irregular" ? "irregular" : "regular";
-    const periodLength   = data.periodLength   ?? 5;
-    const cycleLength    = data.cycleLength    ?? 28;
-    const shortestCycle  = data.shortestCycle  ?? cycleLength;
-    const longestCycle   = data.longestCycle   ?? cycleLength;
+    // Sheets API returns all cell values as strings — coerce to number explicitly.
+    const periodLength   = Number(data.periodLength   ?? 5);
+    const cycleLength    = Number(data.cycleLength    ?? 28);
+    const shortestCycle  = Number(data.shortestCycle  ?? cycleLength);
+    const longestCycle   = Number(data.longestCycle   ?? cycleLength);
     const baselinePrevPeriodDate = data.baselinePrevPeriodDate ?? null;
     return {
       mode,
