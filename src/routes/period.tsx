@@ -114,7 +114,7 @@ function PeriodPage() {
 
   const saveSelectedPeriod = () => {
     if (!selectedStart) return;
-    const startDate = selectedStart.toISOString().slice(0, 10);
+    const startDate = format(selectedStart, "yyyy-MM-dd");
     if (state.logs.some((l) => l.startDate === startDate)) { setSelectedStart(null); return; }
 
     const bp = state.baselinePrevPeriodDate ?? "1900-01-01";
