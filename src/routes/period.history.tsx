@@ -22,6 +22,7 @@ function HistoryPage() {
     () => buildCycleHistory(state.logs, state.baselineCycleLength, state.baselinePrevPeriodDate ?? "1900-01-01"),
     [state.logs, state.baselineCycleLength, state.baselinePrevPeriodDate],
   );
+  const isIrregular = state.mode === "irregular";
   return (
     <AppShell hideLogout>
       <div className="mt-4 flex items-center gap-3">
@@ -47,6 +48,11 @@ function HistoryPage() {
             </p>
             <PhaseLegend inline />
           </div>
+          {isIrregular && (
+            <p className="mt-1 text-[11px] text-warm-grey/50 italic">
+              Phases are estimated using your shortest cycle. Irregular cycles may affect accuracy.
+            </p>
+          )}
 
           <section className="mt-4 space-y-4">
             {history.map((h, i) => (
@@ -61,7 +67,7 @@ function HistoryPage() {
                     {h.ongoing ? "today" : format(new Date(h.endDate + "T00:00:00"), "d MMM yyyy")}
                   </p>
                 </div>
-                <CyclePhaseBar days={h.days} cycleDays={h.avgCycleLength} periodDays={state.periodLength} pmsLength={state.pmsLength} />
+                <CyclePhaseBar days={h.days} cycleDays={isIrregular ? state.shortestCycle : h.avgCycleLength} periodDays={state.periodLength} pmsLength={state.pmsLength} />
               </div>
             ))}
           </section>

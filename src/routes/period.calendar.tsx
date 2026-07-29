@@ -13,7 +13,7 @@ import {
   startOfMonth,
   startOfWeek,
 } from "date-fns";
-import { PHASE, usePeriodState, nextPeriodDate, getAvgCycleLength, assignCycleIds, computeCycleMetrics } from "@/lib/period-data";
+import { PHASE, usePeriodState, nextPeriodDate, getAvgCycleLength, assignCycleIds, computeCycleMetrics, computeIrregularRange } from "@/lib/period-data";
 import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/period/calendar")({
@@ -60,7 +60,23 @@ function CalendarPage() {
     const newAvgCycle = thisMetric.avgCycleLength;
     const predicted = nextPeriodDate(startDate, newAvgCycle);
 
-    update((s) => ({ ...s, logs: newLogs, cycleLength: newAvgCycle, cycleId: newLogs.length }));
+    // For irregular mode: recompute shortest/longest cycle range
+    let newShortest = state.shortestCycle;
+    let newLongest  = state.longestCycle;
+    if (state.mode === "irregular") {
+      const range = computeIrregularRange(newLogs, state.baselineShortestCycle, state.baselineLongestCycle, bp);
+      newShortest = range.shortestCycle;
+      newLongest  = range.longestCycle;
+    }
+
+    update((s) => ({
+      ...s,
+      logs: newLogs,
+      cycleLength: newAvgCycle,
+      cycleId: newLogs.length,
+      shortestCycle: newShortest,
+      longestCycle: newLongest,
+    }));
 
     fetch("https://hook.us1.make.com/bi71vzkpuxaoqj8u1xewo5l3ksetdyiw", {
       method: "POST",

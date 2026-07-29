@@ -45,6 +45,10 @@ export type PeriodState = {
   pmsLength: number;                      // PMS phase duration (fixed at 5)
 
   // ── Irregular-mode range ──
+  // Baseline values from sheet — never mutated by user actions; used as floor for recomputation.
+  baselineShortestCycle: number;
+  baselineLongestCycle: number;
+  // Dynamic range — updated whenever new periods are tracked.
   shortestCycle: number;
   longestCycle: number;
 
@@ -65,6 +69,8 @@ const DEFAULT_STATE: PeriodState = {
   baselineCycleLength: 28,
   baselinePrevPeriodDate: null,
   pmsLength: 5,
+  baselineShortestCycle: 28,
+  baselineLongestCycle: 28,
   shortestCycle: 28,
   longestCycle: 28,
   cycleId: 0,
@@ -152,6 +158,8 @@ export async function loadPeriodBaseline(phone: string): Promise<Partial<PeriodS
       baselineCycleLength: cycleLength,
       baselinePrevPeriodDate,
       cycleLength,
+      baselineShortestCycle: shortestCycle,
+      baselineLongestCycle: longestCycle,
       shortestCycle,
       longestCycle,
       pmsLength: 5, // fixed — not from sheet
@@ -298,6 +306,36 @@ export function buildCycleHistory(
       ongoing,
     };
   });
+}
+
+// ── Irregular range recomputation ─────────────────────────────────
+// Recomputes shortest/longest from scratch using the fixed baseline bounds.
+// Only gaps where N-1 >= baselinePrevPeriodDate count toward updating the range.
+export function computeIrregularRange(
+  logs: PeriodLog[],
+  baselineShortestCycle: number,
+  baselineLongestCycle: number,
+  baselinePrevPeriodDate: string,
+): { shortestCycle: number; longestCycle: number } {
+  if (logs.length < 2) {
+    return { shortestCycle: baselineShortestCycle, longestCycle: baselineLongestCycle };
+  }
+  const sorted = [...logs].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  let shortest = baselineShortestCycle;
+  let longest  = baselineLongestCycle;
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1];
+    const curr = sorted[i];
+    if (prev.startDate >= baselinePrevPeriodDate) {
+      const gap = Math.round(
+        (new Date(curr.startDate + "T00:00:00").getTime() -
+         new Date(prev.startDate + "T00:00:00").getTime()) / 86400000,
+      );
+      if (gap < shortest) shortest = gap;
+      if (gap > longest)  longest  = gap;
+    }
+  }
+  return { shortestCycle: shortest, longestCycle: longest };
 }
 
 // Kept for any legacy callers — prefer getAvgCycleLength for new code.

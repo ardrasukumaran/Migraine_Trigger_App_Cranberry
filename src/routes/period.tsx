@@ -25,6 +25,7 @@ import {
   buildCycleHistory,
   assignCycleIds,
   computeCycleMetrics,
+  computeIrregularRange,
   type PhaseKey,
 } from "@/lib/period-data";
 import { useAuth } from "@/context/AuthContext";
@@ -125,7 +126,23 @@ function PeriodPage() {
     const newAvgCycle = thisMetric.avgCycleLength;
     const predicted = nextPeriodDate(startDate, newAvgCycle);
 
-    update((s) => ({ ...s, logs: newLogs, cycleLength: newAvgCycle, cycleId: newLogs.length }));
+    // For irregular mode: recompute shortest/longest cycle range
+    let newShortest = state.shortestCycle;
+    let newLongest  = state.longestCycle;
+    if (state.mode === "irregular") {
+      const range = computeIrregularRange(newLogs, state.baselineShortestCycle, state.baselineLongestCycle, bp);
+      newShortest = range.shortestCycle;
+      newLongest  = range.longestCycle;
+    }
+
+    update((s) => ({
+      ...s,
+      logs: newLogs,
+      cycleLength: newAvgCycle,
+      cycleId: newLogs.length,
+      shortestCycle: newShortest,
+      longestCycle: newLongest,
+    }));
 
     fetch("https://hook.us1.make.com/bi71vzkpuxaoqj8u1xewo5l3ksetdyiw", {
       method: "POST",
@@ -337,6 +354,11 @@ function PeriodPage() {
             </Link>
           </div>
           <PhaseLegend inline />
+          {isIrregular && (
+            <p className="mt-1 text-[11px] text-warm-grey/50 italic">
+              Phases are estimated using your shortest cycle. Irregular cycles may affect accuracy.
+            </p>
+          )}
           <div className="mt-3 space-y-4">
             {history.slice(0, 3).map((h, i) => (
               <div key={i}>
@@ -350,7 +372,7 @@ function PeriodPage() {
                     {h.ongoing ? "today" : format(new Date(h.endDate + "T00:00:00"), "d MMM")}
                   </p>
                 </div>
-                <CyclePhaseBar days={h.days} cycleDays={h.avgCycleLength} periodDays={state.periodLength} pmsLength={state.pmsLength} />
+                <CyclePhaseBar days={h.days} cycleDays={isIrregular ? shortCycle : h.avgCycleLength} periodDays={state.periodLength} pmsLength={state.pmsLength} />
               </div>
             ))}
           </div>
