@@ -78,26 +78,24 @@ function CalendarPage() {
       longestCycle: newLongest,
     }));
 
-    const webhookPayload = state.mode === "irregular"
-      ? {
-          phone,
-          currentPeriodDate: startDate,
-          periodLength: state.periodLength,
-          shortestCycleLength: newShortest,
-          longestCycleLength: newLongest,
-          cycleId: thisLog.cycleId,
-          shortestPredictedPeriod: format(nextPeriodDate(startDate, newShortest), "yyyy-MM-dd"),
-          longestPredictedPeriod:  format(nextPeriodDate(startDate, newLongest),  "yyyy-MM-dd"),
-        }
-      : {
-          phone,
-          currentPeriodDate: startDate,
-          periodLength: state.periodLength,
-          cycleLength: thisMetric.cycleLength,
-          avgCycleLength: newAvgCycle,
-          cycleId: thisLog.cycleId,
-          predictedPeriod: format(predicted, "yyyy-MM-dd"),
-        };
+    const isIrreg = state.mode === "irregular";
+    const webhookPayload = {
+      phone,
+      cycleType:              isIrreg ? "Irregular" : "Regular",
+      periodDate:             startDate,
+      periodLength:           state.periodLength,
+      pmsLength:              state.pmsLength,
+      cycleId:                thisLog.cycleId,
+      // Regular-only (null for irregular)
+      avgCycleLength:         isIrreg ? null : newAvgCycle,
+      cycleLength:            isIrreg ? null : thisMetric.cycleLength,
+      predictedPeriod:        isIrreg ? null : format(predicted, "yyyy-MM-dd"),
+      // Irregular-only (null for regular)
+      shortestCycleLength:    isIrreg ? newShortest : null,
+      longestCycleLength:     isIrreg ? newLongest  : null,
+      shortestPredictedPeriod: isIrreg ? format(nextPeriodDate(startDate, newShortest), "yyyy-MM-dd") : null,
+      longestPredictedPeriod:  isIrreg ? format(nextPeriodDate(startDate, newLongest),  "yyyy-MM-dd") : null,
+    };
 
     fetch("https://hook.us1.make.com/bi71vzkpuxaoqj8u1xewo5l3ksetdyiw", {
       method: "POST",
