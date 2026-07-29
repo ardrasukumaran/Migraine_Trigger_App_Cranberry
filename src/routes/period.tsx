@@ -77,7 +77,7 @@ function PeriodPage() {
 
   const baselinePrev = state.baselinePrevPeriodDate ?? "1900-01-01";
   const avgCycle = getAvgCycleLength(state.logs, state.baselineCycleLength, baselinePrev);
-  const history = buildCycleHistory(state.logs, state.baselineCycleLength, baselinePrev);
+  const history = buildCycleHistory(state.logs, state.baselineCycleLength, baselinePrev, state.baselineShortestCycle);
   const currentDay = lastLog ? dayInCurrentCycle(lastLog.startDate) : null;
 
   // Regular: single prediction
@@ -123,8 +123,11 @@ function PeriodPage() {
     const metrics = computeCycleMetrics(newLogs, state.baselineCycleLength, bp);
     const thisMetric = metrics.find((m) => m.startDate === startDate)!;
     const thisLog = newLogs.find((l) => l.startDate === startDate)!;
-    const newAvgCycle = thisMetric.avgCycleLength;
-    const predicted = nextPeriodDate(startDate, newAvgCycle);
+    // Bug 3: use the latest chronological period's avg, not the retroactively-added one
+    const latestLog = newLogs.reduce((a, b) => a.startDate > b.startDate ? a : b);
+    const latestMetric = metrics.find((m) => m.startDate === latestLog.startDate)!;
+    const newAvgCycle = latestMetric.avgCycleLength;
+    const predicted = nextPeriodDate(latestLog.startDate, newAvgCycle);
 
     // For irregular mode: recompute shortest/longest cycle range
     let newShortest = state.shortestCycle;
@@ -138,6 +141,7 @@ function PeriodPage() {
     update((s) => ({
       ...s,
       logs: newLogs,
+      periodLength: s.periodLength, // Bug 2: explicitly preserve — never change after sheet load
       cycleLength: newAvgCycle,
       cycleId: newLogs.length,
       shortestCycle: newShortest,
@@ -383,7 +387,7 @@ function PeriodPage() {
                     {h.ongoing ? "today" : format(new Date(h.endDate + "T00:00:00"), "d MMM")}
                   </p>
                 </div>
-                <CyclePhaseBar days={h.days} cycleDays={isIrregular ? shortCycle : h.avgCycleLength} periodDays={state.periodLength} pmsLength={state.pmsLength} />
+                <CyclePhaseBar days={h.days} cycleDays={isIrregular ? h.shortestCycleAtLog : h.avgCycleLength} periodDays={state.periodLength} pmsLength={state.pmsLength} />
               </div>
             ))}
           </div>

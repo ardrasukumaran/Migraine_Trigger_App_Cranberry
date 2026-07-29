@@ -57,8 +57,11 @@ function CalendarPage() {
     const metrics = computeCycleMetrics(newLogs, state.baselineCycleLength, bp);
     const thisMetric = metrics.find((m) => m.startDate === startDate)!;
     const thisLog = newLogs.find((l) => l.startDate === startDate)!;
-    const newAvgCycle = thisMetric.avgCycleLength;
-    const predicted = nextPeriodDate(startDate, newAvgCycle);
+    // Bug 3: use the latest chronological period's avg, not the retroactively-added one
+    const latestLog = newLogs.reduce((a, b) => a.startDate > b.startDate ? a : b);
+    const latestMetric = metrics.find((m) => m.startDate === latestLog.startDate)!;
+    const newAvgCycle = latestMetric.avgCycleLength;
+    const predicted = nextPeriodDate(latestLog.startDate, newAvgCycle);
 
     // For irregular mode: recompute shortest/longest cycle range
     let newShortest = state.shortestCycle;
@@ -72,6 +75,7 @@ function CalendarPage() {
     update((s) => ({
       ...s,
       logs: newLogs,
+      periodLength: s.periodLength, // Bug 2: explicitly preserve — never change after sheet load
       cycleLength: newAvgCycle,
       cycleId: newLogs.length,
       shortestCycle: newShortest,
@@ -268,7 +272,7 @@ function MonthGrid({
             >
               {logged && <DropletIcon filled />}
               {predicted && <DropletIcon />}
-              {isToday && !logged && !predicted && (
+              {inMonth && isToday && !logged && !predicted && (
                 <span className="absolute inset-2 rounded-full ring-2 ring-[#C7B8EA]" />
               )}
               <span
@@ -278,7 +282,7 @@ function MonthGrid({
               >
                 {format(d, "d")}
               </span>
-              {isToday && (
+              {inMonth && isToday && (
                 <span className="absolute -bottom-0.5 text-[7px] tracking-[0.15em] text-warm-grey/70">
                   TODAY
                 </span>

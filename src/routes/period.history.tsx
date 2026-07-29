@@ -19,8 +19,8 @@ export const Route = createFileRoute("/period/history")({
 function HistoryPage() {
   const [state] = usePeriodState();
   const history = useMemo(
-    () => buildCycleHistory(state.logs, state.baselineCycleLength, state.baselinePrevPeriodDate ?? "1900-01-01"),
-    [state.logs, state.baselineCycleLength, state.baselinePrevPeriodDate],
+    () => buildCycleHistory(state.logs, state.baselineCycleLength, state.baselinePrevPeriodDate ?? "1900-01-01", state.baselineShortestCycle),
+    [state.logs, state.baselineCycleLength, state.baselinePrevPeriodDate, state.baselineShortestCycle],
   );
   const isIrregular = state.mode === "irregular";
   return (
@@ -67,7 +67,7 @@ function HistoryPage() {
                     {h.ongoing ? "today" : format(new Date(h.endDate + "T00:00:00"), "d MMM yyyy")}
                   </p>
                 </div>
-                <CyclePhaseBar days={h.days} cycleDays={isIrregular ? state.shortestCycle : h.avgCycleLength} periodDays={state.periodLength} pmsLength={state.pmsLength} />
+                <CyclePhaseBar days={h.days} cycleDays={isIrregular ? h.shortestCycleAtLog : h.avgCycleLength} periodDays={state.periodLength} pmsLength={state.pmsLength} />
               </div>
             ))}
           </section>

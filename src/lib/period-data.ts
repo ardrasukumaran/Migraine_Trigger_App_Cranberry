@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { addDays } from "date-fns";
+import { addDays, format } from "date-fns";
 
 // ── Phase palette ──────────────────────────────────────────────────
 export const PHASE = {
@@ -263,9 +263,10 @@ export function getAvgCycleLength(
 
 export type CycleRecord = {
   label: string;
-  days: number;           // display days (cycleLength for completed, elapsed for ongoing)
-  cycleLength: number;    // official cycle length per the rules above
-  avgCycleLength: number; // running average at this cycle
+  days: number;               // display days (cycleLength for completed, elapsed for ongoing)
+  cycleLength: number;        // official cycle length per the rules above
+  avgCycleLength: number;     // running average at this cycle
+  shortestCycleAtLog: number; // shortest cycle known when this period was the latest log
   startDate: string;
   endDate: string;
   cycleId: number;
@@ -276,12 +277,14 @@ export function buildCycleHistory(
   logs: PeriodLog[],
   baselineCycleLength: number,
   baselinePrevPeriodDate: string,
+  baselineShortestCycle = 28,
 ): CycleRecord[] {
   if (logs.length === 0) return [];
   const sorted = [...logs].sort((a, b) => b.startDate.localeCompare(a.startDate));
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().slice(0, 10);
+  // Bug 4: use format() to avoid UTC toISOString() off-by-one in UTC+5:30
+  const todayStr = format(today, "yyyy-MM-dd");
 
   const metricsMap = new Map(
     computeCycleMetrics(logs, baselineCycleLength, baselinePrevPeriodDate).map((m) => [
@@ -289,6 +292,25 @@ export function buildCycleHistory(
       m,
     ]),
   );
+
+  // Bug 5: pre-compute shortestCycleAtLog for each entry (ascending pass mirrors computeIrregularRange)
+  const ascSorted = [...logs].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const shortestAtLog = new Map<string, number>();
+  let runningShort = baselineShortestCycle;
+  for (let i = 0; i < ascSorted.length; i++) {
+    if (i > 0) {
+      const prev = ascSorted[i - 1];
+      const curr = ascSorted[i];
+      if (prev.startDate >= baselinePrevPeriodDate) {
+        const gap = Math.round(
+          (new Date(curr.startDate + "T00:00:00").getTime() -
+           new Date(prev.startDate + "T00:00:00").getTime()) / 86400000,
+        );
+        if (gap < runningShort) runningShort = gap;
+      }
+    }
+    shortestAtLog.set(ascSorted[i].startDate, runningShort);
+  }
 
   return sorted.map((log, i) => {
     const isOngoing = i === 0; // highest cycleId = current cycle (sorted descending)
@@ -307,7 +329,8 @@ export function buildCycleHistory(
       const startMs = new Date(log.startDate + "T00:00:00").getTime();
       const nextMs  = new Date(nextLog.startDate + "T00:00:00").getTime();
       days = Math.round((nextMs - startMs) / 86400000);
-      endDate = addDays(new Date(nextLog.startDate + "T00:00:00"), -1).toISOString().slice(0, 10);
+      // Bug 4: use format() to avoid UTC toISOString() off-by-one in UTC+5:30
+      endDate = format(addDays(new Date(nextLog.startDate + "T00:00:00"), -1), "yyyy-MM-dd");
     }
 
     return {
@@ -315,6 +338,7 @@ export function buildCycleHistory(
       days,
       cycleLength: metric.cycleLength,
       avgCycleLength: metric.avgCycleLength,
+      shortestCycleAtLog: shortestAtLog.get(log.startDate) ?? baselineShortestCycle,
       startDate: log.startDate,
       endDate,
       cycleId: log.cycleId,
