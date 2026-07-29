@@ -449,7 +449,7 @@ function LogPage() {
               </a>
               <Link
                 to="/period"
-                className="rounded-2xl bg-card border border-border text-foreground py-3 font-semibold text-sm inline-flex items-center justify-center gap-2"
+                className="rounded-2xl bg-card border border-[#F2B8BF]/30 text-[#F2B8BF] py-3 font-semibold text-sm inline-flex items-center justify-center gap-2"
               >
                 <CalendarIcon className="h-4 w-4" /> Log Period
               </Link>
