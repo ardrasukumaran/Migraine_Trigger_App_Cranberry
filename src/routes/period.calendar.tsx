@@ -78,18 +78,31 @@ function CalendarPage() {
       longestCycle: newLongest,
     }));
 
+    const webhookPayload = state.mode === "irregular"
+      ? {
+          phone,
+          currentPeriodDate: startDate,
+          periodLength: state.periodLength,
+          shortestCycleLength: newShortest,
+          longestCycleLength: newLongest,
+          cycleId: thisLog.cycleId,
+          shortestPredictedPeriod: format(nextPeriodDate(startDate, newShortest), "yyyy-MM-dd"),
+          longestPredictedPeriod:  format(nextPeriodDate(startDate, newLongest),  "yyyy-MM-dd"),
+        }
+      : {
+          phone,
+          currentPeriodDate: startDate,
+          periodLength: state.periodLength,
+          cycleLength: thisMetric.cycleLength,
+          avgCycleLength: newAvgCycle,
+          cycleId: thisLog.cycleId,
+          predictedPeriod: format(predicted, "yyyy-MM-dd"),
+        };
+
     fetch("https://hook.us1.make.com/bi71vzkpuxaoqj8u1xewo5l3ksetdyiw", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        phone,
-        currentPeriodDate: startDate,
-        periodLength: state.periodLength,
-        cycleLength: thisMetric.cycleLength,
-        avgCycleLength: newAvgCycle,
-        cycleId: thisLog.cycleId,
-        predictedPeriod: predicted.toISOString().slice(0, 10),
-      }),
+      body: JSON.stringify(webhookPayload),
     }).catch(console.error);
 
     setSelectedStart(null);
@@ -154,7 +167,7 @@ function CalendarPage() {
             disabled={!selectedStart}
             className={`w-full rounded-full font-semibold py-3.5 transition ${
               selectedStart
-                ? "bg-[#F2B8BF] hover:bg-[#F2B8BF]/90 text-[#1A0F1E] shadow-lg shadow-[#F2B8BF]/25"
+                ? "bg-[#d9a5ab] hover:bg-[#d9a5ab]/90 text-[#1A0F1E] shadow-lg shadow-[#d9a5ab]/25"
                 : "bg-muted text-warm-grey/50 cursor-not-allowed"
             }`}
           >

@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { saveAttack } from "@/lib/storage";
 import { AppShell } from "@/components/AppShell";
@@ -447,6 +447,12 @@ function LogPage() {
               >
                 <MessageCircle className="h-4 w-4" /> Chat with Expert
               </a>
+              <Link
+                to="/period"
+                className="rounded-2xl bg-card border border-border text-foreground py-3 font-semibold text-sm inline-flex items-center justify-center gap-2"
+              >
+                <CalendarIcon className="h-4 w-4" /> Log Period
+              </Link>
             </div>
           </section>
         )}

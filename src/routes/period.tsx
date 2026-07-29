@@ -144,18 +144,31 @@ function PeriodPage() {
       longestCycle: newLongest,
     }));
 
+    const webhookPayload = state.mode === "irregular"
+      ? {
+          phone,
+          currentPeriodDate: startDate,
+          periodLength: state.periodLength,
+          shortestCycleLength: newShortest,
+          longestCycleLength: newLongest,
+          cycleId: thisLog.cycleId,
+          shortestPredictedPeriod: format(nextPeriodDate(startDate, newShortest), "yyyy-MM-dd"),
+          longestPredictedPeriod:  format(nextPeriodDate(startDate, newLongest),  "yyyy-MM-dd"),
+        }
+      : {
+          phone,
+          currentPeriodDate: startDate,
+          periodLength: state.periodLength,
+          cycleLength: thisMetric.cycleLength,
+          avgCycleLength: newAvgCycle,
+          cycleId: thisLog.cycleId,
+          predictedPeriod: format(predicted, "yyyy-MM-dd"),
+        };
+
     fetch("https://hook.us1.make.com/bi71vzkpuxaoqj8u1xewo5l3ksetdyiw", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        phone,
-        currentPeriodDate: startDate,
-        periodLength: state.periodLength,
-        cycleLength: thisMetric.cycleLength,
-        avgCycleLength: newAvgCycle,
-        cycleId: thisLog.cycleId,
-        predictedPeriod: predicted.toISOString().slice(0, 10),
-      }),
+      body: JSON.stringify(webhookPayload),
     }).catch(console.error);
 
     setSelectedStart(null);
@@ -229,7 +242,7 @@ function PeriodPage() {
             </button>
             <button
               onClick={saveSelectedPeriod}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-[#F2B8BF] py-2.5 text-sm font-semibold text-[#1A0F1E]"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-[#d9a5ab] py-2.5 text-sm font-semibold text-[#1A0F1E]"
             >
               <Check className="h-3.5 w-3.5" /> Save · {format(selectedStart, "d MMM")}
             </button>
@@ -386,7 +399,7 @@ function PeriodPage() {
         <div className="w-full max-w-[430px] mx-auto px-5 pointer-events-auto">
           <Link
             to="/period/calendar"
-            className="flex items-center justify-center gap-2 w-full rounded-full bg-[#F2B8BF] hover:bg-[#F2B8BF]/90 text-[#1A0F1E] font-semibold py-3.5 shadow-lg shadow-[#F2B8BF]/25 transition"
+            className="flex items-center justify-center gap-2 w-full rounded-full bg-[#d9a5ab] hover:bg-[#d9a5ab]/90 text-[#1A0F1E] font-semibold py-3.5 shadow-lg shadow-[#d9a5ab]/25 transition"
           >
             <Plus className="h-4 w-4" strokeWidth={2.8} />
             Log period
