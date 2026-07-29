@@ -18,8 +18,11 @@ export function phaseForDay(
   periodLength = 5,
   pmsLength = 5,
 ): PhaseKey {
+  // Luteal starts at cycleDays − 14 (= period date + cycleDays − 15 days).
+  // Regular: use avgCycleLength.  Irregular: use shortestCycle.
+  const lutealStart = cycleDays - 14;
   if (dayInCycle <= periodLength) return "period";
-  if (dayInCycle <= 14) return "follicular";
+  if (dayInCycle < lutealStart) return "follicular";
   if (dayInCycle > cycleDays - pmsLength) return "pms";
   return "luteal";
 }
