@@ -391,6 +391,7 @@ function PeriodPage() {
               </div>
             ))}
           </div>
+          <p className="mt-2 text-center text-[10px] text-warm-grey/40 tracking-widest select-none">‹ swipe ›</p>
         </section>
       )}
 
@@ -470,7 +471,6 @@ export function CyclePhaseBar({ days, cycleDays, periodDays = 5, pmsLength = 5 }
           })}
         </div>
       </div>
-      <p className="mt-1 text-center text-[10px] text-warm-grey/40 tracking-widest select-none">‹ swipe ›</p>
     </div>
   );
 }

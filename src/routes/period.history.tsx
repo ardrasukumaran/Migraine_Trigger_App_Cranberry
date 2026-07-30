@@ -71,6 +71,7 @@ function HistoryPage() {
               </div>
             ))}
           </section>
+          <p className="mt-2 text-center text-[10px] text-warm-grey/40 tracking-widest select-none">‹ swipe ›</p>
         </>
       )}
     </AppShell>
