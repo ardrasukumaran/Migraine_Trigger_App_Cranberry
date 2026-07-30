@@ -160,6 +160,29 @@ export async function loadPeriodBaseline(phone: string): Promise<Partial<PeriodS
       error?: string;
     };
     if (!data.found) return null;
+
+    // Fallback rule: menopausal type, missing period length, or missing baseline date
+    // → regular mode with defaults; baselinePrevPeriodDate=null means "1900-01-01" is used
+    //   everywhere, so the running average starts updating from the very first cycle logged.
+    const isMenopausal      = data.mode === "menopausal";
+    const missingPeriodLen  = !Number(data.periodLength ?? 0);
+    const missingBaseline   = !data.baselinePrevPeriodDate;
+    if (isMenopausal || missingPeriodLen || missingBaseline) {
+      return {
+        mode: "regular",
+        periodLength: 5,
+        baselineCycleLength: 28,
+        baselinePrevPeriodDate: null,
+        cycleLength: 28,
+        baselineShortestCycle: 28,
+        baselineLongestCycle: 28,
+        shortestCycle: 28,
+        longestCycle: 28,
+        pmsLength: 5,
+        baselineLoaded: true,
+      };
+    }
+
     const mode: Mode = data.mode === "irregular" ? "irregular" : "regular";
     // Sheets API returns all cell values as strings — coerce to number explicitly.
     const periodLength   = Number(data.periodLength   ?? 5);
