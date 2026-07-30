@@ -123,12 +123,7 @@ function CalendarPage() {
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <p className="text-sm font-semibold">Calendar</p>
-          <button
-            onClick={() => setSelectedStart(TODAY)}
-            className="text-sm font-semibold text-[#F2B8BF]"
-          >
-            Today
-          </button>
+          <div className="w-9" />
         </div>
         <div className="mt-3 grid grid-cols-7 gap-1 text-[11px] uppercase text-warm-grey/60 text-center">
           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (

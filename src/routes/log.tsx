@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { saveAttack } from "@/lib/storage";
 import { AppShell } from "@/components/AppShell";
 import { Berry } from "@/components/Berry";
-import { Check, ArrowLeft, ArrowRight, Sparkles, Calendar as CalendarIcon, MessageCircle } from "lucide-react";
+import { Check, ArrowLeft, ArrowRight, Calendar as CalendarIcon, MessageCircle } from "lucide-react";
 import { FOOD_SETS, NON_FOOD_SETS } from "@/lib/mock-data";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -422,16 +422,13 @@ function LogPage() {
 
         {step === 3 && (
           <section className="text-center pt-8">
-            <Berry mood="trophy" size={160} className="mx-auto" />
+            <Berry mood="coach" size={160} className="mx-auto" />
             <h2 className="font-serif-display text-[32px] leading-tight mt-4">
-              Logged. Take it easy.
+              Logged. Take Care.
             </h2>
             <p className="text-sm text-warm-grey/80 mt-2 max-w-[280px] mx-auto">
-              I'll watch this one carefully — three more like it and we may have a pattern.
+              Your Migraine Coach will always be there for any support.
             </p>
-            <div className="mt-6 inline-flex chip">
-              <Sparkles className="h-3.5 w-3.5" /> +25 berries earned
-            </div>
             <div className="mt-8 grid grid-cols-1 gap-3">
               <button
                 onClick={() => navigate({ to: "/" })}
@@ -445,7 +442,7 @@ function LogPage() {
                 rel="noopener noreferrer"
                 className="rounded-2xl bg-card border border-border text-foreground py-3 font-semibold text-sm inline-flex items-center justify-center gap-2"
               >
-                <MessageCircle className="h-4 w-4" /> Chat with Expert
+                <MessageCircle className="h-4 w-4" /> Chat with Coach
               </a>
               <Link
                 to="/period"

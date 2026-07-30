@@ -431,8 +431,7 @@ function PhasePill({ dayInCycle, cycleLength }: { dayInCycle: number; cycleLengt
   return (
     <div className="inline-flex items-center gap-2 rounded-full bg-background/40 border border-white/10 px-3 py-1.5">
       <span className="h-2 w-2 rounded-full" style={{ backgroundColor: phase.color }} />
-      <span className="text-xs font-semibold">{phase.name} phase</span>
-      <span className="text-xs text-warm-grey/70">· day {dayInCycle}</span>
+      <span className="text-xs font-semibold">Today: {phase.name} phase · day {dayInCycle}</span>
     </div>
   );
 }
@@ -471,6 +470,7 @@ export function CyclePhaseBar({ days, cycleDays, periodDays = 5, pmsLength = 5 }
           })}
         </div>
       </div>
+      <p className="mt-1 text-center text-[10px] text-warm-grey/40 tracking-widest select-none">‹ swipe ›</p>
     </div>
   );
 }
