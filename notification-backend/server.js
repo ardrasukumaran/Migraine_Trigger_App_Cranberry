@@ -184,14 +184,18 @@ function startSmartKeepAlive() {
     return;
   }
   console.log("[Keep-alive] Smart ping — 5 min before each slot");
-  cron.schedule("25 2,3,4,7,8,9,13,14,15,16,21 * * *", async () => {
+  const ping = async () => {
     try {
       const r = await fetch(`${RENDER_URL}/health`);
       console.log(`[Keep-alive] ✓ Ping → ${r.status}`);
     } catch (err) {
       console.error("[Keep-alive] ✗ Ping failed:", err.message);
     }
-  });
+  };
+  // 5 min before :30 slots
+  cron.schedule("25 2,3,4,7,8,9,13,14,15,16,21 * * *", ping);
+  // 5 min before :00 slots — IST 09:30 (UTC 03:55) and IST 21:30 (UTC 15:55)
+  cron.schedule("55 3,15 * * *", ping);
 }
 
 // ─── Start ────────────────────────────────────────────────────────────────────
