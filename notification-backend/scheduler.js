@@ -9,7 +9,7 @@ const UTC_OFFSET_HOURS = parseFloat(process.env.UTC_OFFSET_HOURS ?? "5.5");
 
 // ─── Fixed time slots (IST) ───────────────────────────────────────────────────
 const DAY_SLOTS   = ["08:00", "09:00", "09:30", "10:00", "11:00", "13:00", "14:00", "15:00"];
-const NIGHT_SLOTS = ["19:00", "20:00", "21:00", "21:30", "22:00", "03:00"];
+const NIGHT_SLOTS = ["19:00", "20:00", "21:00", "21:30", "22:00", "23:00", "03:00", "04:00"];
 
 // ─── Notification messages ────────────────────────────────────────────────────
 function buildMessages(dayCombo, nightCombo) {
@@ -141,15 +141,16 @@ async function runSchedule() {
 // IST 11:00=UTC 05:30
 // IST 13:00=UTC 07:30, 14:00=08:30, 15:00=09:30
 // IST 19:00=UTC 13:30, 20:00=14:30, 21:00=15:30, 21:30=UTC 16:00, 22:00=16:30
-// IST 03:00=UTC 21:30
+// IST 23:00=UTC 17:30
+// IST 03:00=UTC 21:30, 04:00=UTC 22:30
 export function startScheduler() {
   console.log("[Scheduler] Started — exact slot times only");
   console.log("[Scheduler] Day slots:  ", DAY_SLOTS.join(", "), "(IST)");
   console.log("[Scheduler] Night slots:", NIGHT_SLOTS.join(", "), "(IST)");
-  console.log("[Scheduler] Runs 14 times/day + batch logs to sheet");
+  console.log("[Scheduler] Runs 16 times/day + batch logs to sheet");
 
   // Slots that fall on :30 UTC (most slots)
-  cron.schedule("30 2,3,4,5,7,8,9,13,14,15,16,21 * * *", runSchedule);
+  cron.schedule("30 2,3,4,5,7,8,9,13,14,15,16,17,21,22 * * *", runSchedule);
   // Slots that fall on :00 UTC — IST 09:30 (UTC 04:00) and IST 21:30 (UTC 16:00)
   cron.schedule("0 4,16 * * *", runSchedule);
 }
