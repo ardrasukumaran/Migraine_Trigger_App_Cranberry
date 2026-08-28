@@ -10,6 +10,9 @@ export interface AttackLog {
   foods: string[];          // selected food names
   nonFoodTriggers: string[]; // selected non-food trigger names
   others?: string;          // free-text notes
+  painkillerTaken: boolean;
+  painkillerCount: number | null;
+  painkillerName: string | null;
   createdAt: number;        // timestamp for sorting
 }
 
