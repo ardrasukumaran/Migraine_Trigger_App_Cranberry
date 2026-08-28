@@ -13,6 +13,9 @@ export interface WebhookPayload {
   foods: string;         // comma-separated food triggers
   otherTriggers: string; // comma-separated non-food triggers
   others: string;
+  painkillerTaken: boolean;
+  painkillerCount: number | null;
+  painkillerName: string | null;
   loggedAt: string;      // ISO timestamp
 }
 
@@ -27,6 +30,9 @@ export function sendAttackToWebhook(attack: AttackLog, phone: string): void {
     foods: attack.foods.join(', '),
     otherTriggers: (attack.nonFoodTriggers ?? []).join(', '),
     others: attack.others ?? '',
+    painkillerTaken: attack.painkillerTaken,
+    painkillerCount: attack.painkillerCount,
+    painkillerName: attack.painkillerName,
     loggedAt: new Date(attack.createdAt).toISOString(),
   };
 

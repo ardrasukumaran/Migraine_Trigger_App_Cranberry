@@ -86,6 +86,9 @@ function LogPage() {
   const [foodSetIdx, setFoodSetIdx] = useState(0);
   const [nonFoods, setNonFoods] = useState<string[]>([]);
   const [nonFoodSetIdx, setNonFoodSetIdx] = useState(0);
+  const [painkillerTaken, setPainkillerTaken] = useState<boolean | null>(null);
+  const [painkillerCount, setPainkillerCount] = useState<number | null>(null);
+  const [painkillerName, setPainkillerName] = useState("");
 
   const toggle = (arr: string[], v: string, set: (x: string[]) => void) =>
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
@@ -109,6 +112,9 @@ function LogPage() {
         foods,
         nonFoodTriggers: nonFoods,
         others,
+        painkillerTaken: painkillerTaken ?? false,
+        painkillerCount: painkillerTaken ? painkillerCount : null,
+        painkillerName: painkillerTaken && painkillerName.trim() ? painkillerName.trim() : null,
       });
     }
     setStep((Math.min(step + 1, 3)) as Step);
@@ -282,6 +288,58 @@ function LogPage() {
                 );
               })}
             </div>
+
+            <p className="mt-6 text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
+              Did you take any painkiller?
+            </p>
+            <div className="mt-2 flex gap-2">
+              {([true, false] as const).map((val) => (
+                <button
+                  key={String(val)}
+                  onClick={() => { setPainkillerTaken(val); if (!val) { setPainkillerCount(null); setPainkillerName(""); } }}
+                  className={`px-6 py-1.5 rounded-full font-semibold text-xs border-2 transition ${
+                    painkillerTaken === val
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card border-border text-foreground"
+                  }`}
+                >
+                  {val ? "Yes" : "No"}
+                </button>
+              ))}
+            </div>
+
+            {painkillerTaken === true && (
+              <div className="mt-5">
+                <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-3">
+                  How many did you take?
+                </p>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => setPainkillerCount(n)}
+                      className={`h-9 w-9 rounded-full font-bold text-xs border-2 transition grid place-items-center ${
+                        painkillerCount === n
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-card border-border text-foreground"
+                      }`}
+                    >
+                      {n === 5 ? "5+" : n}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-5 text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
+                  Painkiller name (optional)
+                </p>
+                <input
+                  type="text"
+                  value={painkillerName}
+                  onChange={(e) => setPainkillerName(e.target.value)}
+                  placeholder="e.g. Ibuprofen, Sumatriptan…"
+                  className="w-full rounded-2xl bg-card border border-border text-foreground text-sm px-4 py-3 placeholder:text-warm-grey/40 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition"
+                />
+              </div>
+            )}
           </section>
         )}
 
