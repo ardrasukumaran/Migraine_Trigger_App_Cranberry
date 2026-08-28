@@ -292,12 +292,12 @@ function LogPage() {
             <p className="mt-6 text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
               Did you take any painkiller?
             </p>
-            <div className="mt-2 flex gap-3">
+            <div className="mt-2 flex gap-2">
               {([true, false] as const).map((val) => (
                 <button
                   key={String(val)}
                   onClick={() => { setPainkillerTaken(val); if (!val) { setPainkillerCount(null); setPainkillerName(""); } }}
-                  className={`flex-1 rounded-full py-2.5 font-semibold text-sm border-2 transition ${
+                  className={`px-6 py-1.5 rounded-full font-semibold text-xs border-2 transition ${
                     painkillerTaken === val
                       ? "bg-primary text-primary-foreground border-primary"
                       : "bg-card border-border text-foreground"
@@ -318,7 +318,7 @@ function LogPage() {
                     <button
                       key={n}
                       onClick={() => setPainkillerCount(n)}
-                      className={`flex-1 aspect-square rounded-full font-bold text-sm border-2 transition ${
+                      className={`h-9 w-9 rounded-full font-bold text-xs border-2 transition grid place-items-center ${
                         painkillerCount === n
                           ? "bg-primary text-primary-foreground border-primary"
                           : "bg-card border-border text-foreground"
