@@ -9,7 +9,7 @@ const UTC_OFFSET_HOURS = parseFloat(process.env.UTC_OFFSET_HOURS ?? "5.5");
 
 // ─── Fixed time slots (IST) ───────────────────────────────────────────────────
 const DAY_SLOTS   = ["08:00", "09:00", "09:30", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00"];
-const NIGHT_SLOTS = ["19:00", "20:00", "21:00", "21:30", "22:00", "23:00", "00:00", "03:00", "04:00"];
+const NIGHT_SLOTS = ["19:00", "20:00", "21:00", "21:30", "22:00", "23:00", "12:00 AM", "03:00", "04:00"];
 
 // ─── Notification messages ────────────────────────────────────────────────────
 function buildMessages(dayCombo, nightCombo) {
@@ -30,12 +30,16 @@ function buildMessages(dayCombo, nightCombo) {
 }
 
 // ─── Get current IST time ─────────────────────────────────────────────────────
+// Returns 24-hour "HH:MM" for all times except midnight, which the sheet stores
+// as "12:00 AM" (Google Sheets 12-hour display quirk for 00:00).
 function getISTTimeStr() {
   const now     = new Date();
   const localMs = now.getTime() + UTC_OFFSET_HOURS * 3600_000;
   const local   = new Date(localMs);
-  return String(local.getUTCHours()).padStart(2, "0") + ":" +
-         String(local.getUTCMinutes()).padStart(2, "0");
+  const h = local.getUTCHours();
+  const m = local.getUTCMinutes();
+  if (h === 0 && m === 0) return "12:00 AM";
+  return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
 }
 
 // ─── Chunk helper — split array into groups of N ─────────────────────────────
