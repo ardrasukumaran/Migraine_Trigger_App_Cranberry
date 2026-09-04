@@ -13,7 +13,7 @@ const tabs: Tab[] = [
   { to: "/insights", label: "Patterns", icon: BarChart3 },
   { to: "/log", label: "Log attack", icon: Plus, highlight: true },
   { to: "/coach", label: "Streaks", icon: Flame },
-  { to: "https://15557047540.wa.pulse.is/", label: "Chat", icon: MessageCircle, external: true },
+  { to: "https://wa.me/15557047540", label: "Chat", icon: MessageCircle, external: true },
 ];
 
 export function BottomNav() {
