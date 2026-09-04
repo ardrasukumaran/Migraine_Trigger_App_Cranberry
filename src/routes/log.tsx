@@ -102,7 +102,6 @@ function LogPage() {
       setNonFoodSetIdx(nonFoodSetIdx + 1);
       return;
     }
-    // Persist when completing the last non-food step → done screen
     if (step === 2) {
       saveAttack({
         date: format(date, 'yyyy-MM-dd'),
@@ -262,7 +261,7 @@ function LogPage() {
               })}
             </div>
 
-            <p className={`mt-6 text-xs uppercase tracking-[0.18em] font-semibold ${status === "Just started" ? "text-warm-grey/70" : "text-warm-grey/70"}`}>
+            <p className="mt-6 text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
               Duration so far
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -399,7 +398,6 @@ function LogPage() {
                 />
               ))}
             </div>
-
           </section>
         )}
 
@@ -495,7 +493,7 @@ function LogPage() {
                 Done
               </button>
               <a
-                href="https://wa.me/15557047540?"
+                href="https://wa.me/15557047540"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-2xl bg-card border border-border text-foreground py-3 font-semibold text-sm inline-flex items-center justify-center gap-2"
