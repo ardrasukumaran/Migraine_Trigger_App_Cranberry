@@ -193,7 +193,7 @@ function startSmartKeepAlive() {
     }
   };
   // 5 min before :30 slots
-  cron.schedule("25 2,3,4,6,7,8,9,13,14,15,16,17,21,22 * * *", ping);
+  cron.schedule("25 2,3,4,6,7,8,9,13,14,15,16,17,18,21,22 * * *", ping);
   // 5 min before :00 slots — IST 09:30 (UTC 03:55) and IST 21:30 (UTC 15:55)
   cron.schedule("55 3,15 * * *", ping);
 }
