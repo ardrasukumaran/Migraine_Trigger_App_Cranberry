@@ -1,7 +1,7 @@
 // Tiny SVG plant that grows with streak length.
 // 0 = seed, 1-6 = sprout → small plant, 7-20 = bigger, 21+ = flowering.
 export function StreakPlant({ days, size = 180 }: { days: number; size?: number }) {
-  const stage = days <= 0 ? 0 : days < 3 ? 1 : days < 7 ? 2 : days < 14 ? 3 : days < 30 ? 4 : 5;
+  const stage = days <= 0 ? 0 : days < 3 ? 1 : days < 7 ? 2 : days < 14 ? 3 : days < 90 ? 4 : 5;
 
   return (
     <svg width={size} height={size} viewBox="0 0 200 200" aria-label={`Plant at stage ${stage}`}>

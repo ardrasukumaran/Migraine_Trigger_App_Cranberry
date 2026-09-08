@@ -63,6 +63,30 @@ export async function saveStreakToSheet({
   }
 }
 
+// ─── Hydrate streak entries from sheet (used when localStorage cache is empty) ─
+export async function hydrateStreakFromSheet(phone: string): Promise<Record<string, { morning: string[]; evening: string[] }> | null> {
+  if (!phone) return null;
+  try {
+    const digits = phone.replace(/\D/g, "").slice(-10);
+    const res = await fetch(`/api/streaks?phone=${encodeURIComponent(digits)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.ok || !Array.isArray(data.rows)) return null;
+
+    const entries: Record<string, { morning: string[]; evening: string[] }> = {};
+    for (const row of data.rows as { date: string; type: string; supplement: string }[]) {
+      const { date, type, supplement } = row;
+      if (!date) continue;
+      if (!entries[date]) entries[date] = { morning: [], evening: [] };
+      if (type === "day") entries[date].morning.push(supplement || "logged");
+      else if (type === "night") entries[date].evening.push(supplement || "logged");
+    }
+    return Object.keys(entries).length > 0 ? entries : null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── saveAllStreaksToSheet — not used anymore but kept for compatibility ───────
 export function saveAllStreaksToSheet(
   entries: Record<string, { morning?: string[]; evening?: string[] }>,
