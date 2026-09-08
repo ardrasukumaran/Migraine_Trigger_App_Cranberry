@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DAY_COMBOS, NIGHT_COMBOS } from "./supplements";
+import { hydrateStreakFromSheet } from "./saveStreak";
 
 const KEY = "cranberry.streaks.v1";
 
@@ -47,12 +48,27 @@ function save(s: StreakState) {
   localStorage.setItem(KEY, JSON.stringify(s));
 }
 
-export function useStreakState() {
+export function useStreakState(phone?: string) {
   const [state, setState] = useState<StreakState>(DEFAULT_STATE);
+  const hydratedRef = useRef(false);
 
   useEffect(() => {
-    setState(load());
-  }, []);
+    const stored = load();
+    setState(stored);
+
+    // When cache is empty and a phone is provided, pull history from the sheet
+    if (phone && Object.keys(stored.entries).length === 0 && !hydratedRef.current) {
+      hydratedRef.current = true;
+      hydrateStreakFromSheet(phone).then((entries) => {
+        if (!entries) return;
+        setState((prev) => {
+          const next = { ...prev, entries };
+          save(next);
+          return next;
+        });
+      });
+    }
+  }, [phone]);
 
   const update = (fn: (s: StreakState) => StreakState) => {
     setState((prev) => {

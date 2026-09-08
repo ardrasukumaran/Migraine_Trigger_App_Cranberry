@@ -378,6 +378,28 @@ export async function batchUpdateCombo(entries) {
   }, "batchUpdateCombo");
 }
 
+// ─── Get streak history for a user (for cache hydration) ────────────────────
+export async function getStreakHistory(phone) {
+  return withRetry(async () => {
+    const sheets = await getSheetsClient();
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${STREAK_LOG_SHEET}!A2:F`,
+    });
+    const rows = res.data.values ?? [];
+    const last10 = String(phone).replace(/\D/g, "").slice(-10);
+
+    return rows
+      .filter(r => String(r[0] ?? "").replace(/\D/g, "").slice(-10) === last10)
+      .map(r => ({
+        date:       String(r[1] ?? "").trim(),
+        type:       String(r[2] ?? "").trim().toLowerCase(), // "day" or "night"
+        supplement: String(r[3] ?? "").trim(),
+      }))
+      .filter(r => r.date && (r.type === "day" || r.type === "night"));
+  }, "getStreakHistory");
+}
+
 // ─── Batch streak upsert — for saving multiple supplements at once ──────────
 export async function batchUpsertStreak(entries) {
   // entries: [{ phone, date, type, supplements, score }, ...]

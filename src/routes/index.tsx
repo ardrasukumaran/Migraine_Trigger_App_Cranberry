@@ -31,7 +31,7 @@ function slotStreak(
 
 function TodayPage() {
   const { userName, phone } = useAuth();
-  const [state, update] = useStreakState();
+  const [state, update] = useStreakState(phone ?? undefined);
   const [attacks] = useState<AttackLog[]>(() =>
     getAttacks().sort((a, b) => b.createdAt - a.createdAt)
   );
