@@ -210,7 +210,7 @@ function fmtDate(iso: string) {
 const DAY_LETTERS = ["S","M","T","W","T","F","S"];
 
 function statusLabel(streak: number) {
-  if (streak >= 60) return "Thriving";
+  if (streak >= 90) return "Thriving";
   if (streak >= 30) return "Strong";
   if (streak >= 7)  return "Growing";
   if (streak >= 1)  return "Sprout";
