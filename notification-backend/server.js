@@ -173,7 +173,9 @@ app.get("/streak-history", async (req, res) => {
   if (!phone) return res.status(400).json({ error: "phone is required" });
 
   try {
-    const rows = await getStreakHistory(phone);
+    const { rows, totalRows, matchedIndices } = await getStreakHistory(phone);
+    const normalizedPhone = String(phone).replace(/\D/g, "").slice(-10);
+    console.log(`[streaks] sheet=Streak Logs totalRows=${totalRows} phone=${normalizedPhone} matched=${rows.length} rows=[${matchedIndices.join(",")}]`);
     res.json({ ok: true, rows });
   } catch (err) {
     console.error("[streak-history] Error:", err.message);

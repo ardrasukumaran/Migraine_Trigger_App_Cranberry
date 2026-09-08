@@ -386,17 +386,24 @@ export async function getStreakHistory(phone) {
       spreadsheetId: SPREADSHEET_ID,
       range: `${STREAK_LOG_SHEET}!A2:F`,
     });
-    const rows = res.data.values ?? [];
-    const last10 = String(phone).replace(/\D/g, "").slice(-10);
+    const allRows = res.data.values ?? [];
+    const last10  = String(phone).replace(/\D/g, "").slice(-10);
+    const matchedIndices = [];
 
-    return rows
-      .filter(r => String(r[0] ?? "").replace(/\D/g, "").slice(-10) === last10)
+    const matched = allRows
+      .filter((r, i) => {
+        const m = String(r[0] ?? "").replace(/\D/g, "").slice(-10) === last10;
+        if (m) matchedIndices.push(i + 2); // 1-based + skip header
+        return m;
+      })
       .map(r => ({
         date:       String(r[1] ?? "").trim(),
         type:       String(r[2] ?? "").trim().toLowerCase(), // "day" or "night"
         supplement: String(r[3] ?? "").trim(),
       }))
       .filter(r => r.date && (r.type === "day" || r.type === "night"));
+
+    return { rows: matched, totalRows: allRows.length, matchedIndices };
   }, "getStreakHistory");
 }
 

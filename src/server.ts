@@ -373,6 +373,55 @@ Bun.serve({
       }
     }
 
+    // ── /api/streaks ──────────────────────────────────────────
+    if (url.pathname === "/api/streaks" && req.method === "GET") {
+      const phone   = url.searchParams.get("phone") ?? "";
+      const saJson  = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+      const sheetId = process.env.ATTACK_SHEET_ID;
+
+      if (!phone) {
+        return new Response(JSON.stringify({ error: "Missing phone" }), {
+          status: 400, headers: { "content-type": "application/json" },
+        });
+      }
+      if (!saJson || !sheetId) {
+        return new Response(JSON.stringify({ error: "Server configuration error" }), {
+          status: 500, headers: { "content-type": "application/json" },
+        });
+      }
+
+      try {
+        const creds = JSON.parse(saJson);
+        const rows  = await readSheetRows(creds, sheetId, "Streak Logs");
+
+        // Col A=phone(0), B=date(1), C=type(2), D=supplement(3), E=score(4), F=timestamp(5)
+        const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
+        const matchedIndices: number[] = [];
+        const streaks = rows
+          .filter((row, i) => {
+            const match = String(row[0] ?? "").replace(/\D/g, "").slice(-10) === normalizedPhone;
+            if (match) matchedIndices.push(i + 2); // +2: 1-based + skip header
+            return match;
+          })
+          .map(row => ({
+            date:       String(row[1] ?? "").trim(),
+            type:       String(row[2] ?? "").trim().toLowerCase(),
+            supplement: String(row[3] ?? "").trim(),
+          }))
+          .filter(r => r.date && (r.type === "day" || r.type === "night"));
+
+        console.log(`[streaks] sheet=Streak Logs totalRows=${rows.length} phone=${normalizedPhone} matched=${streaks.length} rows=[${matchedIndices.join(",")}]`);
+        return new Response(JSON.stringify({ ok: true, rows: streaks }), {
+          headers: { "content-type": "application/json" },
+        });
+      } catch (err) {
+        console.error("[streaks] error:", err);
+        return new Response(JSON.stringify({ error: "Failed to fetch streaks" }), {
+          status: 500, headers: { "content-type": "application/json" },
+        });
+      }
+    }
+
     // ── Static files ───────────────────────────────────────────
     const filePath = path.join(clientDir, url.pathname);
     if (!path.resolve(filePath).startsWith(clientDir)) {

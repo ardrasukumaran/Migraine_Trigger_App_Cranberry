@@ -68,7 +68,7 @@ export async function hydrateStreakFromSheet(phone: string): Promise<Record<stri
   if (!phone) return null;
   try {
     const digits = phone.replace(/\D/g, "").slice(-10);
-    const res = await fetch(`${BACKEND_URL}/streak-history?phone=${encodeURIComponent(digits)}`);
+    const res = await fetch(`/api/streaks?phone=${encodeURIComponent(digits)}`);
     if (!res.ok) return null;
     const data = await res.json();
     if (!data.ok || !Array.isArray(data.rows)) return null;
