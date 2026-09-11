@@ -27,7 +27,7 @@ app.use((req, res, next) => {
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 function requireSecret(req, res, next) {
   if (!SECRET) return next();
-  const provided = req.headers["x-api-secret"] ?? req.body?.secret;
+  const provided = req.headers["x-api-secret"] ?? req.body?.secret ?? req.query?.secret;
   if (provided !== SECRET) return res.status(401).json({ error: "Unauthorized" });
   next();
 }
