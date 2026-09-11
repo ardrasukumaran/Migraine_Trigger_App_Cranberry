@@ -9,7 +9,7 @@ const UTC_OFFSET_HOURS = parseFloat(process.env.UTC_OFFSET_HOURS ?? "5.5");
 
 // ─── Fixed time slots (IST) ───────────────────────────────────────────────────
 const DAY_SLOTS   = ["08:00", "09:00", "09:30", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00"];
-const NIGHT_SLOTS = ["19:00", "20:00", "21:00", "21:30", "22:00", "23:00", "12 AM", "03:00", "04:00"];
+const NIGHT_SLOTS = ["19:00", "20:00", "21:00", "21:30", "22:00", "23:00", "00:00", "03:00", "04:00"];
 
 // ─── Notification messages ────────────────────────────────────────────────────
 function buildMessages(dayCombo, nightCombo) {
@@ -38,7 +38,6 @@ function getISTTimeStr() {
   const local   = new Date(localMs);
   const h = local.getUTCHours();
   const m = local.getUTCMinutes();
-  if (h === 0 && m === 0) return "12 AM";
   return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
 }
 
