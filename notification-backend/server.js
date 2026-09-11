@@ -6,7 +6,7 @@ import express from "express";
 import cron    from "node-cron";
 import { sendViaOneSignal, sendToMany } from "./onesignal.js";
 import { upsertToken, getActiveTokens, updateCombo, upsertStreak, batchUpsertStreak, batchUpdateCombo, getUserByMobile, getStreakHistory } from "./sheet.js";
-import { startScheduler } from "./scheduler.js";
+import { startScheduler, dryRunSlot } from "./scheduler.js";
 
 const app        = express();
 const PORT       = process.env.PORT ?? 3000;
@@ -179,6 +179,23 @@ app.get("/streak-history", async (req, res) => {
     res.json({ ok: true, rows });
   } catch (err) {
     console.error("[streak-history] Error:", err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ─── GET /test-slot ───────────────────────────────────────────────────────────
+// Dry-run: shows who would receive a notification for a given slot, no sends.
+// Usage: /test-slot?time=00:00  or  /test-slot?time=21:00
+app.get("/test-slot", requireSecret, async (req, res) => {
+  const time = req.query.time;
+  if (!time) return res.status(400).json({ error: "time is required (e.g. ?time=00:00)" });
+
+  try {
+    const result = await dryRunSlot(time);
+    console.log(`[test-slot] ${time} → matched ${result.matched}/${result.totalUsers} users`);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error("[test-slot] Error:", err.message);
     res.status(500).json({ ok: false, error: err.message });
   }
 });

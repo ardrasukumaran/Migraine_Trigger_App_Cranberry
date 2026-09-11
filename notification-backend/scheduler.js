@@ -146,6 +146,34 @@ async function runSchedule() {
 // IST 19:00=UTC 13:30, 20:00=14:30, 21:00=15:30, 21:30=UTC 16:00, 22:00=16:30
 // IST 23:00=UTC 17:30, 00:00=UTC 18:30
 // IST 03:00=UTC 21:30, 04:00=UTC 22:30
+// ─── Dry-run helper — returns match info without sending ─────────────────────
+export async function dryRunSlot(timeStr) {
+  const isDay   = DAY_SLOTS.includes(timeStr);
+  const isNight = NIGHT_SLOTS.includes(timeStr);
+
+  const tokens = await getActiveTokens();
+
+  const matchingRows = tokens.filter(row => {
+    const userTime = isDay ? row.dayTime : row.nightTime;
+    return userTime === timeStr;
+  });
+
+  return {
+    timeStr,
+    slotType:    isDay ? "day" : isNight ? "night" : "unknown",
+    knownSlot:   isDay || isNight,
+    totalUsers:  tokens.length,
+    matched:     matchingRows.length,
+    users:       matchingRows.map(r => ({
+      mobile:    r.mobile,
+      dayTime:   r.dayTime,
+      nightTime: r.nightTime,
+    })),
+    allNightTimes: [...new Set(tokens.map(r => r.nightTime).filter(Boolean))].sort(),
+    allDayTimes:   [...new Set(tokens.map(r => r.dayTime).filter(Boolean))].sort(),
+  };
+}
+
 export function startScheduler() {
   console.log("[Scheduler] Started — exact slot times only");
   console.log("[Scheduler] Day slots:  ", DAY_SLOTS.join(", "), "(IST)");
