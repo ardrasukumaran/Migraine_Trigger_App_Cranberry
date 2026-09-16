@@ -89,6 +89,7 @@ function LogPage() {
   const [painkillerTaken, setPainkillerTaken] = useState<boolean | null>(null);
   const [painkillerCount, setPainkillerCount] = useState<number | null>(null);
   const [painkillerName, setPainkillerName] = useState("");
+  const [softDrinkName, setSoftDrinkName] = useState("");
 
   const toggle = (arr: string[], v: string, set: (x: string[]) => void) =>
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
@@ -115,6 +116,7 @@ function LogPage() {
         painkillerTaken: painkillerTaken ?? false,
         painkillerCount: painkillerTaken ? painkillerCount : null,
         painkillerName: painkillerTaken && painkillerName.trim() ? painkillerName.trim() : null,
+        softDrinkName: foods.includes("Soft drinks") && softDrinkName.trim() ? softDrinkName.trim() : null,
       });
     }
     setStep((Math.min(step + 1, 3)) as Step);
@@ -400,6 +402,20 @@ function LogPage() {
               ))}
             </div>
 
+            {foods.includes("Soft drinks") && (
+              <div className="mt-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
+                  Any specific soft drink? (optional)
+                </p>
+                <input
+                  type="text"
+                  value={softDrinkName}
+                  onChange={(e) => setSoftDrinkName(e.target.value)}
+                  placeholder="e.g. Coca-Cola, Sprite, Pepsi…"
+                  className="w-full rounded-2xl bg-card border border-border text-foreground text-sm px-4 py-3 placeholder:text-warm-grey/40 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition"
+                />
+              </div>
+            )}
           </section>
         )}
 

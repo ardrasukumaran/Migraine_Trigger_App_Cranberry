@@ -8,6 +8,7 @@ import anxiety from "@/assets/triggers/icons/anxiety.png";
 import oddStrongSmells from "@/assets/triggers/icons/odd-strong-smells.png";
 import loudMusic from "@/assets/triggers/icons/loud-music.png";
 import brightFlickeringLights from "@/assets/triggers/icons/bright-flickering-lights.png";
+import sunlightExposure from "@/assets/triggers/icons/sunlight-exposure.jpg";
 import overuseOfScreens from "@/assets/triggers/icons/overuse-of-screens.png";
 import neckPain from "@/assets/triggers/icons/neck-pain.png";
 import haveNotHad2LitresOfWater from "@/assets/triggers/icons/have-not-had-2-litres-of-water.png";
@@ -32,6 +33,7 @@ import nearExpiryPackagedFood from "@/assets/triggers/icons/near-expiry-packaged
 import twoDayOldMeatFish from "@/assets/triggers/icons/2-day-old-meat-fish.png";
 import buttermilkChaas from "@/assets/triggers/icons/buttermilk-chaas.png";
 import caffeinatedDrinkTeaCoffeeSoftDrink from "@/assets/triggers/icons/caffeinated-drink-tea-coffee-soft-drink.png";
+import softDrinks from "@/assets/triggers/icons/soft-drinks.jpg";
 import rawOnion from "@/assets/triggers/icons/raw-onion.png";
 import brinjal from "@/assets/triggers/icons/brinjal.png";
 import citrusFruitOrangeLemonLimePineapple from "@/assets/triggers/icons/citrus-fruit-orange-lemon-lime-pineapple.png";
@@ -78,7 +80,8 @@ export const FOOD_SETS: { label: string; items: FoodItem[] }[] = [
       { name: "Sugar free or anything with it", icon: sugarFreeOrAnythingWithIt },
       { name: "Overripe fruit/ vegetable", icon: overripeFruitVegetable },
       { name: "Citrus fruit (Orange/ Lemon/ Lime/ Pineapple)", icon: citrusFruitOrangeLemonLimePineapple },
-      { name: "Caffeinated drink (tea/ coffee/ soft drink)", icon: caffeinatedDrinkTeaCoffeeSoftDrink },
+      { name: "Caffeinated drink (tea/ coffee)", icon: caffeinatedDrinkTeaCoffeeSoftDrink },
+      { name: "Soft drinks", icon: softDrinks },
       { name: "Alcohol (any)", icon: alcoholAny },
       { name: "Artificial colouring (any soft drink or syrup)", icon: artificialColouringSoftDrinkSyrup },
     ],
@@ -90,7 +93,7 @@ export const NON_FOOD_SETS: { label: string; items: FoodItem[] }[] = [
     label: "Sleep & emotions",
     items: [
       { name: "Have not had 2 litres of water", icon: haveNotHad2LitresOfWater },
-      { name: "Lack of sleep", icon: lackOfSleep },
+      { name: "Not enough sleep", icon: lackOfSleep },
       { name: "Woke up 2h late", icon: wokeUp2hLate },
       { name: "Interrupted sleep", icon: interruptedSleep },
       { name: "Oversleeping", icon: oversleeping },
@@ -105,6 +108,7 @@ export const NON_FOOD_SETS: { label: string; items: FoodItem[] }[] = [
       { name: "Odd/ strong smells", icon: oddStrongSmells },
       { name: "Loud music", icon: loudMusic },
       { name: "Bright/ flickering lights", icon: brightFlickeringLights },
+      { name: "Sunlight exposure", icon: sunlightExposure },
       { name: "Overuse of screens", icon: overuseOfScreens },
       { name: "Neck pain", icon: neckPain },
       { name: "Allergic reaction", icon: allergicReaction },

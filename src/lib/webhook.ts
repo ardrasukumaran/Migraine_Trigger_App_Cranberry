@@ -16,6 +16,7 @@ export interface WebhookPayload {
   painkillerTaken: boolean;
   painkillerCount: number | null;
   painkillerName: string | null;
+  softDrinkName: string | null;
   loggedAt: string;      // ISO timestamp
 }
 
@@ -33,6 +34,7 @@ export function sendAttackToWebhook(attack: AttackLog, phone: string): void {
     painkillerTaken: attack.painkillerTaken,
     painkillerCount: attack.painkillerCount,
     painkillerName: attack.painkillerName,
+    softDrinkName: attack.softDrinkName,
     loggedAt: new Date(attack.createdAt).toISOString(),
   };
 

@@ -13,6 +13,7 @@ export interface AttackLog {
   painkillerTaken: boolean;
   painkillerCount: number | null;
   painkillerName: string | null;
+  softDrinkName: string | null;
   createdAt: number;        // timestamp for sorting
 }
 
