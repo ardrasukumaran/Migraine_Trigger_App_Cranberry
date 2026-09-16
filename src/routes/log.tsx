@@ -405,7 +405,7 @@ function LogPage() {
             {foods.includes("Soft drinks") && (
               <div className="mt-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
-                  Which soft drink? (optional)
+                  Any specific soft drink? (optional)
                 </p>
                 <input
                   type="text"
