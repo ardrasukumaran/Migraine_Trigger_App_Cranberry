@@ -208,12 +208,10 @@ export async function loadPeriodBaseline(phone: string): Promise<Partial<PeriodS
   }
 }
 
-const BACKEND_URL = "https://cranberry-notifications.onrender.com";
-
 // Fetch full period history from the Period Logs sheet (one-time hydration when cache is empty)
 export async function loadPeriodFromSheet(phone: string): Promise<Partial<PeriodState> | null> {
   try {
-    const res = await fetch(`${BACKEND_URL}/period-logs?phone=${encodeURIComponent(phone)}`);
+    const res = await fetch(`/api/period-logs?phone=${encodeURIComponent(phone)}`);
     const data = await res.json() as {
       ok: boolean;
       rows?: Array<{
