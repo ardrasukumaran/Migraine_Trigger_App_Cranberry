@@ -208,7 +208,12 @@ function PeriodPage() {
 
       {/* Mini calendar — current month */}
       <section className="mt-4 rounded-3xl bg-card border border-border p-4">
-        <p className="text-sm font-semibold mb-3 text-center">{format(monthStart, "MMMM yyyy")}</p>
+        <div className="flex items-center justify-center mb-3 gap-2">
+          <p className="text-sm font-semibold">{format(monthStart, "MMMM yyyy")}</p>
+          {!state.baselineLoaded && (
+            <span className="text-[10px] text-warm-grey/50 animate-pulse">loading…</span>
+          )}
+        </div>
         <div className="grid grid-cols-7 gap-1 text-[10px] uppercase text-warm-grey/60 text-center mb-2">
           {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
             <span key={i}>{d}</span>
@@ -221,7 +226,7 @@ function PeriodPage() {
             const isFuture = d > TODAY;
             const logged = inLogged(d) || inSelected(d);
             const predicted = !isIrregular && inPredicted(d) && !logged;
-            const disabled = !inMonth || isFuture;
+            const disabled = !inMonth || isFuture || !state.baselineLoaded;
             return (
               <button
                 key={d.toISOString()}
@@ -251,7 +256,7 @@ function PeriodPage() {
             );
           })}
         </div>
-        {selectedStart && (
+        {selectedStart && state.baselineLoaded && (
           <div className="mt-4 flex items-center gap-2">
             <button
               onClick={() => setSelectedStart(null)}
