@@ -306,15 +306,28 @@ Bun.serve({
         // Col A=phone(0), B=loggedDate(1), C=cycleId(2), D=prevPeriodDate(3),
         //     E=nextPeriod(4), F=cycleLength(5), G=shortestCycle(6), H=longestCycle(7),
         //     I=shortestPred(8), J=longestPred(9), K=pmsLength(10), L=periodLength(11)
+        // Convert Excel date serial → YYYY-MM-DD (UNFORMATTED_VALUE returns serials for date cells)
+        const serialToDate = (v: unknown): string => {
+          const n = Number(v);
+          if (!n || n < 1) return "";
+          return new Date(Math.round((n - 25569) * 86400 * 1000)).toISOString().slice(0, 10);
+        };
+        const toDateStr = (v: unknown): string =>
+          typeof v === "number" ? serialToDate(v) : String(v ?? "").trim();
+
         const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
-        if (rows[0]) console.log(`[period-logs] first row: ${JSON.stringify(rows[0].slice(0, 5))}`);
+        // Debug: log first 3 rows' phone values and match result
+        rows.slice(0, 3).forEach((r, i) => {
+          const rPhone = String(r[0] ?? "").replace(/\D/g, "").slice(-10);
+          console.log(`[period-logs] row${i} phone_raw=${JSON.stringify(r[0])} normalized=${rPhone} match=${rPhone === normalizedPhone}`);
+        });
         const matched = rows.filter(r =>
           String(r[0] ?? "").replace(/\D/g, "").slice(-10) === normalizedPhone
         );
 
         const result = matched.map(r => ({
           cycleId:       parseInt(String(r[2] ?? "0"), 10) || 0,
-          startDate:     String(r[3] ?? "").trim(),
+          startDate:     toDateStr(r[3]),
           cycleLength:   parseInt(String(r[5] ?? "28"), 10) || 28,
           shortestCycle: parseInt(String(r[6] ?? "0"), 10) || 0,
           longestCycle:  parseInt(String(r[7] ?? "0"), 10) || 0,
