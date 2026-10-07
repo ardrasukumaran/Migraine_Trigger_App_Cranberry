@@ -283,7 +283,9 @@ Bun.serve({
           `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
-        const meta = await metaRes.json() as { sheets?: Array<{ properties: { title: string } }> };
+        const metaRaw = await metaRes.text();
+        console.log(`[period-logs] meta status=${metaRes.status} sheetId=${sheetId} body=${metaRaw.slice(0, 300)}`);
+        const meta = JSON.parse(metaRaw) as { sheets?: Array<{ properties: { title: string } }> };
         const tabNames = (meta.sheets ?? []).map(s => s.properties.title);
         console.log(`[period-logs] available tabs: [${tabNames.join(", ")}]`);
 
