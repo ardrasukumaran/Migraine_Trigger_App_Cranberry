@@ -497,7 +497,7 @@ export async function getPeriodLogs(phone) {
     const sheets = await getSheetsClient();
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: PERIOD_LOGS_SHEET_ID,
-      range: "sheet2!A:O",
+      range: "Sheet2!A:O",
     });
     return res.data.values ?? [];
   }, "getPeriodLogs");
