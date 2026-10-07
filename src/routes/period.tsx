@@ -18,6 +18,7 @@ import {
   phaseForDay,
   usePeriodState,
   loadPeriodBaseline,
+  loadPeriodFromSheet,
   nextPeriodDate,
   daysUntilNext,
   dayInCurrentCycle,
@@ -49,18 +50,30 @@ function PeriodPage() {
   const [state, update] = usePeriodState();
   const [selectedStart, setSelectedStart] = useState<Date | null>(null);
 
-  // Fetch baseline from Google Sheet when period data has never been loaded
+  // Hydrate period data from sheet when cache is empty (one-time, on first load)
   useEffect(() => {
     if (state.baselineLoaded || !phone) return;
-    loadPeriodBaseline(phone).then((baseline) => {
+
+    const load = async () => {
+      // If no logs in cache, try to pull full period history from the Period Logs sheet
+      if (state.logs.length === 0) {
+        const data = await loadPeriodFromSheet(phone);
+        if (data) {
+          update((s) => ({ ...s, ...data }));
+          return;
+        }
+      }
+      // Fallback: load baseline settings only (mode, cycleLength, etc.)
+      const baseline = await loadPeriodBaseline(phone);
       if (baseline) {
         update((s) => ({ ...s, ...baseline }));
       } else {
-        // Mark as loaded even if not found (avoid repeated fetches)
         update((s) => ({ ...s, baselineLoaded: true }));
       }
-    });
-  }, [phone, state.baselineLoaded, update]);
+    };
+
+    load();
+  }, [phone, state.baselineLoaded, state.logs.length, update]);
 
   const TODAY = useMemo(() => new Date(), []);
   const monthStart = useMemo(() => startOfMonth(TODAY), [TODAY]);
