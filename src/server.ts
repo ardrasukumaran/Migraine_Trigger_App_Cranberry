@@ -276,7 +276,30 @@ Bun.serve({
 
       try {
         const creds = JSON.parse(saJson);
-        const rows  = await readSheetRows(creds, sheetId, "Sheet2");
+        const token = await getGoogleAccessToken(creds);
+
+        // Fetch actual tab names first so we can log and match reliably
+        const metaRes = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const meta = await metaRes.json() as { sheets?: Array<{ properties: { title: string } }> };
+        const tabNames = (meta.sheets ?? []).map(s => s.properties.title);
+        console.log(`[period-logs] available tabs: [${tabNames.join(", ")}]`);
+
+        const tabName = tabNames.find(t => t.trim().toLowerCase() === "sheet2") ?? tabNames[0];
+        if (!tabName) {
+          return new Response(JSON.stringify({ ok: true, rows: [] }), {
+            headers: { "content-type": "application/json" },
+          });
+        }
+
+        const valRes = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tabName)}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const valData = await valRes.json() as { values?: string[][] };
+        const rows = valData.values ? valData.values.slice(1) : []; // skip header
 
         // Col A=phone(0), B=loggedDate(1), C=cycleId(2), D=prevPeriodDate(3),
         //     E=nextPeriod(4), F=cycleLength(5), G=shortestCycle(6), H=longestCycle(7),
@@ -296,7 +319,7 @@ Bun.serve({
           periodLength:  parseInt(String(r[11] ?? "5"), 10) || 5,
         })).filter(r => /^\d{4}-\d{2}-\d{2}$/.test(r.startDate));
 
-        console.log(`[period-logs] sheet=Sheet2 totalRows=${rows.length} phone=${normalizedPhone} matched=${result.length}`);
+        console.log(`[period-logs] tab="${tabName}" totalRows=${rows.length} phone=${normalizedPhone} matched=${result.length}`);
         return new Response(JSON.stringify({ ok: true, rows: result }), {
           headers: { "content-type": "application/json" },
         });
