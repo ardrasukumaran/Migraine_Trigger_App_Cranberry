@@ -52,7 +52,9 @@ function PeriodPage() {
 
   // Hydrate period data from sheet when cache is empty (one-time, on first load)
   useEffect(() => {
-    if (state.baselineLoaded || !phone) return;
+    if (!phone) return;
+    // Skip only when both baseline is loaded AND logs exist
+    if (state.baselineLoaded && state.logs.length > 0) return;
 
     const load = async () => {
       // If no logs in cache, try to pull full period history from the Period Logs sheet
@@ -64,11 +66,13 @@ function PeriodPage() {
         }
       }
       // Fallback: load baseline settings only (mode, cycleLength, etc.)
-      const baseline = await loadPeriodBaseline(phone);
-      if (baseline) {
-        update((s) => ({ ...s, ...baseline }));
-      } else {
-        update((s) => ({ ...s, baselineLoaded: true }));
+      if (!state.baselineLoaded) {
+        const baseline = await loadPeriodBaseline(phone);
+        if (baseline) {
+          update((s) => ({ ...s, ...baseline }));
+        } else {
+          update((s) => ({ ...s, baselineLoaded: true }));
+        }
       }
     };
 
