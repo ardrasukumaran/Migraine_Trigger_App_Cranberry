@@ -242,7 +242,8 @@ export async function loadPeriodFromSheet(phone: string): Promise<Partial<Period
     const shortestCycle = latest.shortestCycle || cycleLength;
     const longestCycle  = latest.longestCycle  || cycleLength;
     const pmsLength     = latest.pmsLength     || 5;
-    const mode: Mode    = (longestCycle - shortestCycle) > 7 ? "irregular" : "regular";
+    const hasRange = latest.shortestCycle > 0 && latest.longestCycle > 0;
+    const mode: Mode = hasRange ? "irregular" : "regular";
 
     // Earliest period date anchors the baseline
     const earliest = [...valid].sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
