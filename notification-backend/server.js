@@ -5,7 +5,7 @@ import "dotenv/config";
 import express from "express";
 import cron    from "node-cron";
 import { sendViaOneSignal, sendToMany } from "./onesignal.js";
-import { upsertToken, getActiveTokens, updateCombo, upsertStreak, batchUpsertStreak, batchUpdateCombo, getUserByMobile, getStreakHistory } from "./sheet.js";
+import { upsertToken, getActiveTokens, updateCombo, upsertStreak, batchUpsertStreak, batchUpdateCombo, getUserByMobile, getStreakHistory, getPeriodLogs } from "./sheet.js";
 import { startScheduler, dryRunSlot } from "./scheduler.js";
 
 const app        = express();
@@ -164,6 +164,23 @@ app.post("/send-all", requireSecret, async (req, res) => {
     return res.json({ ok: true, sent: 0, message: "No active tokens" });
   const result = await sendToMany({ tokens, title, body, url });
   res.json({ ok: true, ...result });
+});
+
+// ─── GET /period-logs ─────────────────────────────────────────────────────────
+// Returns all period cycle rows for a phone — frontend uses this to hydrate empty cache
+app.get("/period-logs", async (req, res) => {
+  const phone = req.query.phone;
+  if (!phone) return res.status(400).json({ error: "phone is required" });
+
+  try {
+    const { rows, totalRows, matchedIndices } = await getPeriodLogs(phone);
+    const normalizedPhone = String(phone).replace(/\D/g, "").slice(-10);
+    console.log(`[period-logs] sheet=Period Logs totalRows=${totalRows} phone=${normalizedPhone} matched=${rows.length} rows=[${matchedIndices.join(",")}]`);
+    res.json({ ok: true, rows });
+  } catch (err) {
+    console.error("[period-logs] Error:", err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // ─── GET /streak-history ──────────────────────────────────────────────────────

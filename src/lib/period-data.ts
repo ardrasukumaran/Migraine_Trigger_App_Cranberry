@@ -208,6 +208,64 @@ export async function loadPeriodBaseline(phone: string): Promise<Partial<PeriodS
   }
 }
 
+// Fetch full period history from the Period Logs sheet (one-time hydration when cache is empty)
+export async function loadPeriodFromSheet(phone: string): Promise<Partial<PeriodState> | null> {
+  try {
+    const res = await fetch(`/api/period-logs?phone=${encodeURIComponent(phone)}`);
+    const data = await res.json() as {
+      ok: boolean;
+      rows?: Array<{
+        cycleId: number;
+        startDate: string;
+        cycleLength: number;
+        shortestCycle: number;
+        longestCycle: number;
+        pmsLength: number;
+        periodLength: number;
+      }>;
+    };
+    if (!data.ok || !data.rows?.length) return null;
+
+    const valid = data.rows.filter(r => /^\d{4}-\d{2}-\d{2}$/.test(r.startDate));
+    if (!valid.length) return null;
+
+    const logs: PeriodLog[] = assignCycleIds(
+      valid.map(r => ({ id: r.startDate, startDate: r.startDate }))
+    );
+
+    // Settings come from the latest cycle row
+    const latest = [...valid].sort((a, b) => b.cycleId - a.cycleId)[0];
+    const periodLength  = latest.periodLength  || 5;
+    const cycleLength   = latest.cycleLength   || 28;
+    const shortestCycle = latest.shortestCycle || cycleLength;
+    const longestCycle  = latest.longestCycle  || cycleLength;
+    const pmsLength     = latest.pmsLength     || 5;
+    const hasRange = latest.shortestCycle > 0 && latest.longestCycle > 0;
+    const mode: Mode = hasRange ? "irregular" : "regular";
+
+    // Earliest period date anchors the baseline
+    const earliest = [...valid].sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
+
+    return {
+      logs,
+      mode,
+      periodLength,
+      baselineCycleLength: cycleLength,
+      cycleLength,
+      shortestCycle,
+      longestCycle,
+      baselineShortestCycle: shortestCycle,
+      baselineLongestCycle: longestCycle,
+      pmsLength,
+      baselinePrevPeriodDate: earliest.startDate,
+      cycleId: logs.length,
+      baselineLoaded: true,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ── Derived helpers ────────────────────────────────────────────────
 export function nextPeriodDate(lastStart: string, cycleLength: number): Date {
   return addDays(new Date(lastStart + "T00:00:00"), cycleLength);

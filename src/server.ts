@@ -257,6 +257,87 @@ Bun.serve({
       }
     }
 
+    // ── /api/period-logs ──────────────────────────────────────
+    if (url.pathname === "/api/period-logs" && req.method === "GET") {
+      const phone   = url.searchParams.get("phone") ?? "";
+      const saJson  = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+      const sheetId = process.env.PERIOD_LOGS_SHEET_ID;
+
+      if (!phone) {
+        return new Response(JSON.stringify({ error: "Missing phone" }), {
+          status: 400, headers: { "content-type": "application/json" },
+        });
+      }
+      if (!saJson || !sheetId) {
+        return new Response(JSON.stringify({ error: "PERIOD_LOGS_SHEET_ID not configured" }), {
+          status: 500, headers: { "content-type": "application/json" },
+        });
+      }
+
+      try {
+        const creds = JSON.parse(saJson);
+        const token = await getGoogleAccessToken(creds);
+
+        const metaRes = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const meta = await metaRes.json() as { sheets?: Array<{ properties: { title: string } }> };
+        const tabNames = (meta.sheets ?? []).map(s => s.properties.title);
+
+        const tabName = tabNames.find(t => t.trim().toLowerCase() === "sheet2") ?? tabNames[0];
+        if (!tabName) {
+          return new Response(JSON.stringify({ ok: true, rows: [] }), {
+            headers: { "content-type": "application/json" },
+          });
+        }
+
+        const valRes = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tabName)}?valueRenderOption=UNFORMATTED_VALUE`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const valData = await valRes.json() as { values?: string[][] };
+        const rows = valData.values ? valData.values.slice(1) : []; // skip header
+
+        // Col A=phone(0), B=loggedDate(1), C=cycleId(2), D=prevPeriodDate(3),
+        //     E=nextPeriod(4), F=cycleLength(5), G=shortestCycle(6), H=longestCycle(7),
+        //     I=shortestPred(8), J=longestPred(9), K=pmsLength(10), L=periodLength(11)
+        // Convert Excel date serial → YYYY-MM-DD (UNFORMATTED_VALUE returns serials for date cells)
+        const serialToDate = (v: unknown): string => {
+          const n = Number(v);
+          if (!n || n < 1) return "";
+          return new Date(Math.round((n - 25569) * 86400 * 1000)).toISOString().slice(0, 10);
+        };
+        const toDateStr = (v: unknown): string =>
+          typeof v === "number" ? serialToDate(v) : String(v ?? "").trim();
+
+        const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
+        const matched = rows.filter(r =>
+          String(r[0] ?? "").replace(/\D/g, "").slice(-10) === normalizedPhone
+        );
+
+        const result = matched.map(r => ({
+          cycleId:       parseInt(String(r[2] ?? "0"), 10) || 0,
+          startDate:     toDateStr(r[3]),
+          cycleLength:   parseInt(String(r[5] ?? "28"), 10) || 28,
+          shortestCycle: parseInt(String(r[6] ?? "0"), 10) || 0,
+          longestCycle:  parseInt(String(r[7] ?? "0"), 10) || 0,
+          pmsLength:     parseInt(String(r[10] ?? "5"), 10) || 5,
+          periodLength:  parseInt(String(r[11] ?? "5"), 10) || 5,
+        })).filter(r => /^\d{4}-\d{2}-\d{2}$/.test(r.startDate));
+
+        console.log(`[period-logs] tab="${tabName}" totalRows=${rows.length} phone=${normalizedPhone} matched=${result.length}`);
+        return new Response(JSON.stringify({ ok: true, rows: result }), {
+          headers: { "content-type": "application/json" },
+        });
+      } catch (err) {
+        console.error("[period-logs] error:", err);
+        return new Response(JSON.stringify({ ok: false, error: "Failed to fetch period logs" }), {
+          status: 500, headers: { "content-type": "application/json" },
+        });
+      }
+    }
+
     // ── /api/triggers ─────────────────────────────────────────
     if (url.pathname === "/api/triggers" && req.method === "GET") {
       const phone   = url.searchParams.get("phone") ?? "";

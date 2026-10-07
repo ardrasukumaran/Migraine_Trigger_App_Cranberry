@@ -4,6 +4,7 @@
 import { google } from "googleapis";
 
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID ?? "1DfV-C523LbzxNPpxNJYF4LljEMTZvjPPTHtc3jfG53A";
+const PERIOD_LOGS_SHEET_ID = process.env.PERIOD_LOGS_SHEET_ID;
 
 const USERS_SHEET      = "Users";
 const NOTIF_LOG_SHEET  = "Notification Logs";
@@ -480,4 +481,47 @@ export async function batchUpsertStreak(entries) {
 
     return `inserted ${toInsert.length}, updated ${toUpdate.length}`;
   }, "batchUpsertStreak");
+}
+
+// ─── GET /period-logs — Read period history for a phone ──────────────────────
+// Columns: Phone(0) LoggedDate(1) CycleID(2) PrevPeriodDate(3) NextPeriod(4)
+//          CycleLength(5) ShortestCycle(6) LongestCycle(7) ShortestPred(8)
+//          LongestPred(9) PMSLength(10) PeriodLength(11) FollicularStart(12)
+//          LutealStart(13) PMSStart(14)
+export async function getPeriodLogs(phone) {
+  if (!PERIOD_LOGS_SHEET_ID) throw new Error("PERIOD_LOGS_SHEET_ID not set");
+
+  const normalizedPhone = String(phone).replace(/\D/g, "").slice(-10);
+
+  const rows = await withRetry(async () => {
+    const sheets = await getSheetsClient();
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: PERIOD_LOGS_SHEET_ID,
+      range: "Sheet2!A:O",
+    });
+    return res.data.values ?? [];
+  }, "getPeriodLogs");
+
+  const dataRows = rows.slice(1); // skip header row
+  const totalRows = dataRows.length;
+
+  const matchedIndices = [];
+  const matched = dataRows.filter((row, i) => {
+    const rowPhone = String(row[0] ?? "").replace(/\D/g, "").slice(-10);
+    if (rowPhone === normalizedPhone) { matchedIndices.push(i + 2); return true; }
+    return false;
+  });
+
+  const result = matched.map(row => ({
+    cycleId:       Number(row[2] ?? 0),
+    startDate:     String(row[3] ?? "").trim(),   // Previous period date → period start
+    cycleLength:   Number(row[5] ?? 28) || 28,
+    shortestCycle: Number(row[6] ?? 28) || 28,
+    longestCycle:  Number(row[7] ?? 28) || 28,
+    pmsLength:     Number(row[10] ?? 5) || 5,
+    periodLength:  Number(row[11] ?? 5) || 5,
+  })).filter(r => /^\d{4}-\d{2}-\d{2}$/.test(r.startDate)); // only valid dates
+
+  console.log(`[period-logs] totalRows=${totalRows} phone=${normalizedPhone} matched=${result.length} rows=[${matchedIndices.join(",")}]`);
+  return { rows: result, totalRows, matchedIndices };
 }

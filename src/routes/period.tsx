@@ -18,6 +18,7 @@ import {
   phaseForDay,
   usePeriodState,
   loadPeriodBaseline,
+  loadPeriodFromSheet,
   nextPeriodDate,
   daysUntilNext,
   dayInCurrentCycle,
@@ -49,18 +50,34 @@ function PeriodPage() {
   const [state, update] = usePeriodState();
   const [selectedStart, setSelectedStart] = useState<Date | null>(null);
 
-  // Fetch baseline from Google Sheet when period data has never been loaded
+  // Hydrate period data from sheet when cache is empty (one-time, on first load)
   useEffect(() => {
-    if (state.baselineLoaded || !phone) return;
-    loadPeriodBaseline(phone).then((baseline) => {
-      if (baseline) {
-        update((s) => ({ ...s, ...baseline }));
-      } else {
-        // Mark as loaded even if not found (avoid repeated fetches)
-        update((s) => ({ ...s, baselineLoaded: true }));
+    if (!phone) return;
+    // Skip only when both baseline is loaded AND logs exist
+    if (state.baselineLoaded && state.logs.length > 0) return;
+
+    const load = async () => {
+      // If no logs in cache, try to pull full period history from the Period Logs sheet
+      if (state.logs.length === 0) {
+        const data = await loadPeriodFromSheet(phone);
+        if (data) {
+          update((s) => ({ ...s, ...data }));
+          return;
+        }
       }
-    });
-  }, [phone, state.baselineLoaded, update]);
+      // Fallback: load baseline settings only (mode, cycleLength, etc.)
+      if (!state.baselineLoaded) {
+        const baseline = await loadPeriodBaseline(phone);
+        if (baseline) {
+          update((s) => ({ ...s, ...baseline }));
+        } else {
+          update((s) => ({ ...s, baselineLoaded: true }));
+        }
+      }
+    };
+
+    load();
+  }, [phone, state.baselineLoaded, state.logs.length, update]);
 
   const TODAY = useMemo(() => new Date(), []);
   const monthStart = useMemo(() => startOfMonth(TODAY), [TODAY]);
@@ -191,7 +208,12 @@ function PeriodPage() {
 
       {/* Mini calendar — current month */}
       <section className="mt-4 rounded-3xl bg-card border border-border p-4">
-        <p className="text-sm font-semibold mb-3 text-center">{format(monthStart, "MMMM yyyy")}</p>
+        <div className="flex items-center justify-center mb-3 gap-2">
+          <p className="text-sm font-semibold">{format(monthStart, "MMMM yyyy")}</p>
+          {!state.baselineLoaded && (
+            <span className="text-[10px] text-warm-grey/50 animate-pulse">loading…</span>
+          )}
+        </div>
         <div className="grid grid-cols-7 gap-1 text-[10px] uppercase text-warm-grey/60 text-center mb-2">
           {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
             <span key={i}>{d}</span>
@@ -204,7 +226,7 @@ function PeriodPage() {
             const isFuture = d > TODAY;
             const logged = inLogged(d) || inSelected(d);
             const predicted = !isIrregular && inPredicted(d) && !logged;
-            const disabled = !inMonth || isFuture;
+            const disabled = !inMonth || isFuture || !state.baselineLoaded;
             return (
               <button
                 key={d.toISOString()}
@@ -234,7 +256,7 @@ function PeriodPage() {
             );
           })}
         </div>
-        {selectedStart && (
+        {selectedStart && state.baselineLoaded && (
           <div className="mt-4 flex items-center gap-2">
             <button
               onClick={() => setSelectedStart(null)}
