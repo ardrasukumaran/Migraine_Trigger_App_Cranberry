@@ -307,6 +307,8 @@ Bun.serve({
         //     E=nextPeriod(4), F=cycleLength(5), G=shortestCycle(6), H=longestCycle(7),
         //     I=shortestPred(8), J=longestPred(9), K=pmsLength(10), L=periodLength(11)
         const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
+        const samplePhones = rows.slice(0, 3).map(r => String(r[0] ?? ""));
+        console.log(`[period-logs] sample phones from sheet: ${JSON.stringify(samplePhones)}`);
         const matched = rows.filter(r =>
           String(r[0] ?? "").replace(/\D/g, "").slice(-10) === normalizedPhone
         );
