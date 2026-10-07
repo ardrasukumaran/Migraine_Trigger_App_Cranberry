@@ -278,16 +278,12 @@ Bun.serve({
         const creds = JSON.parse(saJson);
         const token = await getGoogleAccessToken(creds);
 
-        // Fetch actual tab names first so we can log and match reliably
         const metaRes = await fetch(
           `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
-        const metaRaw = await metaRes.text();
-        console.log(`[period-logs] meta status=${metaRes.status} sheetId=${sheetId} body=${metaRaw.slice(0, 300)}`);
-        const meta = JSON.parse(metaRaw) as { sheets?: Array<{ properties: { title: string } }> };
+        const meta = await metaRes.json() as { sheets?: Array<{ properties: { title: string } }> };
         const tabNames = (meta.sheets ?? []).map(s => s.properties.title);
-        console.log(`[period-logs] available tabs: [${tabNames.join(", ")}]`);
 
         const tabName = tabNames.find(t => t.trim().toLowerCase() === "sheet2") ?? tabNames[0];
         if (!tabName) {
@@ -316,11 +312,6 @@ Bun.serve({
           typeof v === "number" ? serialToDate(v) : String(v ?? "").trim();
 
         const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
-        // Debug: log first 3 rows' phone values and match result
-        rows.slice(0, 3).forEach((r, i) => {
-          const rPhone = String(r[0] ?? "").replace(/\D/g, "").slice(-10);
-          console.log(`[period-logs] row${i} phone_raw=${JSON.stringify(r[0])} normalized=${rPhone} match=${rPhone === normalizedPhone}`);
-        });
         const matched = rows.filter(r =>
           String(r[0] ?? "").replace(/\D/g, "").slice(-10) === normalizedPhone
         );
