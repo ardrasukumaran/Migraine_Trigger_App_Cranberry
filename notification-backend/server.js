@@ -3,7 +3,6 @@
 
 import "dotenv/config";
 import express from "express";
-import cron    from "node-cron";
 import { sendViaOneSignal, sendToMany } from "./onesignal.js";
 import { upsertToken, getActiveTokens, updateCombo, upsertStreak, batchUpsertStreak, batchUpdateCombo, getUserByMobile, getStreakHistory, getPeriodLogs } from "./sheet.js";
 import { startScheduler, dryRunSlot } from "./scheduler.js";
@@ -11,7 +10,6 @@ import { startScheduler, dryRunSlot } from "./scheduler.js";
 const app        = express();
 const PORT       = process.env.PORT ?? 3000;
 const SECRET     = process.env.API_SECRET;
-const RENDER_URL = process.env.RENDER_EXTERNAL_URL ?? "";
 
 app.use(express.json());
 
@@ -228,31 +226,9 @@ app.get("/health", (req, res) => {
   });
 });
 
-// ─── Smart keep-alive ─────────────────────────────────────────────────────────
-function startSmartKeepAlive() {
-  if (!RENDER_URL) {
-    console.log("[Keep-alive] No RENDER_EXTERNAL_URL — skipping");
-    return;
-  }
-  console.log("[Keep-alive] Smart ping — 5 min before each slot");
-  const ping = async () => {
-    try {
-      const r = await fetch(`${RENDER_URL}/health`);
-      console.log(`[Keep-alive] ✓ Ping → ${r.status}`);
-    } catch (err) {
-      console.error("[Keep-alive] ✗ Ping failed:", err.message);
-    }
-  };
-  // 5 min before :30 slots
-  cron.schedule("25 2,3,4,6,7,8,9,13,14,15,16,17,18,21,22 * * *", ping);
-  // 5 min before :00 slots — IST 09:30 (UTC 03:55) and IST 21:30 (UTC 15:55)
-  cron.schedule("55 3,15 * * *", ping);
-}
-
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n🚀 Notification server running on http://localhost:${PORT}`);
   console.log(`   Health: http://localhost:${PORT}/health\n`);
   startScheduler();
-  startSmartKeepAlive();
 });

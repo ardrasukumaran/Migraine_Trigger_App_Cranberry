@@ -69,27 +69,35 @@ async function ensureSheetExists(sheets, sheetName, headers) {
   }
 }
 
-// ─── Convert "3 PM" / "10 AM" / "12 AM" style text to "15:00" / "10:00" / "00:00" ─
+// ─── Normalise free-text time → 24-hour "HH:MM", or "" if unparseable ───────
+// Handles: "3 PM", "9:30 AM", "9:30PM", "2.30PM", "10.30AM",
+//          "12:00:00 AM", "21:30", "9:30", "12 AM" (→ "00:00"), "12 PM" (→ "12:00").
 function formatTime(raw) {
   const str = String(raw ?? "").trim();
   if (!str) return "";
 
-  // Already in HH:MM format? Pass through.
-  if (/^\d{1,2}:\d{2}$/.test(str)) {
-    const [h, m] = str.split(":");
-    return `${h.padStart(2, "0")}:${m}`;
+  // 1. Pure 24-hour: H:MM or HH:MM[:SS]  (no AM/PM suffix)
+  const m24 = str.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (m24) {
+    const h = parseInt(m24[1], 10);
+    const m = parseInt(m24[2], 10);
+    if (h > 23 || m > 59) return "";
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   }
 
-  const match = str.match(/^(\d{1,2})\s*(AM|PM)$/i);
-  if (!match) return str; // unknown format — return as-is
+  // 2. 12-hour with AM/PM: H [sep MM [:SS]] AM/PM  (sep = : or ., space optional)
+  const mAP = str.match(/^(\d{1,2})(?:[:\.](\d{2})(?::\d{2})?)?\s*(AM|PM)$/i);
+  if (mAP) {
+    let h   = parseInt(mAP[1], 10);
+    const m = mAP[2] ? parseInt(mAP[2], 10) : 0;
+    const p = mAP[3].toUpperCase();
+    if (h < 1 || h > 12 || m > 59) return "";
+    if (p === "PM" && h !== 12) h += 12;
+    if (p === "AM" && h === 12) h  = 0;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  }
 
-  let hour = parseInt(match[1], 10);
-  const period = match[2].toUpperCase();
-
-  if (period === "PM" && hour !== 12) hour += 12;
-  if (period === "AM" && hour === 12) hour = 0;
-
-  return `${String(hour).padStart(2, "0")}:00`;
+  return ""; // unrecognisable
 }
 
 // ─── Get active tokens for scheduler ─────────────────────────────────────────
