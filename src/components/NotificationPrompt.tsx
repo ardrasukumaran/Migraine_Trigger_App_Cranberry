@@ -84,9 +84,24 @@ export function NotificationPrompt({ mobile, userName, onDone }: Props) {
   useEffect(() => {
     if (typeof window === "undefined") { onDone?.(); return; }
 
-    // Only skip if already subscribed
     const existingPlayerId = localStorage.getItem(PLAYER_KEY);
-    if (existingPlayerId) { onDone?.(); return; }
+    if (existingPlayerId) {
+      // Already subscribed — silently refresh name + token in the sheet, then proceed
+      const { dayCombo, nightCombo } = getComboFromStorage();
+      fetch(`${BACKEND_URL}/register-token`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          mobile_number: mobile,
+          fcm_token:     existingPlayerId,
+          day_combo:     dayCombo,
+          night_combo:   nightCombo,
+          user_name:     userName ?? "",
+        }),
+      }).catch(console.error);
+      onDone?.();
+      return;
+    }
 
     const timer = setTimeout(() => setShow(true), 1000);
     return () => clearTimeout(timer);
