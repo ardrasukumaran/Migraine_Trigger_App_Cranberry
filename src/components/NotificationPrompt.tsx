@@ -9,6 +9,7 @@ const BACKEND_URL     = "https://cranberry-notifications.onrender.com";
 const ONESIGNAL_APP_ID = "9532e810-57ec-4019-b7c0-82a5eac1922b";
 const PLAYER_KEY       = "cranberry.onesignal_player_id.v1";
 const STREAK_KEY       = "cranberry.streaks.v1";
+const USER_NAME_KEY    = "cranberry_user_name";
 
 const DAY_COMBO_MAP: Record<string, string> = {
   "day-a": "Ribo + Mg + Premence",
@@ -21,6 +22,10 @@ const NIGHT_COMBO_MAP: Record<string, string> = {
   "night-a": "Mg + CoQ",
   "night-b": "Mg + Premence",
 };
+
+function getNameFromStorage(propName?: string): string {
+  return propName || localStorage.getItem(USER_NAME_KEY) || "";
+}
 
 function getComboFromStorage() {
   try {
@@ -96,7 +101,7 @@ export function NotificationPrompt({ mobile, userName, onDone }: Props) {
           fcm_token:     existingPlayerId,
           day_combo:     dayCombo,
           night_combo:   nightCombo,
-          user_name:     userName ?? "",
+          user_name:     getNameFromStorage(userName),
         }),
       }).catch(console.error);
       onDone?.();
@@ -151,7 +156,7 @@ export function NotificationPrompt({ mobile, userName, onDone }: Props) {
           fcm_token:     playerId,
           day_combo:     dayCombo,
           night_combo:   nightCombo,
-          user_name:     userName ?? "",
+          user_name:     getNameFromStorage(userName),
         }),
       });
 
