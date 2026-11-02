@@ -4,7 +4,7 @@
 import "dotenv/config";
 import express from "express";
 import { sendViaOneSignal, sendToMany } from "./onesignal.js";
-import { upsertToken, getActiveTokens, updateCombo, upsertStreak, batchUpsertStreak, batchUpdateCombo, getUserByMobile, getStreakHistory, getPeriodLogs } from "./sheet.js";
+import { upsertToken, getActiveTokens, updateCombo, upsertStreak, batchUpsertStreak, batchUpdateCombo, getUserByMobile, getStreakHistory, getPeriodLogs, updateUserName } from "./sheet.js";
 import { startScheduler, dryRunSlot } from "./scheduler.js";
 
 const app        = express();
@@ -99,6 +99,24 @@ app.post("/register-token", async (req, res) => {
     res.json({ ok: true, sheet: result });
   } catch (err) {
     console.error("[register-token] Failed:", err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ─── POST /update-name ───────────────────────────────────────────────────────
+// Called on every login to ensure column C stays current, independent of
+// the notification-prompt flow (which users may skip).
+app.post("/update-name", async (req, res) => {
+  const { mobile_number, user_name } = req.body ?? {};
+  if (!mobile_number || !user_name)
+    return res.status(400).json({ error: "mobile_number and user_name required" });
+
+  try {
+    const result = await updateUserName({ mobile: mobile_number, name: user_name });
+    console.log(`[update-name] mobile=${mobile_number} name=${user_name} result=${result}`);
+    res.json({ ok: true, result });
+  } catch (err) {
+    console.error("[update-name] Error:", err.message);
     res.status(500).json({ ok: false, error: err.message });
   }
 });

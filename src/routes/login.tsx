@@ -121,6 +121,14 @@ function LoginPage() {
         login(data.phone, data.token, data.user_name);
         setLoggedInPhone(data.phone);       // ← show notification popup
         setLoggedInName(data.user_name ?? "");
+        // Always sync name to Users sheet on login, independent of notification prompt
+        if (data.user_name) {
+          fetch('https://cranberry-notifications.onrender.com/update-name', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mobile_number: data.phone, user_name: data.user_name }),
+          }).catch(console.error);
+        }
       } else {
         setError(data.message ?? 'Invalid phone or order ID.');
       }

@@ -238,6 +238,31 @@ export async function getUserByMobile(mobile) {
   }, "getUserByMobile");
 }
 
+// ─── Update name only (called on login; no-op if user row not found) ─────────
+export async function updateUserName({ mobile, name }) {
+  return withRetry(async () => {
+    const sheets = await getSheetsClient();
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${USERS_SHEET}!A2:A`,
+    });
+    const rows = res.data.values ?? [];
+    const normalizedMobile = String(mobile).replace(/\D/g, "").slice(-10);
+    const rowIndex = rows.findIndex(r =>
+      String(r[0]).replace(/\D/g, "").slice(-10) === normalizedMobile
+    );
+    if (rowIndex === -1) return "not found";
+    const rowNum = rowIndex + 2;
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${USERS_SHEET}!C${rowNum}`,
+      valueInputOption: "RAW",
+      requestBody: { values: [[name]] },
+    });
+    return "updated";
+  }, "updateUserName");
+}
+
 // ─── Log notification (batch-friendly, but works for single too) ────────────
 export async function logNotification({ mobile, token, time, status }) {
   return withRetry(async () => {
