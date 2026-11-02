@@ -71,11 +71,12 @@ function loadOneSignal(): Promise<any> {
 }
 
 interface Props {
-  mobile:  string;
-  onDone?: () => void;
+  mobile:    string;
+  userName?: string;
+  onDone?:   () => void;
 }
 
-export function NotificationPrompt({ mobile, onDone }: Props) {
+export function NotificationPrompt({ mobile, userName, onDone }: Props) {
   const [show,    setShow]    = useState(false);
   const [loading, setLoading] = useState(false);
   const [done,    setDone]    = useState(false);
@@ -135,6 +136,7 @@ export function NotificationPrompt({ mobile, onDone }: Props) {
           fcm_token:     playerId,
           day_combo:     dayCombo,
           night_combo:   nightCombo,
+          user_name:     userName ?? "",
         }),
       });
 

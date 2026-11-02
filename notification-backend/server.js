@@ -82,16 +82,17 @@ async function flushComboQueue() {
 
 // ─── POST /register-token ─────────────────────────────────────────────────────
 app.post("/register-token", async (req, res) => {
-  const { mobile_number, fcm_token, day_combo, night_combo } = req.body ?? {};
+  const { mobile_number, fcm_token, day_combo, night_combo, user_name } = req.body ?? {};
   if (!fcm_token || fcm_token.length < 10)
     return res.status(400).json({ error: "Invalid token" });
 
-  console.log(`[register-token] mobile=${mobile_number}`);
+  console.log(`[register-token] mobile=${mobile_number} name=${user_name ?? ""}`);
 
   try {
     const result = await upsertToken({
       token:      fcm_token,
       mobile:     mobile_number ?? "",
+      name:       user_name     ?? "",
       dayCombo:   day_combo     ?? "",
       nightCombo: night_combo   ?? "",
     });

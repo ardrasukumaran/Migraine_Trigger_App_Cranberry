@@ -130,7 +130,7 @@ export async function getActiveTokens() {
 }
 
 // ─── Upsert token (register / update user) ───────────────────────────────────
-export async function upsertToken({ token, mobile, dayCombo, nightCombo }) {
+export async function upsertToken({ token, mobile, name, dayCombo, nightCombo }) {
   return withRetry(async () => {
     const sheets = await getSheetsClient();
     await ensureSheetExists(sheets, USERS_SHEET,
@@ -150,6 +150,7 @@ export async function upsertToken({ token, mobile, dayCombo, nightCombo }) {
         { range: `${USERS_SHEET}!B${rowNum}`, values: [[token]] },
         { range: `${USERS_SHEET}!F${rowNum}`, values: [["Active"]] },
       ];
+      if (name)       updates.push({ range: `${USERS_SHEET}!C${rowNum}`, values: [[name]] });
       if (dayCombo)   updates.push({ range: `${USERS_SHEET}!G${rowNum}`, values: [[dayCombo]] });
       if (nightCombo) updates.push({ range: `${USERS_SHEET}!H${rowNum}`, values: [[nightCombo]] });
 
@@ -165,7 +166,7 @@ export async function upsertToken({ token, mobile, dayCombo, nightCombo }) {
         range: `${USERS_SHEET}!A:H`,
         valueInputOption: "RAW",
         insertDataOption: "INSERT_ROWS",
-        requestBody: { values: [[mobile, token, "", "", "", "Active", dayCombo ?? "", nightCombo ?? ""]] },
+        requestBody: { values: [[mobile, token, name ?? "", "", "", "Active", dayCombo ?? "", nightCombo ?? ""]] },
       });
       return "inserted";
     }

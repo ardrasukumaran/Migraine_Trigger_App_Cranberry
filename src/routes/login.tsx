@@ -79,6 +79,7 @@ function LoginPage() {
   const [error, setError]             = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [loggedInPhone, setLoggedInPhone] = useState('');
+  const [loggedInName,  setLoggedInName]  = useState('');
   const justLoggedIn = useRef(false); // ← prevents auto-navigate after login
 
   // Only auto-navigate if user was ALREADY logged in (not just now)
@@ -118,7 +119,8 @@ function LoginPage() {
       if (data.verified && data.token && data.phone) {
         justLoggedIn.current = true; // ← block auto-navigate
         login(data.phone, data.token, data.user_name);
-        setLoggedInPhone(data.phone); // ← show notification popup
+        setLoggedInPhone(data.phone);       // ← show notification popup
+        setLoggedInName(data.user_name ?? "");
       } else {
         setError(data.message ?? 'Invalid phone or order ID.');
       }
@@ -146,6 +148,7 @@ function LoginPage() {
       {loggedInPhone && (
         <NotificationPrompt
           mobile={loggedInPhone}
+          userName={loggedInName}
           onDone={handleNotificationDone}
         />
       )}
