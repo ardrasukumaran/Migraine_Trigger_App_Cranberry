@@ -136,11 +136,11 @@ function TodayPage() {
         </p>
         <Link
           to="/period"
-          className="relative block rounded-3xl border border-[#F2B8BF]/30 bg-gradient-to-br from-[#2A1520] via-[#1F1220] to-[#1A0F1E] px-5 py-5 active:scale-[0.99] transition overflow-hidden"
+          className="relative block rounded-3xl border border-[#D89292]/30 bg-gradient-to-br from-[#D89292]/20 to-[#D89292]/10 px-5 py-5 active:scale-[0.99] transition overflow-hidden"
         >
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[#F2B8BF]/80">
+              <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[#D89292]/80">
                 {lastPeriodLog ? "Next Period In" : "Track your cycle"}
               </p>
               {lastPeriodLog ? (
@@ -148,13 +148,13 @@ function TodayPage() {
                   /* Irregular: show range */
                   <>
                     <p className="mt-1 text-4xl font-bold text-foreground leading-none">
-                      <span className="text-[#F2B8BF]">{irrLow}</span>
+                      <span className="text-[#D89292]">{irrLow}</span>
                       <span className="text-2xl text-foreground/50">–</span>
-                      <span className="text-[#F2B8BF]">{irrHigh}</span>{" "}
+                      <span className="text-[#D89292]">{irrHigh}</span>{" "}
                       <span className="text-2xl font-bold text-foreground/90">days</span>
                     </p>
                     {irrNextShort && irrNextLong && (
-                      <p className="mt-2 text-[11px] text-[#F2B8BF]/80">
+                      <p className="mt-2 text-[11px] text-[#D89292]/80">
                         {format(irrNextShort, "d MMM")} – {format(irrNextLong, "d MMM")}
                       </p>
                     )}
@@ -163,27 +163,27 @@ function TodayPage() {
                   /* Regular: single value */
                   <>
                     <p className="mt-1 text-4xl font-bold text-foreground leading-none">
-                      <span className="text-[#F2B8BF]">{periodDaysLeft}</span>{" "}
+                      <span className="text-[#D89292]">{periodDaysLeft}</span>{" "}
                       <span className="text-2xl font-bold text-foreground/90">days</span>
                     </p>
                     {predictedNext && (
-                      <p className="mt-2 text-[11px] text-[#F2B8BF]/80">
+                      <p className="mt-2 text-[11px] text-[#D89292]/80">
                         Expected {format(predictedNext, "EEE, d MMM")}
                       </p>
                     )}
                   </>
                 )
               ) : (
-                <p className="mt-2 text-sm text-[#F2B8BF]/70">
+                <p className="mt-2 text-sm text-[#D89292]/70">
                   Log your first period to get predictions
                 </p>
               )}
             </div>
             <div className="flex flex-col items-center gap-1.5 shrink-0">
-              <span className="relative h-14 w-14 rounded-full grid place-items-center bg-gradient-to-br from-[#FF6B7A] to-[#E94560] shadow-lg shadow-[#E94560]/30">
-                <Droplet className="h-6 w-6 text-white" fill="currentColor" strokeWidth={0} />
-                <span className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-white grid place-items-center border-2 border-[#1A0F1E]">
-                  <Plus className="h-3 w-3 text-[#E94560]" strokeWidth={3} />
+              <span className="relative h-14 w-14 rounded-full grid place-items-center bg-gradient-to-br from-[#E0A5A5] to-[#D89292] shadow-lg shadow-[#D89292]/30">
+                <Droplet className="h-6 w-6 text-[#2F2933]" fill="currentColor" strokeWidth={0} />
+                <span className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-[#2F2933] grid place-items-center border-2 border-[#2F2933]">
+                  <Plus className="h-3 w-3 text-[#D89292]" strokeWidth={3} />
                 </span>
               </span>
               <span className="text-[11px] font-semibold text-foreground/90">Log Period</span>
