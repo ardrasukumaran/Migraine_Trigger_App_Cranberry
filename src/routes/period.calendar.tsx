@@ -125,7 +125,7 @@ function CalendarPage() {
           <p className="text-sm font-semibold">Calendar</p>
           <div className="w-9" />
         </div>
-        <div className="mt-3 grid grid-cols-7 gap-1 text-[11px] uppercase text-warm-grey/60 text-center">
+        <div className="mt-3 grid grid-cols-7 gap-1 text-sm text-warm-grey/60 text-center">
           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
             <span key={d}>{d}</span>
           ))}
@@ -149,7 +149,7 @@ function CalendarPage() {
       </div>
 
       {/* Legend */}
-      <div className="mt-6 flex items-center justify-center gap-4 text-[11px] text-warm-grey/80">
+      <div className="mt-6 flex items-center justify-center gap-4 text-sm text-warm-grey/80">
         <LegendDot solid /> Period
         <LegendDot /> Predicted
       </div>

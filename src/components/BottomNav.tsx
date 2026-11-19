@@ -25,8 +25,8 @@ export function BottomNav() {
 
           {tabs.map(({ to, label, icon: Icon, external, highlight }) => {
             const active = !external && loc.pathname === to;
-            const className = `flex flex-1 flex-col items-center gap-1 px-1.5 py-1 rounded-2xl text-[11px] font-medium transition ${
-              active ? "text-primary" : "text-warm-grey/70"
+            const className = `flex flex-1 flex-col items-center gap-1 px-1.5 py-1 rounded-2xl text-[14px] font-body transition ${
+              active ? "text-primary font-bold" : "text-warm-grey/70 font-normal"
             }`;
             const iconEl = highlight ? (
               <span className="h-8 w-8 rounded-full grid place-items-center bg-primary text-primary-foreground">

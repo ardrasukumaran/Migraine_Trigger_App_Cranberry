@@ -21,7 +21,7 @@ function ReportPage() {
         <button onClick={() => navigate({ to: "/insights" })} className="h-10 w-10 -ml-2 grid place-items-center rounded-full hover:bg-muted">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/60 font-semibold">
+        <p className="text-[19px] font-sans font-semibold text-warm-grey/60">
           Doctor report
         </p>
         <button className="h-10 w-10 -mr-2 grid place-items-center rounded-full hover:bg-muted">
@@ -31,11 +31,11 @@ function ReportPage() {
 
       <main className="px-5 scroll-area-pad">
         <section className="rounded-3xl bg-card border border-border p-6">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-warm-grey/60 font-semibold">Summary · Feb–May 2026</p>
-          <h1 className="font-serif-display text-[26px] leading-tight mt-2">
+          <p className="text-[19px] font-sans font-semibold text-warm-grey/60">Summary · Feb–May 2026</p>
+          <h1 className="font-sans text-[26px] leading-tight mt-2">
             Migraine activity report
           </h1>
-          <p className="text-[12px] text-warm-grey/70 mt-1">Patient: Anonymous · Generated May 14, 2026</p>
+          <p className="text-sm text-warm-grey/70 mt-1">Patient: Anonymous · Generated May 14, 2026</p>
 
           <div className="mt-5 grid grid-cols-3 gap-2 text-center">
             {[
@@ -44,13 +44,13 @@ function ReportPage() {
               { v: "4h", l: "Avg duration" },
             ].map((s) => (
               <div key={s.l} className="rounded-2xl bg-muted/60 p-3">
-                <p className="font-serif-display text-[24px] text-primary">{s.v}</p>
-                <p className="text-[10px] text-warm-grey/70 mt-0.5">{s.l}</p>
+                <p className="font-sans text-[24px] text-primary">{s.v}</p>
+                <p className="text-sm text-warm-grey/70 mt-0.5">{s.l}</p>
               </div>
             ))}
           </div>
 
-          <h2 className="font-serif-display text-[18px] mt-6">Likely triggers</h2>
+          <h2 className="font-sans text-[18px] mt-6">Likely triggers</h2>
           <ul className="mt-2 space-y-1.5">
             {TOP_TRIGGERS.slice(0, 4).map((t) => (
               <li key={t.name} className="flex justify-between text-sm border-b border-border/60 py-1.5">
@@ -60,7 +60,7 @@ function ReportPage() {
             ))}
           </ul>
 
-          <h2 className="font-serif-display text-[18px] mt-6">Recent attacks</h2>
+          <h2 className="font-sans text-[18px] mt-6">Recent attacks</h2>
           <ul className="mt-2 space-y-1.5">
             {RECENT_ATTACKS.map((a) => (
               <li key={a.date} className="text-sm border-b border-border/60 py-1.5">
@@ -68,14 +68,14 @@ function ReportPage() {
                   <span className="font-medium">{a.date}</span>
                   <span className="text-warm-grey/70">{a.duration} · pain {a.intensity}/10</span>
                 </div>
-                <p className="text-[11px] text-warm-grey/60">{a.triggers.join(", ")}</p>
+                <p className="text-sm text-warm-grey/60">{a.triggers.join(", ")}</p>
               </li>
             ))}
           </ul>
 
           <div className="mt-6 flex items-center gap-3 rounded-2xl bg-yellow/40 p-3">
             <Berry mood="clipboard" size={48} />
-            <p className="text-[12px] text-warm-grey">
+            <p className="text-sm text-warm-grey">
               Bring this to your appointment — it answers most first-visit questions.
             </p>
           </div>

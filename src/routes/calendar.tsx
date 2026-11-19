@@ -48,7 +48,7 @@ function CalendarPage() {
       {attacks.length === 0 ? (
         <div className="mt-16 flex flex-col items-center text-center">
           <Berry mood="clipboard" size={120} />
-          <h2 className="font-serif-display text-[26px] mt-4">No attacks yet</h2>
+          <h2 className="font-sans text-[26px] mt-4">No attacks yet</h2>
           <p className="text-sm text-warm-grey/80 mt-2 max-w-[260px]">
             Once you log an attack it will appear here.
           </p>
@@ -76,8 +76,8 @@ function CalendarPage() {
               },
             ].map((s) => (
               <div key={s.l} className="rounded-2xl bg-card border border-border p-3">
-                <p className="font-serif-display text-[22px] text-primary">{s.v}</p>
-                <p className="text-[10px] text-warm-grey/70 mt-0.5">{s.l}</p>
+                <p className="font-sans text-[22px] text-primary">{s.v}</p>
+                <p className="text-sm text-warm-grey/70 mt-0.5">{s.l}</p>
               </div>
             ))}
           </div>
@@ -85,7 +85,7 @@ function CalendarPage() {
           {/* Monthly groups */}
           {groups.map(({ month, entries }) => (
             <div key={month}>
-              <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/60 font-semibold mb-2">
+              <p className="text-[19px] font-sans font-semibold text-warm-grey/60 mb-2">
                 {month} · {entries.length} attack{entries.length !== 1 ? 's' : ''}
               </p>
               <div className="space-y-2">
@@ -107,8 +107,8 @@ function CalendarPage() {
 
                     {/* Details */}
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold">{formatAttackDate(a.date)}</p>
-                      <p className="text-[11px] text-warm-grey/70 truncate mt-0.5">
+                      <p className="text-sm font-semibold">{formatAttackDate(a.date)}</p>
+                      <p className="text-sm text-warm-grey/70 truncate mt-0.5">
                         {a.duration} · {a.status}
                         {a.foods.length > 0 && ` · ${a.foods.slice(0, 3).join(', ')}${a.foods.length > 3 ? '…' : ''}`}
                       </p>
@@ -116,7 +116,7 @@ function CalendarPage() {
 
                     {/* Status dot */}
                     <div
-                      className="shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full"
+                      className="shrink-0 text-sm font-semibold px-2 py-1 rounded-full"
                       style={{
                         background:
                           a.status === 'Done'

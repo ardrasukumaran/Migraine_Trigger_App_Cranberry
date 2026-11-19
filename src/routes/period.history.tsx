@@ -37,19 +37,19 @@ function HistoryPage() {
       </div>
 
       {history.length === 0 ? (
-        <p className="mt-8 text-xs text-warm-grey/60 text-center">
+        <p className="mt-8 text-sm text-warm-grey/60 text-center">
           No cycles logged yet. Log your first period to see history here.
         </p>
       ) : (
         <>
           <div className="mt-5 flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
+            <p className="text-[19px] font-sans font-semibold text-warm-grey/70">
               All cycles
             </p>
             <PhaseLegend inline />
           </div>
           {isIrregular && (
-            <p className="mt-1 text-[11px] text-warm-grey/50 italic">
+            <p className="mt-1 text-sm text-warm-grey/50 italic">
               Phases are estimated using your shortest cycle. Irregular cycles may affect accuracy.
             </p>
           )}
@@ -62,7 +62,7 @@ function HistoryPage() {
                     {h.ongoing ? "Current cycle · " : ""}
                     {h.days} days
                   </p>
-                  <p className="text-[11px] text-warm-grey/70">
+                  <p className="text-sm text-warm-grey/70">
                     {format(new Date(h.startDate + "T00:00:00"), "d MMM yyyy")} –{" "}
                     {h.ongoing ? "today" : format(new Date(h.endDate + "T00:00:00"), "d MMM yyyy")}
                   </p>
@@ -71,7 +71,7 @@ function HistoryPage() {
               </div>
             ))}
           </section>
-          <p className="mt-2 text-center text-[10px] text-warm-grey/40 tracking-widest select-none">‹ swipe ›</p>
+          <p className="mt-2 text-center text-sm text-warm-grey/40 tracking-widest select-none">‹ swipe ›</p>
         </>
       )}
     </AppShell>

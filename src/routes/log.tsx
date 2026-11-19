@@ -154,13 +154,13 @@ function LogPage() {
         <button onClick={back} className="h-10 w-10 -ml-2 grid place-items-center rounded-full hover:bg-muted">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
+        <p className="text-[19px] font-sans font-semibold text-warm-grey/70">
           {STEP_LABELS[step]}
         </p>
         {step === 0 ? (
           <Popover open={dateOpen} onOpenChange={setDateOpen}>
             <PopoverTrigger asChild>
-              <button className="flex items-center gap-1.5 text-xs font-semibold text-primary-foreground px-2.5 py-1.5 rounded-full bg-primary">
+              <button className="flex items-center gap-1.5 text-sm font-semibold text-primary-foreground px-2.5 py-1.5 rounded-full bg-primary">
                 <CalendarIcon className="h-3.5 w-3.5" />
                 {format(date, "EEE, MMM d")}
               </button>
@@ -192,7 +192,7 @@ function LogPage() {
       <main className="px-5 mt-6 scroll-area-pad">
         {step === 0 && (
           <section>
-            <h2 className="font-serif-display text-[28px] leading-tight">
+            <h2 className="font-sans text-[28px] leading-tight font-semibold">
               How intense is the pain?
             </h2>
             <p className="text-sm text-warm-grey/80 mt-1">
@@ -200,10 +200,10 @@ function LogPage() {
             </p>
 
             <div className="mt-6 rounded-3xl bg-card border border-border p-5 text-center">
-              <p className="font-serif-display text-[64px] leading-none" style={{ color: painColor }}>
+              <p className="font-sans text-[64px] leading-none" style={{ color: painColor }}>
                 {intensity === 0 ? "–" : intensity}
               </p>
-              <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 mt-1">
+              <p className="text-sm text-warm-grey/70 mt-1">
                 {intensity === 0 ? "Tap to select" : painLabel(intensity)}
               </p>
               <div className="mt-5 grid grid-cols-5 gap-2">
@@ -215,7 +215,7 @@ function LogPage() {
                       key={n}
                       onClick={() => setIntensity(n)}
                       aria-label={`Pain ${n}`}
-                      className="aspect-square rounded-full grid place-items-center font-bold text-[15px] border-2 transition active:scale-95"
+                      className="aspect-square rounded-full grid place-items-center font-sans font-bold text-[21px] border-2 transition active:scale-95 min-h-[48px]"
                       style={{
                         background: on ? c : "transparent",
                         borderColor: c,
@@ -229,7 +229,7 @@ function LogPage() {
               </div>
             </div>
 
-            <p className="mt-6 text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
+            <p className="mt-6 text-[19px] font-sans font-semibold text-warm-grey/70">
               Attack status
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -264,7 +264,7 @@ function LogPage() {
               })}
             </div>
 
-            <p className={`mt-6 text-xs uppercase tracking-[0.18em] font-semibold ${status === "Just started" ? "text-warm-grey/70" : "text-warm-grey/70"}`}>
+            <p className={`mt-6 text-sm font-semibold ${status === "Just started" ? "text-warm-grey/70" : "text-warm-grey/70"}`}>
               Duration so far
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -291,7 +291,7 @@ function LogPage() {
               })}
             </div>
 
-            <p className="mt-6 text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
+            <p className="mt-6 text-[19px] font-sans font-semibold text-warm-grey/70">
               Did you take any painkiller?
             </p>
             <div className="mt-2 flex gap-2">
@@ -299,7 +299,7 @@ function LogPage() {
                 <button
                   key={String(val)}
                   onClick={() => { setPainkillerTaken(val); if (!val) { setPainkillerCount(null); setPainkillerName(""); } }}
-                  className={`px-6 py-1.5 rounded-full font-semibold text-xs border-2 transition ${
+                  className={`px-6 py-1.5 rounded-full font-semibold text-sm border-2 transition ${
                     painkillerTaken === val
                       ? "bg-primary text-primary-foreground border-primary"
                       : "bg-card border-border text-foreground"
@@ -312,7 +312,7 @@ function LogPage() {
 
             {painkillerTaken === true && (
               <div className="mt-5">
-                <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-3">
+                <p className="text-[19px] font-sans font-semibold text-warm-grey/70 mb-3">
                   How many did you take?
                 </p>
                 <div className="flex gap-2">
@@ -320,7 +320,7 @@ function LogPage() {
                     <button
                       key={n}
                       onClick={() => setPainkillerCount(n)}
-                      className={`h-9 w-9 rounded-full font-bold text-xs border-2 transition grid place-items-center ${
+                      className={`h-9 w-9 rounded-full font-bold text-sm border-2 transition grid place-items-center ${
                         painkillerCount === n
                           ? "bg-primary text-primary-foreground border-primary"
                           : "bg-card border-border text-foreground"
@@ -330,7 +330,7 @@ function LogPage() {
                     </button>
                   ))}
                 </div>
-                <p className="mt-5 text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
+                <p className="mt-5 text-[19px] font-sans font-semibold text-warm-grey/70 mb-2">
                   Painkiller name (optional)
                 </p>
                 <input
@@ -349,10 +349,10 @@ function LogPage() {
           <section>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
+                <p className="text-[19px] font-sans font-semibold text-warm-grey/70">
                   Food set {foodSetIdx + 1} of {FOOD_SETS.length}
                 </p>
-                <h2 className="font-serif-display text-[26px] leading-tight mt-1">
+                <h2 className="font-sans text-[26px] leading-tight mt-1">
                   Understanding food triggers
                 </h2>
               </div>
@@ -379,7 +379,7 @@ function LogPage() {
                       alt={item.name}
                       className="object-contain select-none shrink-0" style={{ width: 75, height: 75 }}
                     />
-                    <span className={`text-[9px] font-semibold leading-tight text-center break-words w-full ${on ? "text-primary" : "text-foreground"}`}>
+                    <span className={`text-sm font-semibold leading-tight text-center break-words w-full ${on ? "text-primary" : "text-foreground"}`}>
                       {item.name}
                     </span>
                     {on && (
@@ -404,7 +404,7 @@ function LogPage() {
 
             {foods.includes("Soft drinks") && (
               <div className="mt-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
+                <p className="text-[19px] font-sans font-semibold text-warm-grey/70 mb-2">
                   Any specific soft drink? (optional)
                 </p>
                 <input
@@ -423,10 +423,10 @@ function LogPage() {
           <section>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
+                <p className="text-[19px] font-sans font-semibold text-warm-grey/70">
                   {nonFoodSetIdx + 1} of {NON_FOOD_SETS.length}
                 </p>
-                <h2 className="font-serif-display text-[26px] leading-tight mt-1">
+                <h2 className="font-sans text-[26px] leading-tight mt-1">
                   Understanding other triggers
                 </h2>
               </div>
@@ -454,7 +454,7 @@ function LogPage() {
                       className="object-contain select-none shrink-0"
                       style={{ width: 100, height: 100 }}
                     />
-                    <span className={`text-[9px] font-semibold leading-tight text-center w-full [overflow-wrap:anywhere] ${on ? "text-primary" : "text-foreground"}`}>
+                    <span className={`text-sm font-semibold leading-tight text-center w-full [overflow-wrap:anywhere] ${on ? "text-primary" : "text-foreground"}`}>
                       {item.name}
                     </span>
                     {on && (
@@ -479,7 +479,7 @@ function LogPage() {
 
             {nonFoodSetIdx === NON_FOOD_SETS.length - 1 && (
               <div className="mt-5">
-                <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
+                <p className="text-[19px] font-sans font-semibold text-warm-grey/70 mb-2">
                   Others
                 </p>
                 <textarea
@@ -497,7 +497,7 @@ function LogPage() {
         {step === 3 && (
           <section className="text-center pt-8">
             <Berry mood="coach" size={160} className="mx-auto" />
-            <h2 className="font-serif-display text-[32px] leading-tight mt-4">
+            <h2 className="font-sans text-[32px] leading-tight mt-4">
               Logged. Take Care.
             </h2>
             <p className="text-sm text-warm-grey/80 mt-2 max-w-[280px] mx-auto">

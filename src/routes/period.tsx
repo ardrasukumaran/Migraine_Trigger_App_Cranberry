@@ -211,10 +211,10 @@ function PeriodPage() {
         <div className="flex items-center justify-center mb-3 gap-2">
           <p className="text-sm font-semibold">{format(monthStart, "MMMM yyyy")}</p>
           {!state.baselineLoaded && (
-            <span className="text-[10px] text-warm-grey/50 animate-pulse">loading…</span>
+            <span className="text-sm text-warm-grey/50 animate-pulse">loading…</span>
           )}
         </div>
-        <div className="grid grid-cols-7 gap-1 text-[10px] uppercase text-warm-grey/60 text-center mb-2">
+        <div className="grid grid-cols-7 gap-1 text-sm text-warm-grey/60 text-center mb-2">
           {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
             <span key={i}>{d}</span>
           ))}
@@ -279,13 +279,13 @@ function PeriodPage() {
         {isIrregular ? (
           /* ── Irregular ── */
           <>
-            <p className="text-xs uppercase tracking-[0.18em] text-[#D89292] font-semibold">
+            <p className="text-sm text-[#D89292] font-semibold">
               {irrLow !== null ? "Period in" : "Start tracking"}
             </p>
             {irrLow !== null && irrHigh !== null ? (
               <>
                 <div className="mt-2 flex items-baseline justify-center gap-2">
-                  <span className="text-[56px] leading-none text-foreground font-bold">
+                  <span className="font-sans text-[56px] leading-none text-foreground font-semibold">
                     <span className="text-[#D89292]">{irrLow}</span>
                     <span className="text-3xl text-foreground/60">–</span>
                     <span className="text-[#D89292]">{irrHigh}</span>
@@ -293,11 +293,11 @@ function PeriodPage() {
                   <span className="text-base text-warm-grey/80">days</span>
                 </div>
                 {irrNextShort && irrNextLong && (
-                  <p className="mt-3 text-xs text-warm-grey/70">
+                  <p className="mt-3 text-sm text-warm-grey/70">
                     Expected between {format(irrNextShort, "d MMM")} – {format(irrNextLong, "d MMM")}
                   </p>
                 )}
-                <p className="mt-1 text-[11px] text-warm-grey/50">
+                <p className="mt-1 text-sm text-warm-grey/50">
                   Your cycle length varies — this is your expected window.
                 </p>
               </>
@@ -310,13 +310,13 @@ function PeriodPage() {
         ) : (
           /* ── Regular ── */
           <>
-            <p className="text-xs uppercase tracking-[0.18em] text-[#D89292] font-semibold">
+            <p className="text-sm text-[#D89292] font-semibold">
               {daysLeft !== null ? "Period in" : "Start tracking"}
             </p>
             {daysLeft !== null && currentDay !== null ? (
               <>
                 <div className="mt-2 flex items-baseline justify-center gap-2">
-                  <span className="text-[56px] leading-none text-foreground font-bold text-[#D89292]">
+                  <span className="font-sans text-[56px] leading-none font-semibold text-[#D89292]">
                     {daysLeft}
                   </span>
                   <span className="text-base text-warm-grey/80">days</span>
@@ -337,7 +337,7 @@ function PeriodPage() {
       {/* Previous period report */}
       {lastLog && (
         <section className="mt-6">
-          <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-3">
+          <p className="text-[19px] font-sans font-semibold text-warm-grey/70 mb-3">
             Previous period report
           </p>
           {isIrregular ? (
@@ -380,19 +380,19 @@ function PeriodPage() {
       {history.length > 0 && (
         <section className="mt-6">
           <div className="flex items-center justify-between gap-3 mb-3">
-            <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
+            <p className="text-[19px] font-sans font-semibold text-warm-grey/70">
               Cycle history
             </p>
             <Link
               to="/period/history"
-              className="text-xs font-semibold text-primary inline-flex items-center gap-0.5"
+              className="text-sm font-semibold text-primary inline-flex items-center gap-0.5"
             >
               See more <ChevronRight className="h-3 w-3" />
             </Link>
           </div>
           <PhaseLegend inline />
           {isIrregular && (
-            <p className="mt-1 text-[11px] text-warm-grey/50 italic">
+            <p className="mt-1 text-sm text-warm-grey/50 italic">
               Phases are estimated using your shortest cycle. Irregular cycles may affect accuracy.
             </p>
           )}
@@ -404,7 +404,7 @@ function PeriodPage() {
                     {h.ongoing ? "Current cycle · " : ""}
                     {h.days} days
                   </p>
-                  <p className="text-[11px] text-warm-grey/70">
+                  <p className="text-sm text-warm-grey/70">
                     {format(new Date(h.startDate + "T00:00:00"), "d MMM")} –{" "}
                     {h.ongoing ? "today" : format(new Date(h.endDate + "T00:00:00"), "d MMM")}
                   </p>
@@ -413,7 +413,7 @@ function PeriodPage() {
               </div>
             ))}
           </div>
-          <p className="mt-2 text-center text-[10px] text-warm-grey/40 tracking-widest select-none">‹ swipe ›</p>
+          <p className="mt-2 text-center text-sm text-warm-grey/40 tracking-widest select-none">‹ swipe ›</p>
         </section>
       )}
 
@@ -438,10 +438,10 @@ function PeriodPage() {
 function StatPill({ label, value, highlight, compact }: { label: string; value: string; highlight?: boolean; compact?: boolean }) {
   return (
     <div className="rounded-2xl bg-card border border-border px-3 py-3 text-center">
-      <p className="text-[9px] uppercase tracking-[0.14em] text-warm-grey/60 font-semibold">
+      <p className="text-[19px] font-sans font-semibold text-warm-grey/60">
         {label}
       </p>
-      <p className={`mt-1 font-semibold leading-tight ${compact ? "text-xs" : "text-sm"} ${highlight ? "text-[#D89292]" : "text-foreground"}`}>
+      <p className={`mt-1 font-semibold leading-tight ${compact ? "text-sm" : "text-sm"} ${highlight ? "text-[#D89292]" : "text-foreground"}`}>
         {value}
       </p>
     </div>
@@ -454,7 +454,7 @@ function PhasePill({ dayInCycle, cycleLength }: { dayInCycle: number; cycleLengt
   return (
     <div className="inline-flex items-center gap-2 rounded-full bg-background/40 border border-white/10 px-3 py-1.5">
       <span className="h-2 w-2 rounded-full" style={{ backgroundColor: phase.color }} />
-      <span className="text-xs font-semibold">Today: {phase.name} phase · day {dayInCycle}</span>
+      <span className="text-sm font-semibold">Today: {phase.name} phase · day {dayInCycle}</span>
     </div>
   );
 }
@@ -481,7 +481,7 @@ export function CyclePhaseBar({ days, cycleDays, periodDays = 5, pmsLength = 5 }
             );
           })}
         </div>
-        <div className="mt-1 flex text-[9px] text-warm-grey/60 tabular-nums">
+        <div className="mt-1 flex text-sm text-warm-grey/60 tabular-nums">
           {Array.from({ length: days }, (_, i) => {
             const d = i + 1;
             const show = d === 1 || d === days || d % 5 === 0;
@@ -500,8 +500,8 @@ export function CyclePhaseBar({ days, cycleDays, periodDays = 5, pmsLength = 5 }
 export function PhaseLegend({ inline = false }: { inline?: boolean } = {}) {
   return (
     <div
-      className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-warm-grey/85 ${
-        inline ? "" : "mt-4 gap-x-4 gap-y-2 text-[11px] justify-center"
+      className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-warm-grey/85 ${
+        inline ? "" : "mt-4 gap-x-4 gap-y-2 text-sm justify-center"
       }`}
     >
       {(Object.keys(PHASE) as Array<keyof typeof PHASE>).map((k) => (

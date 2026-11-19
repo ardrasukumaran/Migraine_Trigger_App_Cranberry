@@ -102,7 +102,7 @@ function TodayPage() {
 
       {/* Plan lists */}
       <section className="mt-8">
-        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-3">
+        <p className="text-[19px] font-sans font-semibold text-warm-grey/70 mb-3">
           Today's plan
         </p>
         <div className="grid grid-cols-2 gap-3">
@@ -131,7 +131,7 @@ function TodayPage() {
 
       {/* Cycle card */}
       <section className="mt-6">
-        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-3">
+        <p className="text-[19px] font-sans font-semibold text-warm-grey/70 mb-3">
           Cycle
         </p>
         <Link
@@ -140,21 +140,21 @@ function TodayPage() {
         >
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[#D89292]/80">
+              <p className="text-sm font-semibold text-[#D89292]/80">
                 {lastPeriodLog ? "Next Period In" : "Track your cycle"}
               </p>
               {lastPeriodLog ? (
                 isIrregularCycle ? (
                   /* Irregular: show range */
                   <>
-                    <p className="mt-1 text-4xl font-bold text-foreground leading-none">
+                    <p className="font-sans mt-1 text-4xl font-semibold text-foreground leading-none">
                       <span className="text-[#D89292]">{irrLow}</span>
                       <span className="text-2xl text-foreground/50">–</span>
                       <span className="text-[#D89292]">{irrHigh}</span>{" "}
                       <span className="text-2xl font-bold text-foreground/90">days</span>
                     </p>
                     {irrNextShort && irrNextLong && (
-                      <p className="mt-2 text-[11px] text-[#D89292]/80">
+                      <p className="mt-2 text-sm text-[#D89292]/80">
                         {format(irrNextShort, "d MMM")} – {format(irrNextLong, "d MMM")}
                       </p>
                     )}
@@ -162,12 +162,12 @@ function TodayPage() {
                 ) : (
                   /* Regular: single value */
                   <>
-                    <p className="mt-1 text-4xl font-bold text-foreground leading-none">
+                    <p className="font-sans mt-1 text-4xl font-semibold text-foreground leading-none">
                       <span className="text-[#D89292]">{periodDaysLeft}</span>{" "}
                       <span className="text-2xl font-bold text-foreground/90">days</span>
                     </p>
                     {predictedNext && (
-                      <p className="mt-2 text-[11px] text-[#D89292]/80">
+                      <p className="mt-2 text-sm text-[#D89292]/80">
                         Expected {format(predictedNext, "EEE, d MMM")}
                       </p>
                     )}
@@ -186,7 +186,7 @@ function TodayPage() {
                   <Plus className="h-3 w-3 text-[#D89292]" strokeWidth={3} />
                 </span>
               </span>
-              <span className="text-[11px] font-semibold text-foreground/90">Log Period</span>
+              <span className="text-sm font-semibold text-foreground/90">Log Period</span>
             </div>
           </div>
         </Link>
@@ -195,13 +195,13 @@ function TodayPage() {
       {/* Recent attacks */}
       <section className="mt-8">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
+          <p className="text-[19px] font-sans font-semibold text-warm-grey/70">
             Recent attacks
           </p>
-          <Link to="/insights" className="text-xs font-semibold text-primary">See all</Link>
+          <Link to="/insights" className="text-sm font-semibold text-primary">See all</Link>
         </div>
         {attacks.length === 0 ? (
-          <p className="text-xs text-warm-grey/60 py-3">No attacks logged yet.</p>
+          <p className="text-sm text-warm-grey/60 py-3">No attacks logged yet.</p>
         ) : (
           <div className="space-y-3">
             {attacks.slice(0, 3).map((a) => {
@@ -213,7 +213,7 @@ function TodayPage() {
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">{formatAttackDate(a.date)}</p>
-                    <p className="text-xs text-warm-grey/80 truncate mt-1">
+                    <p className="text-sm text-warm-grey/80 truncate mt-1">
                       {a.duration}{triggers.length > 0 ? ` · ${triggers.slice(0, 2).join(", ")}` : ""}
                     </p>
                   </div>
@@ -248,7 +248,7 @@ function StreakCard({
       className="block rounded-3xl bg-card border border-border p-4 active:scale-[0.99] transition"
     >
       <div className="flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.16em] font-semibold text-warm-grey/80">
+        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-warm-grey/80">
           {icon}
           {label}
         </span>
@@ -295,12 +295,12 @@ function PlanList({
   const inner = (
     <>
       <div className="flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold">
+        <span className="inline-flex items-center gap-1.5 text-sm font-semibold">
           {icon}
           {label}
         </span>
         <span
-          className={`text-[11px] tabular-nums flex items-center gap-1 ${
+          className={`text-sm tabular-nums flex items-center gap-1 ${
             done ? "text-[var(--streak)]" : skipped ? "text-warm-grey/50" : "text-warm-grey/70"
           }`}
         >
@@ -344,7 +344,7 @@ function PlanList({
                   {on && <Check className="h-3 w-3" strokeWidth={4} />}
                 </span>
                 <span className="flex-1 min-w-0">
-                  <span className={`block text-xs font-semibold leading-tight ${on && !locked ? "text-[var(--streak)]" : on && locked ? "text-warm-grey/50" : ""}`}>
+                  <span className={`block text-sm font-semibold leading-tight ${on && !locked ? "text-[var(--streak)]" : on && locked ? "text-warm-grey/50" : ""}`}>
                     {sup?.name ?? id}
                   </span>
                 </span>

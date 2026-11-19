@@ -40,7 +40,7 @@ export function AppShell({
         <button
           onClick={handleLogout}
           aria-label="Log out"
-          className="absolute top-3 right-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-muted text-warm-grey/70 hover:bg-accent hover:text-foreground transition active:scale-95"
+          className="absolute top-3 right-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-muted text-warm-grey/70 hover:bg-accent hover:text-foreground transition active:scale-95"
         >
           <LogOut className="h-3.5 w-3.5" />
           Log out
@@ -51,12 +51,12 @@ export function AppShell({
         <header className="px-5 pt-7 pb-4 flex items-end justify-between gap-3">
           <div>
             {subtitle && (
-              <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/60 font-medium">
+              <p className="text-sm text-warm-grey/60 font-medium">
                 {subtitle}
               </p>
             )}
             {title && (
-              <h1 className="font-serif-display text-[34px] leading-[1.05] text-foreground mt-1">
+              <h1 className="font-sans text-[34px] leading-[1.05] text-foreground mt-1">
                 {title}
               </h1>
             )}

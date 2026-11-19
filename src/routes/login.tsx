@@ -173,10 +173,10 @@ function LoginPage() {
         <div className="flex flex-col items-center gap-3 mb-8">
           <Berry mood="wave" size={80} />
           <div className="text-center">
-            <p className="text-xs uppercase tracking-[0.22em] text-warm-grey/50 font-medium mb-1">
+            <p className="text-sm text-warm-grey/50 font-medium mb-1">
               Migraine tracker
             </p>
-            <h1 className="font-serif-display text-[28px] leading-tight text-foreground">
+            <h1 className="font-sans text-[28px] leading-tight text-foreground">
               {step === 'phone' ? 'Welcome.' : 'Verify your identity.'}
             </h1>
             <p className="mt-1 text-sm text-warm-grey/70">
@@ -190,7 +190,7 @@ function LoginPage() {
         {step === 'phone' && (
           <form onSubmit={handlePhoneSubmit} className="w-full space-y-4" noValidate>
             <div>
-              <label className="block text-xs uppercase tracking-[0.16em] text-warm-grey/60 font-semibold mb-2">
+              <label className="block text-[19px] font-sans font-semibold text-warm-grey/60 mb-2">
                 Phone number
               </label>
               <div className="flex gap-2">
@@ -216,7 +216,7 @@ function LoginPage() {
                   required
                 />
               </div>
-              {error && <p className="mt-2 text-xs text-destructive" role="alert">{error}</p>}
+              {error && <p className="mt-2 text-sm text-destructive" role="alert">{error}</p>}
             </div>
             <button
               type="submit"
@@ -233,7 +233,7 @@ function LoginPage() {
         {step === 'order' && (
           <form onSubmit={handleOrderIdSubmit} className="w-full space-y-4" noValidate>
             <div>
-              <label className="block text-xs uppercase tracking-[0.16em] text-warm-grey/60 font-semibold mb-2">
+              <label className="block text-[19px] font-sans font-semibold text-warm-grey/60 mb-2">
                 Order ID
               </label>
               <input
@@ -245,7 +245,7 @@ function LoginPage() {
                 autoFocus
                 required
               />
-              {error && <p className="mt-2 text-xs text-destructive text-center" role="alert">{error}</p>}
+              {error && <p className="mt-2 text-sm text-destructive text-center" role="alert">{error}</p>}
             </div>
             <button
               type="submit"
@@ -258,7 +258,7 @@ function LoginPage() {
             <button
               type="button"
               onClick={() => { setStep('phone'); setOrderId(''); setError(''); }}
-              className="w-full flex items-center justify-center gap-1.5 text-xs text-warm-grey/60 font-medium py-2"
+              className="w-full flex items-center justify-center gap-1.5 text-sm text-warm-grey/60 font-medium py-2"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Back to phone number
             </button>

@@ -105,7 +105,7 @@ function StreaksPage() {
       {view !== "home" && (
         <button
           onClick={() => setView("home")}
-          className="mt-3 inline-flex items-center gap-1 text-xs text-warm-grey/80"
+          className="mt-3 inline-flex items-center gap-1 text-sm text-warm-grey/80"
         >
           <ChevronLeft className="h-4 w-4" /> Back to streak
         </button>
@@ -244,7 +244,7 @@ function DayRing({
   const pct = Math.max(0, Math.min(1, ratio));
   return (
     <div className={cn("flex flex-col items-center gap-1.5 rounded-lg p-1", isToday && "bg-warm-grey/20")}>
-      <span className="text-[10px] text-warm-grey/70">{letter}</span>
+      <span className="text-sm text-warm-grey/70">{letter}</span>
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="-rotate-90">
           <circle
@@ -271,7 +271,7 @@ function DayRing({
         </svg>
         <span
           className={cn(
-            "absolute inset-0 grid place-items-center text-[11px] tabular-nums",
+            "absolute inset-0 grid place-items-center text-sm tabular-nums",
             isFuture ? "text-warm-grey/40" : "text-foreground",
             isToday && "font-bold",
           )}
@@ -302,26 +302,26 @@ function StreakCard({
         }}
       />
       <div className="relative flex flex-col items-center text-center">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-warm-grey/70 font-medium">
+        <p className="text-sm text-warm-grey/70 font-medium">
           {label}
         </p>
         <div className="flex items-baseline gap-1 mt-1">
-          <span className="font-serif-display text-[44px] leading-none tabular-nums">
+          <span className="font-sans text-[44px] leading-none tabular-nums">
             {streak}
           </span>
-          <span className="text-warm-grey/80 text-[12px] font-medium">days</span>
+          <span className="text-warm-grey/80 text-sm font-medium">days</span>
         </div>
-        <span className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--streak-soft)] text-[var(--streak)] text-[10px] font-semibold">
+        <span className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--streak-soft)] text-[var(--streak)] text-sm font-semibold">
           <Heart className="h-3 w-3" />
           {statusLabel(streak)}
         </span>
         <div className="mt-1">
           <StreakPlant days={streak} size={size} />
         </div>
-        <p className="font-serif-display text-[13px] leading-snug">
+        <p className="font-sans text-sm leading-snug">
           I showed up for my migraine.
         </p>
-        <p className="text-[11px] text-warm-grey/80 mt-1">
+        <p className="text-sm text-warm-grey/80 mt-1">
           {streak >= 14
             ? "Two strong weeks of self-care."
             : streak >= 7
@@ -405,8 +405,8 @@ function HomeView({
       {/* TODAY */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="font-serif-display text-[22px]">Today</p>
-          <span className="text-[12px] text-warm-grey/70">{dateLabel}</span>
+          <p className="font-sans text-[22px]">Today</p>
+          <span className="text-sm text-warm-grey/70">{dateLabel}</span>
         </div>
         <div className="space-y-2">
           <DoseRow
@@ -510,7 +510,7 @@ function DoseRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
           <p className="text-[14px] font-semibold leading-none">{label}</p>
-          <span className="text-[11px] text-warm-grey/70">{time}</span>
+          <span className="text-sm text-warm-grey/70">{time}</span>
         </div>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {comboIds.map((id) => {
@@ -520,7 +520,7 @@ function DoseRow({
               <span
                 key={id}
                 className={cn(
-                  "inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full text-[10px] font-bold",
+                  "inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full text-sm font-bold",
                   !on && "opacity-50",
                 )}
                 style={{ background: p.bg, color: p.fg }}
@@ -545,29 +545,29 @@ function DoseRow({
             <p className="text-[var(--streak)] font-bold text-[14px] tabular-nums leading-none">
               +{points}
             </p>
-            <p className="text-[10px] text-warm-grey/70 mt-1">
+            <p className="text-sm text-warm-grey/70 mt-1">
               {count} of {total} taken
             </p>
           </>
         ) : locked && skipped ? (
-          <p className="text-[11px] text-warm-grey/50">Skipped</p>
+          <p className="text-sm text-warm-grey/50">Skipped</p>
         ) : locked && count > 0 ? (
           <>
             <p className="text-warm-grey/60 font-bold text-[14px] tabular-nums leading-none">
               +{points}
             </p>
-            <p className="text-[10px] text-warm-grey/70 mt-1">
+            <p className="text-sm text-warm-grey/70 mt-1">
               {count}/{total} taken
             </p>
           </>
         ) : locked ? (
-          <p className="text-[11px] text-warm-grey/50">Logged</p>
+          <p className="text-sm text-warm-grey/50">Logged</p>
         ) : (
           <>
-            <p className="text-primary font-semibold text-[13px] inline-flex items-center gap-0.5">
+            <p className="text-primary font-semibold text-sm inline-flex items-center gap-0.5">
               Log <ChevronRight className="h-3.5 w-3.5" />
             </p>
-            <p className="text-[10px] text-warm-grey/70 mt-0.5">
+            <p className="text-sm text-warm-grey/70 mt-0.5">
               {count > 0 ? `${count}/${total}` : "Tap to log"}
             </p>
           </>
@@ -592,7 +592,7 @@ function ActionTile({
   return (
     <button
       onClick={onClick}
-      className="rounded-2xl bg-card border border-border p-3 text-left text-[12px] font-medium flex items-center justify-between active:scale-[0.98] transition"
+      className="rounded-2xl bg-card border border-border p-3 text-left text-sm font-medium flex items-center justify-between active:scale-[0.98] transition"
     >
       <span>{label}</span>
       <span className="text-warm-grey/70">{icon}</span>
@@ -654,20 +654,20 @@ function ChecklistView({
           </div>
           <div>
             <p className="text-[14px] font-semibold text-[var(--streak)]">All done!</p>
-            <p className="text-[11px] text-warm-grey/80">{onContinue ? "Tap Night doses to continue." : "Moving to the next step…"}</p>
+            <p className="text-sm text-warm-grey/80">{onContinue ? "Tap Night doses to continue." : "Moving to the next step…"}</p>
           </div>
         </div>
       ) : (
         <div className="rounded-3xl bg-card border border-border p-4">
           <div className="flex items-center justify-between">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
+            <p className="text-[19px] font-sans font-semibold text-warm-grey/70">
               {slot === "morning" ? "Day" : "Night"} · {fmtDate(date)}
             </p>
-            <span className="text-[11px] text-[var(--streak)] tabular-nums">
+            <span className="text-sm text-[var(--streak)] tabular-nums">
               +{score} pts
             </span>
           </div>
-          <p className="font-serif-display text-[22px] mt-1">
+          <p className="font-sans text-[22px] mt-1">
             Tap what you took.
           </p>
         </div>
@@ -690,7 +690,7 @@ function ChecklistView({
               <span className="text-2xl">{s.emoji}</span>
               <div className="flex-1 text-left min-w-0">
                 <p className="text-[14px] font-semibold truncate">{s.name}</p>
-                <p className="text-[11px] text-warm-grey/80">{s.dose}</p>
+                <p className="text-sm text-warm-grey/80">{s.dose}</p>
               </div>
               <span
                 className={cn(
@@ -754,7 +754,7 @@ function BackFillView({
   });
   return (
     <div className="mt-4 space-y-3">
-      <p className="text-[12px] text-warm-grey/80">
+      <p className="text-sm text-warm-grey/80">
         Tap an empty day to log. Fully logged days are locked.
       </p>
       <div className="grid grid-cols-7 gap-1.5">
@@ -774,7 +774,7 @@ function BackFillView({
               onClick={() => !fullyLogged && onPick(key, nextSlot)}
               disabled={fullyLogged}
               className={cn(
-                "aspect-square rounded-lg border text-[10px] font-medium flex flex-col items-center justify-center transition",
+                "aspect-square rounded-lg border text-sm font-medium flex flex-col items-center justify-center transition",
                 fullyLogged
                   ? "border-[var(--streak)]/50 bg-[var(--streak-soft)] text-foreground opacity-40 cursor-not-allowed"
                   : anyLogged
@@ -785,9 +785,9 @@ function BackFillView({
             >
               <span className="tabular-nums">{d.getDate()}</span>
               {count >= total && total > 0 ? (
-                <span className="text-[9px] text-[var(--streak)]">✓</span>
+                <span className="text-sm text-[var(--streak)]">✓</span>
               ) : count > 0 ? (
-                <span className="text-[9px] text-[var(--streak)]">{count}/{total}</span>
+                <span className="text-sm text-[var(--streak)]">{count}/{total}</span>
               ) : null}
             </button>
           );
@@ -803,7 +803,7 @@ function MilestonesView() {
   return (
     <div className="mt-16 flex flex-col items-center text-center">
       <Berry mood="binoculars" size={160} />
-      <h2 className="font-serif-display text-[32px] mt-4">Coming soon</h2>
+      <h2 className="font-sans text-[32px] mt-4">Coming soon</h2>
       <p className="text-sm text-warm-grey/80 mt-2 max-w-[260px]">
         Rewards for your consistency are on the way. Keep logging!
       </p>
@@ -829,12 +829,12 @@ function SetupView({
   return (
     <div className="mt-4 space-y-4">
       {locked && (
-        <p className="text-[12px] text-warm-grey/70 bg-muted rounded-xl px-3 py-2">
+        <p className="text-sm text-warm-grey/70 bg-muted rounded-xl px-3 py-2">
           Your combo is locked. Contact support to change it.
         </p>
       )}
       <div>
-        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
+        <p className="text-[19px] font-sans font-semibold text-warm-grey/70 mb-2">
           Day combo
         </p>
         <div className="space-y-2">
@@ -850,7 +850,7 @@ function SetupView({
         </div>
       </div>
       <div>
-        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
+        <p className="text-[19px] font-sans font-semibold text-warm-grey/70 mb-2">
           Night combo
         </p>
         <div className="space-y-2">
@@ -913,7 +913,7 @@ function ComboRow({
           );
         })}
       </div>
-      <p className="text-[13px] font-medium flex-1">{label}</p>
+      <p className="text-sm font-medium flex-1">{label}</p>
       {active && (
         <Check className="h-4 w-4 text-[var(--streak)]" strokeWidth={3} />
       )}
@@ -928,8 +928,8 @@ function LockScreenView({ dayLabel }: { dayLabel: string }) {
     <div className="mt-4">
       <div className="rounded-[28px] bg-gradient-to-b from-[oklch(0.18_0.02_285)] to-[oklch(0.1_0.02_285)] border border-border p-4 min-h-[420px] flex flex-col">
         <div className="text-center text-warm-grey/80">
-          <p className="text-[11px] uppercase tracking-[0.2em]">Sat 14 Jun</p>
-          <p className="font-serif-display text-[56px] leading-none mt-1">
+          <p className="text-sm">Sat 14 Jun</p>
+          <p className="font-sans text-[56px] leading-none mt-1">
             8:00
           </p>
         </div>
@@ -939,10 +939,10 @@ function LockScreenView({ dayLabel }: { dayLabel: string }) {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between">
-              <p className="text-[12px] font-semibold">Cranberry · Day</p>
-              <span className="text-[10px] text-warm-grey/70">now</span>
+              <p className="text-sm font-semibold">Cranberry · Day</p>
+              <span className="text-sm text-warm-grey/70">now</span>
             </div>
-            <p className="text-[12px] mt-0.5">
+            <p className="text-sm mt-0.5">
               Take {dayLabel} with your lunch. Tap to mark them off.
             </p>
           </div>
@@ -952,15 +952,15 @@ function LockScreenView({ dayLabel }: { dayLabel: string }) {
             <UtensilsCrossed className="h-5 w-5 text-[var(--streak)]" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-semibold">Cranberry · Night</p>
-            <p className="text-[11px] text-warm-grey/80 mt-0.5">
+            <p className="text-sm font-semibold">Cranberry · Night</p>
+            <p className="text-sm text-warm-grey/80 mt-0.5">
               Scheduled for 7:30 pm
 
             </p>
           </div>
         </div>
       </div>
-      <p className="mt-3 text-[11px] text-center text-warm-grey/70">
+      <p className="mt-3 text-sm text-center text-warm-grey/70">
         You get a morning and an evening reminder every day.
       </p>
     </div>

@@ -86,7 +86,7 @@ function InsightsPage() {
     <AppShell title="Your patterns">
       {/* YOUR ATTACKS SO FAR */}
       <section className="mt-6">
-        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
+        <p className="text-[19px] font-sans font-semibold text-warm-grey/70 mb-2">
           Your attacks so far
         </p>
         <div className="grid grid-cols-3 gap-2">
@@ -98,15 +98,15 @@ function InsightsPage() {
 
       {/* PAIN INTENSITY */}
       <section className="mt-6">
-        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
+        <p className="text-[19px] font-sans font-semibold text-warm-grey/70 mb-2">
           Pain intensity
         </p>
         <div className="rounded-3xl bg-card border border-border p-4">
           <div className="flex items-end justify-center gap-2 mb-4">
-            <span className="font-serif-display text-[44px] leading-none text-primary">
+            <span className="font-sans text-[44px] leading-none text-primary">
               {avgIntensity}
             </span>
-            <span className="text-[11px] uppercase tracking-[0.14em] text-warm-grey/70 pb-2">
+            <span className="text-sm text-warm-grey/70 pb-2">
               avg / 10
             </span>
           </div>
@@ -128,7 +128,7 @@ function InsightsPage() {
               style={{ top: "7px", left: `calc(${(minIntensity / 10) * 100}% - 1.5px)` }}
             />
             <span
-              className="absolute -translate-x-1/2 text-[10px] text-warm-grey/70 whitespace-nowrap"
+              className="absolute -translate-x-1/2 text-sm text-warm-grey/70 whitespace-nowrap"
               style={{ left: `${(minIntensity / 10) * 100}%`, top: "36px" }}
             >
               Min {minIntensity}
@@ -140,7 +140,7 @@ function InsightsPage() {
               aria-label={`Average ${avgIntensity}`}
             />
             <span
-              className="absolute -translate-x-1/2 text-[10px] font-semibold text-foreground whitespace-nowrap"
+              className="absolute -translate-x-1/2 text-sm font-semibold text-foreground whitespace-nowrap"
               style={{ left: `${(avgIntensity / 10) * 100}%`, top: "36px" }}
             >
               Avg {avgIntensity}
@@ -151,7 +151,7 @@ function InsightsPage() {
               style={{ top: "7px", left: `calc(${(maxIntensity / 10) * 100}% - 1.5px)` }}
             />
             <span
-              className="absolute -translate-x-1/2 text-[10px] text-warm-grey/70 whitespace-nowrap"
+              className="absolute -translate-x-1/2 text-sm text-warm-grey/70 whitespace-nowrap"
               style={{ left: `${(maxIntensity / 10) * 100}%`, top: "36px" }}
             >
               Max {maxIntensity}
@@ -162,11 +162,11 @@ function InsightsPage() {
 
       {/* TOP TRIGGERS */}
       <section className="mt-6">
-        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-2">
+        <p className="text-[19px] font-sans font-semibold text-warm-grey/70 mb-2">
           Top triggers
         </p>
         <div className="rounded-3xl bg-card border border-border p-4">
-          <div className="flex justify-between text-[10px] text-warm-grey/50 mb-2">
+          <div className="flex justify-between text-sm text-warm-grey/50 mb-2">
             <span>0%</span>
             <span>25%</span>
             <span>50%</span>
@@ -175,11 +175,11 @@ function InsightsPage() {
           </div>
           <div className="space-y-3">
             {topTriggers.length === 0 ? (
-              <p className="text-[13px] text-warm-grey/50 py-2">No trigger data yet.</p>
+              <p className="text-sm text-warm-grey/50 py-2">No trigger data yet.</p>
             ) : null}
             {topTriggers.map((t) => (
               <div key={t.name}>
-                <div className="flex items-center justify-between text-[13px] mb-1.5">
+                <div className="flex items-center justify-between text-sm mb-1.5">
                   <span className="font-medium">{t.name}</span>
                   <span className="text-warm-grey/80 tabular-nums">{t.correlation}%</span>
                 </div>
@@ -199,13 +199,13 @@ function InsightsPage() {
       </section>
 
       {/* YOUR PROGRESS */}
-      <h2 className="font-serif-display text-[28px] leading-tight text-foreground mt-8 mb-4">
+      <h2 className="font-sans text-[28px] leading-tight text-foreground mt-8 mb-4">
         Your progress
       </h2>
 
       {/* MONTH WISE PATTERN */}
       <section className="mt-6">
-        <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold mb-3">
+        <p className="text-[19px] font-sans font-semibold text-warm-grey/70 mb-3">
           Month wise pattern
         </p>
         <div className="rounded-3xl bg-card border border-border p-4">
@@ -215,7 +215,7 @@ function InsightsPage() {
                 className="h-2.5 w-24 rounded-full"
                 style={{ background: "linear-gradient(90deg, var(--pain-1), var(--pain-4), var(--pain-7), var(--pain-10))" }}
               />
-              <span className="text-[12px] text-white">Severity</span>
+              <span className="text-sm text-white">Severity</span>
             </div>
             <div className="flex items-end gap-2">
               {DURATION_OPTIONS.map((d) => (
@@ -223,7 +223,7 @@ function InsightsPage() {
                   <div className="w-3 h-6 rounded-[2px] relative overflow-hidden" style={{ background: "#2E1C35" }}>
                     <div className="absolute bottom-0 inset-x-0 bg-primary/70" style={{ height: `${DURATION_HEIGHT_PCT[d]}%` }} />
                   </div>
-                  <span className="text-[10px] text-white mt-0.5">{d}</span>
+                  <span className="text-sm text-white mt-0.5">{d}</span>
                 </div>
               ))}
             </div>
@@ -231,7 +231,7 @@ function InsightsPage() {
           <TooltipProvider delayDuration={0}>
             <div className="space-y-5">
               {months.length === 0 ? (
-                <p className="text-[13px] text-warm-grey/50 py-2">No attack data yet.</p>
+                <p className="text-sm text-warm-grey/50 py-2">No attack data yet.</p>
               ) : (
                 months.map((m) => <MonthRow key={m.label} month={m} />)
               )}
@@ -243,35 +243,35 @@ function InsightsPage() {
       {/* RECENT LOGS */}
       <section className="mt-6 mb-6">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs uppercase tracking-[0.18em] text-warm-grey/70 font-semibold">
+          <p className="text-[19px] font-sans font-semibold text-warm-grey/70">
             Recent logs
           </p>
           {allAttacks.length > 3 && (
             <button
               type="button"
               onClick={() => setShowAll(v => !v)}
-              className="text-xs font-semibold text-primary"
+              className="text-sm font-semibold text-primary"
             >
               {showAll ? "Show less" : "View all"}
             </button>
           )}
         </div>
         {allAttacks.length === 0 ? (
-          <p className="text-[13px] text-warm-grey/50 py-2">No attacks logged yet.</p>
+          <p className="text-sm text-warm-grey/50 py-2">No attacks logged yet.</p>
         ) : (
           <div className="rounded-3xl bg-card border border-border divide-y divide-border/60 overflow-hidden">
             {(showAll ? allAttacks : allAttacks.slice(0, 3)).map((a, i) => (
               <div key={`${a.date}-${i}`} className="p-4 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold">{a.displayDate}</p>
+                  <p className="text-sm font-semibold">{a.displayDate}</p>
                   <div className="flex items-center gap-1.5 mt-1.5">
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md border border-border text-warm-grey/80 font-medium">{a.duration}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md border border-border text-warm-grey/80 font-medium">Intensity {a.intensity}</span>
+                    <span className="text-sm px-1.5 py-0.5 rounded-md border border-border text-warm-grey/80 font-medium">{a.duration}</span>
+                    <span className="text-sm px-1.5 py-0.5 rounded-md border border-border text-warm-grey/80 font-medium">Intensity {a.intensity}</span>
                   </div>
                   {a.triggers.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {a.triggers.map((t, idx) => (
-                        <span key={idx} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/70">{t}</span>
+                        <span key={idx} className="text-sm px-1.5 py-0.5 rounded-md bg-muted text-warm-grey/70">{t}</span>
                       ))}
                     </div>
                   )}
@@ -294,8 +294,8 @@ function InsightsPage() {
 function StatTile({ big, label }: { big: number | string; label: string }) {
   return (
     <div className="rounded-2xl bg-card border border-border p-3 text-center">
-      <p className="font-serif-display text-[24px] leading-none">{big}</p>
-      <p className="text-[10px] uppercase tracking-[0.14em] text-warm-grey/70 mt-1">{label}</p>
+      <p className="font-sans text-[24px] leading-none">{big}</p>
+      <p className="text-sm text-warm-grey/70 mt-1">{label}</p>
     </div>
   );
 }
@@ -342,7 +342,7 @@ function MonthRow({ month }: { month: SheetMonthData }) {
       <div className="flex items-baseline justify-between mb-2">
         <div>
           <p className="text-[15px] font-bold text-white leading-tight">{month.label}</p>
-          <p className="text-[11px] text-primary font-semibold mb-3">{migraineFreeDays} migraine-free days</p>
+          <p className="text-sm text-primary font-semibold mb-3">{migraineFreeDays} migraine-free days</p>
         </div>
       </div>
       <div className="flex">
@@ -354,7 +354,7 @@ function MonthRow({ month }: { month: SheetMonthData }) {
             return (
               <span
                 key={d}
-                className="absolute right-2 text-[9px] text-white/50 tabular-nums"
+                className="absolute right-2 text-sm text-white/50 tabular-nums"
                 style={{ bottom: `calc(${pct}% + 4px)`, transform: "translateY(50%)" }}
               >
                 {label}
@@ -388,7 +388,7 @@ function MonthRow({ month }: { month: SheetMonthData }) {
                       <button type="button" className="focus:outline-none flex-1 flex z-0">{slot}</button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="bg-white text-brand-ink">
-                      <div className="text-[11px] leading-tight font-medium space-y-0.5">
+                      <div className="text-sm leading-tight font-medium space-y-0.5">
                         <div>{ordinal(a.day)} {monthName}</div>
                         <div>Intensity: {a.intensity}/10</div>
                         <div>Duration: {DURATION_LABEL[a.duration]}</div>
@@ -404,7 +404,7 @@ function MonthRow({ month }: { month: SheetMonthData }) {
               if (d > month.days) return null;
               const leftPct = ((d - 0.5) / month.days) * 100;
               return (
-                <span key={d} className="absolute -translate-x-1/2 text-[10px] text-white tabular-nums" style={{ left: `${leftPct}%` }}>
+                <span key={d} className="absolute -translate-x-1/2 text-sm text-white tabular-nums" style={{ left: `${leftPct}%` }}>
                   {d}
                 </span>
               );

@@ -198,13 +198,13 @@ export function NotificationPrompt({ mobile, userName, onDone }: Props) {
         <h2 className="text-[18px] font-semibold leading-snug">
           Never miss your supplements
         </h2>
-        <p className="text-[13px] text-warm-grey/70 mt-2 leading-relaxed">
+        <p className="text-sm text-warm-grey/70 mt-2 leading-relaxed">
           Get a gentle reminder at your meal times every day. No spam — just your dose reminder.
         </p>
 
         <div className="mt-4 flex gap-2">
-          <span className="px-3 py-1.5 rounded-full bg-muted text-[12px] font-medium">🌿 Day dose</span>
-          <span className="px-3 py-1.5 rounded-full bg-muted text-[12px] font-medium">🌙 Night dose</span>
+          <span className="px-3 py-1.5 rounded-full bg-muted text-sm font-medium">🌿 Day dose</span>
+          <span className="px-3 py-1.5 rounded-full bg-muted text-sm font-medium">🌙 Night dose</span>
         </div>
 
         <div className="mt-5 flex flex-col gap-2">
@@ -231,7 +231,7 @@ export function NotificationPrompt({ mobile, userName, onDone }: Props) {
           {!done && (
             <button
               onClick={handleSkip}
-              className="w-full rounded-2xl bg-muted py-3 text-[13px] font-medium text-warm-grey/70"
+              className="w-full rounded-2xl bg-muted py-3 text-sm font-medium text-warm-grey/70"
             >
               Maybe later
             </button>
