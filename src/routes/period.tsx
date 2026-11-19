@@ -200,7 +200,7 @@ function PeriodPage() {
         <Link
           to="/period/calendar"
           aria-label="Open month view"
-          className="h-9 w-9 rounded-full grid place-items-center bg-[#F2B8BF]/20 text-[#F2B8BF] hover:bg-[#F2B8BF]/30 transition"
+          className="h-9 w-9 rounded-full grid place-items-center bg-[#D89292]/20 text-[#D89292] hover:bg-[#D89292]/30 transition"
         >
           <CalendarIcon className="h-4 w-4" />
         </Link>
@@ -243,7 +243,7 @@ function PeriodPage() {
                 {logged && <DropletIcon filled />}
                 {predicted && <DropletIcon />}
                 {isToday && !logged && !predicted && (
-                  <span className="absolute inset-2 rounded-full ring-2 ring-[#7B6BA8]" />
+                  <span className="absolute inset-2 rounded-full ring-2 ring-[#B9B0C7]" />
                 )}
                 <span
                   className={`relative z-10 ${logged ? "text-[var(--brand-ink)] font-bold" : ""} ${
@@ -260,13 +260,13 @@ function PeriodPage() {
           <div className="mt-4 flex items-center gap-2">
             <button
               onClick={() => setSelectedStart(null)}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-[#F2B8BF]/30 bg-card py-2.5 text-sm font-semibold text-[#F2B8BF]"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-[#D89292]/30 bg-card py-2.5 text-sm font-semibold text-[#D89292]"
             >
               <X className="h-3.5 w-3.5" /> Cancel
             </button>
             <button
               onClick={saveSelectedPeriod}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-[#d9a5ab] py-2.5 text-sm font-semibold text-[#1A0F1E]"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-[#D89292] py-2.5 text-sm font-semibold text-[#2F2933]"
             >
               <Check className="h-3.5 w-3.5" /> Save · {format(selectedStart, "d MMM")}
             </button>
@@ -275,20 +275,20 @@ function PeriodPage() {
       </section>
 
       {/* Cycle status — Regular vs Irregular */}
-      <section className="mt-5 rounded-3xl bg-gradient-to-br from-[#F2B8BF]/20 to-[#FCB3C4]/10 border border-[#F2B8BF]/30 p-5 text-center">
+      <section className="mt-5 rounded-3xl bg-gradient-to-br from-[#D89292]/20 to-[#D89292]/10 border border-[#D89292]/30 p-5 text-center">
         {isIrregular ? (
           /* ── Irregular ── */
           <>
-            <p className="text-xs uppercase tracking-[0.18em] text-[#F2B8BF] font-semibold">
+            <p className="text-xs uppercase tracking-[0.18em] text-[#D89292] font-semibold">
               {irrLow !== null ? "Period in" : "Start tracking"}
             </p>
             {irrLow !== null && irrHigh !== null ? (
               <>
                 <div className="mt-2 flex items-baseline justify-center gap-2">
                   <span className="text-[56px] leading-none text-foreground font-bold">
-                    <span className="text-[#F2B8BF]">{irrLow}</span>
+                    <span className="text-[#D89292]">{irrLow}</span>
                     <span className="text-3xl text-foreground/60">–</span>
-                    <span className="text-[#F2B8BF]">{irrHigh}</span>
+                    <span className="text-[#D89292]">{irrHigh}</span>
                   </span>
                   <span className="text-base text-warm-grey/80">days</span>
                 </div>
@@ -310,13 +310,13 @@ function PeriodPage() {
         ) : (
           /* ── Regular ── */
           <>
-            <p className="text-xs uppercase tracking-[0.18em] text-[#F2B8BF] font-semibold">
+            <p className="text-xs uppercase tracking-[0.18em] text-[#D89292] font-semibold">
               {daysLeft !== null ? "Period in" : "Start tracking"}
             </p>
             {daysLeft !== null && currentDay !== null ? (
               <>
                 <div className="mt-2 flex items-baseline justify-center gap-2">
-                  <span className="text-[56px] leading-none text-foreground font-bold text-[#F2B8BF]">
+                  <span className="text-[56px] leading-none text-foreground font-bold text-[#D89292]">
                     {daysLeft}
                   </span>
                   <span className="text-base text-warm-grey/80">days</span>
@@ -424,7 +424,7 @@ function PeriodPage() {
         <div className="w-full max-w-[430px] mx-auto px-5 pointer-events-auto">
           <Link
             to="/period/calendar"
-            className="flex items-center justify-center gap-2 w-full rounded-full bg-[#d9a5ab] hover:bg-[#d9a5ab]/90 text-[#1A0F1E] font-semibold py-3.5 shadow-lg shadow-[#d9a5ab]/25 transition"
+            className="flex items-center justify-center gap-2 w-full rounded-full bg-[#D89292] hover:bg-[#D89292]/90 text-[#2F2933] font-semibold py-3.5 shadow-lg shadow-[#D89292]/25 transition"
           >
             <Plus className="h-4 w-4" strokeWidth={2.8} />
             Log period
@@ -441,7 +441,7 @@ function StatPill({ label, value, highlight, compact }: { label: string; value: 
       <p className="text-[9px] uppercase tracking-[0.14em] text-warm-grey/60 font-semibold">
         {label}
       </p>
-      <p className={`mt-1 font-semibold leading-tight ${compact ? "text-xs" : "text-sm"} ${highlight ? "text-[#F2B8BF]" : "text-foreground"}`}>
+      <p className={`mt-1 font-semibold leading-tight ${compact ? "text-xs" : "text-sm"} ${highlight ? "text-[#D89292]" : "text-foreground"}`}>
         {value}
       </p>
     </div>

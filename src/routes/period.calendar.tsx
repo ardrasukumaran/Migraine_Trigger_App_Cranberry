@@ -113,12 +113,12 @@ function CalendarPage() {
   return (
     <AppShell hideLogout>
       {/* Sticky header: top bar + weekday labels */}
-      <div className="sticky top-0 z-20 bg-[#1A0F1E] -mx-5 px-5 pb-2 pt-3">
+      <div className="sticky top-0 z-20 bg-[#2F2933] -mx-5 px-5 pb-2 pt-3">
         <div className="flex items-center justify-between">
           <Link
             to="/period"
             aria-label="Back to period"
-            className="h-9 w-9 rounded-full grid place-items-center bg-[#F2B8BF]/20 text-[#F2B8BF] hover:bg-[#F2B8BF]/30 transition"
+            className="h-9 w-9 rounded-full grid place-items-center bg-[#D89292]/20 text-[#D89292] hover:bg-[#D89292]/30 transition"
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
@@ -164,7 +164,7 @@ function CalendarPage() {
             disabled={!selectedStart}
             className={`w-full rounded-full font-semibold py-3.5 transition ${
               selectedStart
-                ? "bg-[#d9a5ab] hover:bg-[#d9a5ab]/90 text-[#1A0F1E] shadow-lg shadow-[#d9a5ab]/25"
+                ? "bg-[#D89292] hover:bg-[#D89292]/90 text-[#2F2933] shadow-lg shadow-[#D89292]/25"
                 : "bg-muted text-warm-grey/50 cursor-not-allowed"
             }`}
           >
@@ -268,7 +268,7 @@ function MonthGrid({
               {logged && <DropletIcon filled />}
               {predicted && <DropletIcon />}
               {inMonth && isToday && !logged && !predicted && (
-                <span className="absolute inset-2 rounded-full ring-2 ring-[#C7B8EA]" />
+                <span className="absolute inset-2 rounded-full ring-2 ring-[#B9B0C7]" />
               )}
               <span
                 className={`relative z-10 ${logged ? "text-[var(--brand-ink)] font-bold" : ""} ${

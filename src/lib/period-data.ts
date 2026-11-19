@@ -3,7 +3,7 @@ import { addDays, format } from "date-fns";
 
 // ── Phase palette ──────────────────────────────────────────────────
 export const PHASE = {
-  period:     { name: "Period",     color: "#F2B8BF" },
+  period:     { name: "Period",     color: "#D89292" },
   follicular: { name: "Follicular", color: "#B8E4C2" },
   luteal:     { name: "Luteal",     color: "#B8C5E8" },
   pms:        { name: "PMS",        color: "#FFCBA4" },
