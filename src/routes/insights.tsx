@@ -110,7 +110,7 @@ function InsightsPage() {
               avg / 10
             </span>
           </div>
-          <div className="relative h-20">
+          <div className="relative h-10">
             {/* Track — sits at top 16px */}
             <div className="absolute inset-x-0 h-1.5 rounded-full bg-muted" style={{ top: "16px" }} />
             <div
@@ -122,40 +122,27 @@ function InsightsPage() {
                 background: `linear-gradient(90deg, ${painColor(minIntensity)}, ${painColor(maxIntensity)})`,
               }}
             />
-            {/* Min marker (h-5, centered on bar at top 16px) */}
+            {/* Min marker */}
             <div
               className="absolute h-5 w-[3px] rounded-full bg-foreground/60"
               style={{ top: "7px", left: `calc(${(minIntensity / 10) * 100}% - 1.5px)` }}
             />
-            <span
-              className="absolute -translate-x-1/2 text-sm text-warm-grey/70 whitespace-nowrap"
-              style={{ left: `${(minIntensity / 10) * 100}%`, top: "36px" }}
-            >
-              Min {minIntensity}
-            </span>
-            {/* Avg marker (h-7, centered on bar) */}
+            {/* Avg marker */}
             <div
               className="absolute h-7 w-[3px] rounded-full bg-foreground shadow"
               style={{ top: "3px", left: `calc(${(avgIntensity / 10) * 100}% - 1.5px)` }}
               aria-label={`Average ${avgIntensity}`}
             />
-            <span
-              className="absolute -translate-x-1/2 text-sm font-semibold text-foreground whitespace-nowrap"
-              style={{ left: `${(avgIntensity / 10) * 100}%`, top: "36px" }}
-            >
-              Avg {avgIntensity}
-            </span>
-            {/* Max marker (h-5, centered on bar) */}
+            {/* Max marker */}
             <div
               className="absolute h-5 w-[3px] rounded-full bg-foreground/60"
               style={{ top: "7px", left: `calc(${(maxIntensity / 10) * 100}% - 1.5px)` }}
             />
-            <span
-              className="absolute -translate-x-1/2 text-sm text-warm-grey/70 whitespace-nowrap"
-              style={{ left: `${(maxIntensity / 10) * 100}%`, top: "36px" }}
-            >
-              Max {maxIntensity}
-            </span>
+          </div>
+          <div className="flex justify-between mt-2 text-sm">
+            <span className="text-warm-grey/70">Min {minIntensity}</span>
+            <span className="font-semibold text-foreground">Avg {avgIntensity}</span>
+            <span className="text-warm-grey/70">Max {maxIntensity}</span>
           </div>
         </div>
       </section>
