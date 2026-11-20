@@ -25,12 +25,12 @@ export function BottomNav() {
 
           {tabs.map(({ to, label, icon: Icon, external, highlight }) => {
             const active = !external && loc.pathname === to;
-            const className = `flex flex-1 flex-col items-center gap-1 px-1.5 py-1 rounded-2xl text-[14px] font-body transition ${
+            const className = `flex flex-1 flex-col items-center gap-1 px-1.5 py-1 rounded-2xl text-[12px] font-body transition ${
               active ? "text-primary font-bold" : "text-warm-grey/70 font-normal"
             }`;
             const iconEl = highlight ? (
-              <span className="h-8 w-8 rounded-full grid place-items-center bg-primary text-primary-foreground">
-                <Icon className="h-4 w-4" strokeWidth={2.6} />
+              <span className="h-11 w-11 rounded-full grid place-items-center bg-primary text-primary-foreground shadow-lg shadow-primary/40 -mt-3">
+                <Icon className="h-5 w-5" strokeWidth={2.6} />
               </span>
             ) : (
               <Icon className={`h-5 w-5 ${active ? "stroke-[2.4]" : ""}`} />

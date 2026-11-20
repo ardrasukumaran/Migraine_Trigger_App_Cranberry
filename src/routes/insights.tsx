@@ -215,7 +215,7 @@ function InsightsPage() {
                 className="h-2.5 w-24 rounded-full"
                 style={{ background: "linear-gradient(90deg, var(--pain-1), var(--pain-4), var(--pain-7), var(--pain-10))" }}
               />
-              <span className="text-sm text-white">Severity</span>
+              <span className="text-[11px] text-white">Severity</span>
             </div>
             <div className="flex items-end gap-2">
               {DURATION_OPTIONS.map((d) => (
@@ -223,7 +223,7 @@ function InsightsPage() {
                   <div className="w-3 h-6 rounded-[2px] relative overflow-hidden" style={{ background: "#2E1C35" }}>
                     <div className="absolute bottom-0 inset-x-0 bg-primary/70" style={{ height: `${DURATION_HEIGHT_PCT[d]}%` }} />
                   </div>
-                  <span className="text-sm text-white mt-0.5">{d}</span>
+                  <span className="text-[11px] text-white mt-0.5">{d}</span>
                 </div>
               ))}
             </div>
@@ -354,7 +354,7 @@ function MonthRow({ month }: { month: SheetMonthData }) {
             return (
               <span
                 key={d}
-                className="absolute right-2 text-sm text-white/50 tabular-nums"
+                className="absolute right-2 text-[11px] text-white/50 tabular-nums"
                 style={{ bottom: `calc(${pct}% + 4px)`, transform: "translateY(50%)" }}
               >
                 {label}
@@ -404,7 +404,7 @@ function MonthRow({ month }: { month: SheetMonthData }) {
               if (d > month.days) return null;
               const leftPct = ((d - 0.5) / month.days) * 100;
               return (
-                <span key={d} className="absolute -translate-x-1/2 text-sm text-white tabular-nums" style={{ left: `${leftPct}%` }}>
+                <span key={d} className="absolute -translate-x-1/2 text-[11px] text-white tabular-nums" style={{ left: `${leftPct}%` }}>
                   {d}
                 </span>
               );
